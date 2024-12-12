@@ -10,7 +10,7 @@ namespace RuoYi.Data.Entities
         public long Id{ get; set; }
 
         /** 所属组织 */
-        [SugarColumn(ColumnName = "tenant_id",ColumnDescription = "所属组织",IsPrimaryKey = true,IsIdentity = true)]
+        [SugarColumn(ColumnName = "tenant_id",ColumnDescription = "所属组织")]
         public long TenantId { get; set; }
 
 

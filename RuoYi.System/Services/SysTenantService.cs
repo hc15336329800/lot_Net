@@ -37,7 +37,7 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     /// </summary>
     public async Task<SysTenant> GetAsync(long id)
     {
-        return await base.FirstOrDefaultAsync(e => e.DeptId == id);
+        return await base.FirstOrDefaultAsync(e => e.Id == id);
     }
     public async Task<SysTenantDto> GetDtoAsync(long id)
     {
@@ -45,7 +45,7 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
         return entity.Adapt<SysTenantDto>();
     }
 
-    [DataScope(DeptAlias = "d")]
+    //[DataScope(DeptAlias = "d")]
     public override async Task<List<SysTenantDto>> GetDtoListAsync(SysTenantDto dto)
     {
         return await _sysTenantRepository.GetDtoListAsync(dto);
@@ -73,11 +73,11 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
         return await _sysTenantRepository.CountNormalChildrenDeptByIdAsync(deptId);
     }
 
-    #region TreeSelect
+    #region TreeSelectTenant
     /// <summary>
     /// 查询部门树结构信息
     /// </summary>
-    public async Task<List<TreeSelect>> GetDeptTreeListAsync(SysTenantDto dto)
+    public async Task<List<TreeSelectTenant>> GetDeptTreeListAsync(SysTenantDto dto)
     {
         List<SysTenantDto> depts = await this.GetDtoListAsync(dto);
         return BuildDeptTreeSelect(depts);
@@ -86,10 +86,10 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     /// <summary>
     /// 构建前端所需要下拉树结构
     /// </summary>
-    private List<TreeSelect> BuildDeptTreeSelect(List<SysTenantDto> depts)
+    private List<TreeSelectTenant> BuildDeptTreeSelect(List<SysTenantDto> depts)
     {
         List<SysTenantDto> deptTrees = BuildDeptTree(depts);
-        return deptTrees.Select(dept => new TreeSelect(dept)).ToList();
+        return deptTrees.Select(dept => new TreeSelectTenant(dept)).ToList();
     }
 
     /// <summary>
@@ -98,7 +98,7 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     private List<SysTenantDto> BuildDeptTree(List<SysTenantDto> depts)
     {
         List<SysTenantDto> returnList = new List<SysTenantDto>();
-        List<long> tempList = depts.Where(d => d.DeptId.HasValue).Select(d => d.DeptId!.Value).ToList();
+        List<long> tempList = depts.Where(d => d.Id.HasValue).Select(d => d.Id!.Value).ToList();
         foreach (SysTenantDto dept in depts)
         {
             // 如果是顶级节点, 遍历该父节点的所有子节点
@@ -140,7 +140,7 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
         List<SysTenantDto> tList = new List<SysTenantDto>();
         foreach (SysTenantDto n in list)
         {
-            if (n.ParentId > 0 && n.ParentId == t.DeptId)
+            if (n.ParentId > 0 && n.ParentId == t.Id)
             {
                 tList.Add(n);
             }
@@ -181,7 +181,7 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     public async Task<bool> CheckDeptNameUniqueAsync(SysTenantDto dept)
     {
         SysTenant info = await _sysTenantRepository.GetFirstAsync(new SysTenantDto { DeptName = dept.DeptName, ParentId = dept.ParentId });
-        if (info != null && info.DeptId != dept.DeptId)
+        if (info != null && info.Id != dept.Id)
         {
             return UserConstants.NOT_UNIQUE;
         }
@@ -196,7 +196,7 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     {
         if (!SecurityUtils.IsAdmin())
         {
-            SysTenantDto dto = new SysTenantDto { DeptId = deptId };
+            SysTenantDto dto = new SysTenantDto { Id = deptId };
             List<SysTenant> depts = await _sysTenantRepository.GetDeptListAsync(dto);
             if (depts.IsEmpty())
             {
@@ -210,7 +210,7 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     /// </summary>
     public async Task<bool> InsertDeptAsync(SysTenantDto dept)
     {
-        SysTenant info = await _sysTenantRepository.FirstOrDefaultAsync(d => d.DeptId == dept.ParentId); // 父节点
+        SysTenant info = await _sysTenantRepository.FirstOrDefaultAsync(d => d.Id == dept.ParentId); // 父节点
         // 如果父节点不为正常状态,则不允许新增子节点
         if (!UserConstants.DEPT_NORMAL.Equals(info.Status))
         {
@@ -227,13 +227,13 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     public async Task<int> UpdateDeptAsync(SysTenantDto dept)
     {
         SysTenant newParentDept = await this.GetAsync(dept.ParentId.Value);
-        SysTenant oldDept = await this.GetAsync(dept.DeptId.Value);
+        SysTenant oldDept = await this.GetAsync(dept.Id.Value);
         if (newParentDept != null && oldDept != null)
         {
-            string newAncestors = newParentDept.Ancestors + "," + newParentDept.DeptId;
+            string newAncestors = newParentDept.Ancestors + "," + newParentDept.Id;
             string oldAncestors = oldDept.Ancestors!;
             dept.Ancestors = newAncestors;
-            await UpdateDeptChildrenAsync(dept.DeptId.Value, newAncestors, oldAncestors);
+            await UpdateDeptChildrenAsync(dept.Id.Value, newAncestors, oldAncestors);
         }
         int result = await _sysTenantRepository.UpdateAsync(dept, true);
         if (UserConstants.DEPT_NORMAL.Equals(dept.Status) && StringUtils.IsNotEmpty(dept.Ancestors)

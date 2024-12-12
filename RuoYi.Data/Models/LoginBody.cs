@@ -2,6 +2,13 @@
 {
     public class LoginBody
     {
+
+        /// <summary>
+        /// 租户
+        /// </summary>
+        public long TenantId { get; set; }
+        
+
         /// <summary>
         /// 用户名
         /// </summary>

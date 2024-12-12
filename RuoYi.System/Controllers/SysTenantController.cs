@@ -1,5 +1,6 @@
 using RuoYi.Common.Constants;
 using RuoYi.Common.Enums;
+using RuoYi.Common.Utils;
 using RuoYi.Data.Dtos;
 using RuoYi.Framework;
 using RuoYi.System.Services;
@@ -30,15 +31,19 @@ namespace RuoYi.System.Controllers
         [AppAuthorize("system:tenant:list")]
         public async Task<AjaxResult> GetSysDeptList([FromQuery] SysTenantDto dto)
         {
+            // 查询tid
+            long tid = SecurityUtils.GetTenantId();
+            dto.TenantId = tid;
+            // 动态查询
             var data = await _sysTenantService.GetDtoListAsync(dto);
             return AjaxResult.Success(data);
         }
 
         /// <summary>
-        /// 查询部门表列表
+        /// 查询部门表列表  不用
         /// </summary>
         [HttpGet("list/exclude/{deptId}")]
-        [AppAuthorize("system:tenant:list")]
+        //[AppAuthorize("system:tenant:list")]
         public async Task<AjaxResult> ExcludeChildList(long? deptId)
         {
             var list = await _sysTenantService.GetDtoListAsync(new SysTenantDto());
@@ -51,7 +56,7 @@ namespace RuoYi.System.Controllers
         /// 获取 部门表 详细信息
         /// </summary>
         [HttpGet("{deptId}")]
-        [AppAuthorize("system:tenant:query")]
+        //[AppAuthorize("system:tenant:query")]
         public async Task<AjaxResult> Get(long deptId)
         {
             await _sysTenantService.CheckDeptDataScopeAsync(deptId);
@@ -63,11 +68,19 @@ namespace RuoYi.System.Controllers
         /// 新增 部门表
         /// </summary>
         [HttpPost("")]
-        [AppAuthorize("system:tenant:add")]
+        //[AppAuthorize("system:tenant:add")]
         [TypeFilter(typeof(RuoYi.Framework.DataValidation.DataValidationFilter))]
         [Log(Title = "部门管理", BusinessType = BusinessType.INSERT)]
         public async Task<AjaxResult> Add([FromBody] SysTenantDto tenant)
         {
+            // 查询tid
+            if(tenant.TenantId <= 0)
+            {
+                long tid = SecurityUtils.GetTenantId();
+                tenant.TenantId = tid;
+            }
+           
+
             if (!await _sysTenantService.CheckDeptNameUniqueAsync(tenant))
             {
                 return AjaxResult.Error($"新增部门'{tenant.DeptName} '失败，部门名称已存在");
@@ -80,7 +93,7 @@ namespace RuoYi.System.Controllers
         /// 修改 部门表
         /// </summary>
         [HttpPut("")]
-        [AppAuthorize("system:tenant:edit")]
+        //[AppAuthorize("system:tenant:edit")]
         [TypeFilter(typeof(RuoYi.Framework.DataValidation.DataValidationFilter))]
         [Log(Title = "部门管理", BusinessType = BusinessType.UPDATE)]
         public async Task<AjaxResult> Edit([FromBody] SysTenantDto tenant)
@@ -107,7 +120,7 @@ namespace RuoYi.System.Controllers
         /// 删除 部门表
         /// </summary>
         [HttpDelete("{deptId}")]
-        [AppAuthorize("system:tenant:remove")]
+        //[AppAuthorize("system:tenant:remove")]
         [Log(Title = "部门管理", BusinessType = BusinessType.DELETE)]
         public async Task<AjaxResult> Remove(long deptId)
         {

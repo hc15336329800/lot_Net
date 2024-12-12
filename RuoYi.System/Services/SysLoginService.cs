@@ -1,4 +1,5 @@
-﻿using Lazy.Captcha.Core;
+﻿using System.Security.Cryptography;
+using Lazy.Captcha.Core;
 using RuoYi.Common.Constants;
 using RuoYi.Common.Enums;
 using RuoYi.Data.Models;
@@ -44,7 +45,7 @@ public class SysLoginService : ITransient
     /// <param name="code">验证码</param>
     /// <param name="uuid">唯一标识</param>
     /// <returns>结果</returns>
-    public async Task<string> LoginAsync(string username, string password, string code, string uuid)
+    public async Task<string> LoginAsync(string username, string password, string code, string uuid,long tenantid)
     {
         // 验证码校验
         ValidateCaptcha(username, code, uuid);
@@ -57,7 +58,19 @@ public class SysLoginService : ITransient
         // 记录登录成功
         await _sysLogininforService.AddAsync(username, Constants.LOGIN_SUCCESS, MessageConstants.User_Login_Success);
 
+
+        //************************  User用户信息，写入缓存 ***************************************
+        //long[] childrenTenant = GetChildrenTenantById(tid);// 获取组织子集
+        userDto.TenantId = tenantid; //组织id
+        //userDto.TenantChildId = childrenTenant; //组织子集
         var loginUser = CreateLoginUser(userDto);
+
+        //*****************************************************************************************
+
+ 
+
+
+
         await RecordLoginInfoAsync(userDto.UserId ?? 0);
 
         // 生成token
@@ -166,7 +179,9 @@ public class SysLoginService : ITransient
             UserName = user.UserName ?? "",
             Password = user.Password ?? "",
             User = user,
-            Permissions = permissions
+            Permissions = permissions,
+            //新增
+            TenantId = user.TenantId,
         };
     }
 

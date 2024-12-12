@@ -8,9 +8,17 @@ using RuoYi.Framework.Extensions;
 using RuoYi.Framework.Utils;
 using SqlSugar;
 using System.Linq.Expressions;
-
 namespace RuoYi.Common.Data;
 
+
+
+
+/// <summary>
+/// 仓储基类接口
+/// 所有查询都依赖 Queryable 和 DtoQueryable 的筛选条件。
+/// </summary>
+/// <typeparam name="TEntity"></typeparam>
+/// <typeparam name="TDto"></typeparam>
 public abstract class BaseRepository<TEntity, TDto> : ITransient
     where TEntity : BaseEntity, new()
     where TDto : BaseDto, new()
@@ -416,6 +424,12 @@ public abstract class BaseRepository<TEntity, TDto> : ITransient
         return await Repo.UpdateAsync(entity, ignoreAllNullColumns);
     }
 
+
+    /// <summary>
+    /// 更新逐条记录，操作更安全，兼容性强，适合常规操作。数据量小于 100 条
+    /// </summary>
+    /// <param name="entities"></param>
+    /// <returns></returns>
     public async Task<int> UpdateAsync(IEnumerable<TEntity> entities)
     {
         this.SetUpdateUserInfo(entities);
@@ -423,7 +437,8 @@ public abstract class BaseRepository<TEntity, TDto> : ITransient
     }
 
     /// <summary>
-    /// 大数据更新
+    /// 大数据更新  高性能批量更新，适合大规模数据同步、定时任务等场景，但可能忽略一些逻辑处理。
+    /// 数据量较大（>100 条）
     /// </summary>
     public async Task<int> UpdateBulkAsync(List<TEntity> entities)
     {

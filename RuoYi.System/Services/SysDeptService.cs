@@ -12,7 +12,7 @@ namespace RuoYi.System.Services;
 ///  author ruoyi
 ///  date   2023-09-04 17:49:57
 /// </summary>
-public class SysDeptService : BaseService<SysDept, SysDeptDto>, ITransient
+public class SysDeptService : BaseService<SysDept,SysDeptDto>, ITransient
 {
     private readonly ILogger<SysDeptService> _logger;
     private readonly SysDeptRepository _sysDeptRepository;
@@ -60,7 +60,7 @@ public class SysDeptService : BaseService<SysDept, SysDeptDto>, ITransient
     {
         SysRole role = _sysRoleRepository.GetRoleById(roleId);
 
-        return await _sysDeptRepository.GetDeptListByRoleIdAsync(roleId, role.DeptCheckStrictly);
+        return await _sysDeptRepository.GetDeptListByRoleIdAsync(roleId,role.DeptCheckStrictly);
     }
 
     /// <summary>
@@ -99,16 +99,16 @@ public class SysDeptService : BaseService<SysDept, SysDeptDto>, ITransient
     {
         List<SysDeptDto> returnList = new List<SysDeptDto>();
         List<long> tempList = depts.Where(d => d.DeptId.HasValue).Select(d => d.DeptId!.Value).ToList();
-        foreach (SysDeptDto dept in depts)
+        foreach(SysDeptDto dept in depts)
         {
             // 如果是顶级节点, 遍历该父节点的所有子节点
-            if (dept.ParentId.HasValue && !tempList.Contains(dept.ParentId.Value))
+            if(dept.ParentId.HasValue && !tempList.Contains(dept.ParentId.Value))
             {
-                RecursionFn(depts, dept);
+                RecursionFn(depts,dept);
                 returnList.Add(dept);
             }
         }
-        if (returnList.IsEmpty())
+        if(returnList.IsEmpty())
         {
             returnList = depts;
         }
@@ -118,16 +118,16 @@ public class SysDeptService : BaseService<SysDept, SysDeptDto>, ITransient
     /// <summary>
     /// 递归列表
     /// </summary>
-    private void RecursionFn(List<SysDeptDto> list, SysDeptDto t)
+    private void RecursionFn(List<SysDeptDto> list,SysDeptDto t)
     {
         // 得到子节点列表
-        List<SysDeptDto> childList = GetChildList(list, t);
+        List<SysDeptDto> childList = GetChildList(list,t);
         t.Children = childList;
-        foreach (SysDeptDto tChild in childList)
+        foreach(SysDeptDto tChild in childList)
         {
-            if (HasChild(list, tChild))
+            if(HasChild(list,tChild))
             {
-                RecursionFn(list, tChild);
+                RecursionFn(list,tChild);
             }
         }
     }
@@ -135,12 +135,12 @@ public class SysDeptService : BaseService<SysDept, SysDeptDto>, ITransient
     /// <summary>
     /// 得到子节点列表
     /// </summary>
-    private List<SysDeptDto> GetChildList(List<SysDeptDto> list, SysDeptDto t)
+    private List<SysDeptDto> GetChildList(List<SysDeptDto> list,SysDeptDto t)
     {
         List<SysDeptDto> tList = new List<SysDeptDto>();
-        foreach (SysDeptDto n in list)
+        foreach(SysDeptDto n in list)
         {
-            if (n.ParentId > 0 && n.ParentId == t.DeptId)
+            if(n.ParentId > 0 && n.ParentId == t.DeptId)
             {
                 tList.Add(n);
             }
@@ -168,9 +168,9 @@ public class SysDeptService : BaseService<SysDept, SysDeptDto>, ITransient
         return await _sysUserRepository.CheckDeptExistUserAsync(deptId);
     }
 
-    private bool HasChild(List<SysDeptDto> list, SysDeptDto t)
+    private bool HasChild(List<SysDeptDto> list,SysDeptDto t)
     {
-        return GetChildList(list, t).Count > 0;
+        return GetChildList(list,t).Count > 0;
     }
 
     #endregion
@@ -180,8 +180,8 @@ public class SysDeptService : BaseService<SysDept, SysDeptDto>, ITransient
     /// </summary>
     public async Task<bool> CheckDeptNameUniqueAsync(SysDeptDto dept)
     {
-        SysDept info = await _sysDeptRepository.GetFirstAsync(new SysDeptDto { DeptName = dept.DeptName, ParentId = dept.ParentId });
-        if (info != null && info.DeptId != dept.DeptId)
+        SysDept info = await _sysDeptRepository.GetFirstAsync(new SysDeptDto { DeptName = dept.DeptName,ParentId = dept.ParentId });
+        if(info != null && info.DeptId != dept.DeptId)
         {
             return UserConstants.NOT_UNIQUE;
         }
@@ -194,11 +194,11 @@ public class SysDeptService : BaseService<SysDept, SysDeptDto>, ITransient
     /// <param name="deptId">部门id</param>
     public async Task CheckDeptDataScopeAsync(long deptId)
     {
-        if (!SecurityUtils.IsAdmin())
+        if(!SecurityUtils.IsAdmin())
         {
             SysDeptDto dto = new SysDeptDto { DeptId = deptId };
             List<SysDept> depts = await _sysDeptRepository.GetDeptListAsync(dto);
-            if (depts.IsEmpty())
+            if(depts.IsEmpty())
             {
                 throw new ServiceException("没有权限访问部门数据！");
             }
@@ -212,7 +212,7 @@ public class SysDeptService : BaseService<SysDept, SysDeptDto>, ITransient
     {
         SysDept info = await _sysDeptRepository.FirstOrDefaultAsync(d => d.DeptId == dept.ParentId); // 父节点
         // 如果父节点不为正常状态,则不允许新增子节点
-        if (!UserConstants.DEPT_NORMAL.Equals(info.Status))
+        if(!UserConstants.DEPT_NORMAL.Equals(info.Status))
         {
             throw new ServiceException("部门停用，不允许新增");
         }
@@ -228,16 +228,16 @@ public class SysDeptService : BaseService<SysDept, SysDeptDto>, ITransient
     {
         SysDept newParentDept = await this.GetAsync(dept.ParentId.Value);
         SysDept oldDept = await this.GetAsync(dept.DeptId.Value);
-        if (newParentDept != null && oldDept != null)
+        if(newParentDept != null && oldDept != null)
         {
             string newAncestors = newParentDept.Ancestors + "," + newParentDept.DeptId;
             string oldAncestors = oldDept.Ancestors!;
             dept.Ancestors = newAncestors;
-            await UpdateDeptChildrenAsync(dept.DeptId.Value, newAncestors, oldAncestors);
+            await UpdateDeptChildrenAsync(dept.DeptId.Value,newAncestors,oldAncestors);
         }
-        int result = await _sysDeptRepository.UpdateAsync(dept, true);
-        if (UserConstants.DEPT_NORMAL.Equals(dept.Status) && StringUtils.IsNotEmpty(dept.Ancestors)
-                && !StringUtils.Equals("0", dept.Ancestors))
+        int result = await _sysDeptRepository.UpdateAsync(dept,true);
+        if(UserConstants.DEPT_NORMAL.Equals(dept.Status) && StringUtils.IsNotEmpty(dept.Ancestors)
+                && !StringUtils.Equals("0",dept.Ancestors))
         {
             // 如果该部门是启用状态，则启用该部门的所有上级部门
             await UpdateParentDeptStatusNormalAsync(dept);
@@ -251,14 +251,14 @@ public class SysDeptService : BaseService<SysDept, SysDeptDto>, ITransient
     /// <param name="deptId">被修改的部门ID</param>
     /// <param name="newAncestors">新的父ID集合</param>
     /// <param name="oldAncestors">旧的父ID集合</param>
-    public async Task UpdateDeptChildrenAsync(long deptId, string newAncestors, string oldAncestors)
+    public async Task UpdateDeptChildrenAsync(long deptId,string newAncestors,string oldAncestors)
     {
         List<SysDept> children = await _sysDeptRepository.GetChildrenDeptByIdAsync(deptId);
-        foreach (SysDept child in children)
+        foreach(SysDept child in children)
         {
-            child.Ancestors = child.Ancestors!.ReplaceFirst(oldAncestors, newAncestors);
+            child.Ancestors = child.Ancestors!.ReplaceFirst(oldAncestors,newAncestors);
         }
-        if (children.Count > 0)
+        if(children.Count > 0)
         {
             await _sysDeptRepository.UpdateAsync(children);
         }

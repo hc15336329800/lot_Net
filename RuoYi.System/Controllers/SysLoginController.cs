@@ -42,7 +42,7 @@ namespace RuoYi.Admin
         {
             AjaxResult ajax = AjaxResult.Success();
             // 生成令牌
-            string token = await _sysLoginService.LoginAsync(loginBody.Username, loginBody.Password, loginBody.Code, loginBody.Uuid);
+            string token = await _sysLoginService.LoginAsync(loginBody.Username, loginBody.Password, loginBody.Code, loginBody.Uuid,loginBody.TenantId);
             ajax.Add(Constants.TOKEN, token);
             return ajax;
         }

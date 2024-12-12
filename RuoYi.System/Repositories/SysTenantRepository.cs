@@ -1,3 +1,6 @@
+using SqlSugar;
+using static System.Net.Mime.MediaTypeNames;
+
 namespace RuoYi.System.Repositories;
 
 /// <summary>
@@ -5,45 +8,49 @@ namespace RuoYi.System.Repositories;
 ///  author ruoyi
 ///  date   2023-09-04 17:49:57
 /// </summary>
-public class SysTenantRepository : BaseRepository<SysTenant, SysTenantDto>
+public class SysTenantRepository : BaseRepository<SysTenant,SysTenantDto>
 {
-    public SysTenantRepository(ISqlSugarRepository<SysTenant> sqlSugarRepository)
+    private readonly ISqlSugarClient _sqlSugarClient; // 注入 SqlSugarClient 实例  
+
+    public SysTenantRepository(ISqlSugarClient sqlSugarClient,ISqlSugarRepository<SysTenant> sqlSugarRepository)
     {
         Repo = sqlSugarRepository;
+        _sqlSugarClient = sqlSugarClient; //  SqlSugarClient 实例
+
     }
 
     public override ISugarQueryable<SysTenant> Queryable(SysTenantDto dto)
     {
         return Repo.AsQueryable()
             .Where((d) => d.DelFlag == DelFlag.No)
-            .WhereIF(dto.Id > 0, (d) => d.Id == dto.Id)
-            .WhereIF(dto.ParentId > 0, (d) => d.ParentId == dto.ParentId)
-            .WhereIF(!string.IsNullOrEmpty(dto.DelFlag), (d) => d.DelFlag == dto.DelFlag)
-            .WhereIF(!string.IsNullOrEmpty(dto.DeptName), (d) => d.DeptName!.Contains(dto.DeptName!))
-            .WhereIF(!string.IsNullOrEmpty(dto.Status), (d) => d.Status == dto.Status)
+            .WhereIF(dto.Id > 0,(d) => d.Id == dto.Id)
+            .WhereIF(dto.ParentId > 0,(d) => d.ParentId == dto.ParentId)
+            .WhereIF(!string.IsNullOrEmpty(dto.DelFlag),(d) => d.DelFlag == dto.DelFlag)
+            .WhereIF(!string.IsNullOrEmpty(dto.DeptName),(d) => d.DeptName!.Contains(dto.DeptName!))
+            .WhereIF(!string.IsNullOrEmpty(dto.Status),(d) => d.Status == dto.Status)
         ;
     }
 
     public override ISugarQueryable<SysTenantDto> DtoQueryable(SysTenantDto dto)
     {
+        // 按道理来说是自己查询自己的
+
         return Repo.AsQueryable()
-            .LeftJoin<SysRoleDept>((d, rd) => d.Id == rd.DeptId)
+ 
+            //新增
+            //.WhereIF(dto.TenantId > 0,(d) => d.TenantId == dto.TenantId)
+             .Where((d) => d.TenantId == dto.TenantId)
+
+
             .Where((d) => d.DelFlag == DelFlag.No)
-            .WhereIF(dto.Id > 0, (d) => d.Id == dto.Id)
-            .WhereIF(dto.ParentId > 0, (d) => d.ParentId == dto.ParentId)
-            .WhereIF(dto.ParentIds!.IsNotEmpty(), (d) => dto.ParentIds!.Contains(d.ParentId))
-            .WhereIF(!string.IsNullOrEmpty(dto.DelFlag), (d) => d.DelFlag == dto.DelFlag)
-            .WhereIF(!string.IsNullOrEmpty(dto.Status), (d) => d.Status == dto.Status)
-            .WhereIF(!string.IsNullOrEmpty(dto.DeptName), (d) => d.DeptName!.Contains(dto.DeptName!))
-            // and d.dept_id not in (select d.parent_id from sys_dept d inner join sys_role_dept rd on d.dept_id = rd.dept_id and rd.role_id = #{roleId})
-            .WhereIF(dto.DeptCheckStrictly ?? false, (d) => d.Id !=
-                SqlFunc.Subqueryable<SysTenant>().InnerJoin<SysRoleDept>((d1, rd1) => d1.Id == rd1.DeptId)
-                .Where((d1, rd1) => rd1.RoleId == dto.RoleId)
-                .GroupBy(d1 => d1.ParentId)
-                .Select(d1 => d1.ParentId))
+            .WhereIF(dto.Id > 0,(d) => d.Id == dto.Id)
+            .WhereIF(dto.ParentId > 0,(d) => d.ParentId == dto.ParentId)
+            .WhereIF(!string.IsNullOrEmpty(dto.DelFlag),(d) => d.DelFlag == dto.DelFlag)
+            .WhereIF(!string.IsNullOrEmpty(dto.DeptName),(d) => d.DeptName!.Contains(dto.DeptName!))
+            .WhereIF(!string.IsNullOrEmpty(dto.Status),(d) => d.Status == dto.Status)
             .Select((d) => new SysTenantDto
             {
-                Id = d.Id,
+                //Id = d.Id,   //正常返回全部
             },
             true);
     }
@@ -51,12 +58,12 @@ public class SysTenantRepository : BaseRepository<SysTenant, SysTenantDto>
     // dtos 关联表数据
     protected override async Task FillRelatedDataAsync(IEnumerable<SysTenantDto> dtos)
     {
-        if (dtos.IsEmpty()) return;
+        if(dtos.IsEmpty()) return;
 
         // 关联表处理
         var parentIds = dtos.Where(d => d.ParentId.HasValue).Select(d => d.ParentId!.Value).Distinct().ToList();
         var parentDepts = await this.DtoQueryable(new SysTenantDto { ParentIds = parentIds }).ToListAsync();
-        foreach (var dto in dtos)
+        foreach(var dto in dtos)
         {
             dto.ParentName = parentDepts.FirstOrDefault(p => p.Id == dto.ParentId)?.DeptName;
         }
@@ -72,9 +79,9 @@ public class SysTenantRepository : BaseRepository<SysTenant, SysTenantDto>
     /// <summary>
     /// 根据角色ID查询部门树信息
     /// </summary>
-    public async Task<List<long>> GetDeptListByRoleIdAsync(long roleId, bool isDeptCheckStrictly)
+    public async Task<List<long>> GetDeptListByRoleIdAsync(long roleId,bool isDeptCheckStrictly)
     {
-        SysTenantDto query = new SysTenantDto { RoleId = roleId, DeptCheckStrictly = isDeptCheckStrictly };
+        SysTenantDto query = new SysTenantDto { RoleId = roleId,DeptCheckStrictly = isDeptCheckStrictly };
 
         var list = await base.GetDtoListAsync(query);
 
@@ -87,19 +94,35 @@ public class SysTenantRepository : BaseRepository<SysTenant, SysTenantDto>
     /// <param name="deptId">部门ID</param>
     public async Task<int> CountNormalChildrenDeptByIdAsync(long deptId)
     {
-        return await base.CountAsync(d => d.DelFlag == DelFlag.No && d.Status == "0" && SqlFunc.SplitIn(d.Ancestors, deptId.ToString()));
+        return await base.CountAsync(d => d.DelFlag == DelFlag.No && d.Status == "0" && SqlFunc.SplitIn(d.Ancestors,deptId.ToString()));
     }
 
     /// <summary>
-    /// 根据ID查询所有子部门
+    /// 根据ID查询所有子部门  -- 解决字符集不匹配的问题！！！utf8mb4_general_ci  和 utf8mb4_0900_ai_ci
     /// </summary>
     /// <param name="deptId">部门ID</param>
     /// <returns></returns>
     public async Task<List<SysTenant>> GetChildrenDeptByIdAsync(long deptId)
     {
-        var queryable = Repo.AsQueryable()
-            .Where(d => SqlFunc.SplitIn(d.Ancestors, deptId.ToString()));
-        return await queryable.ToListAsync();
+
+        //var queryable = Repo.AsQueryable()
+        //    .Where(d => SqlFunc.SplitIn(d.Ancestors,deptId.ToString()));
+        //return await queryable.ToListAsync();
+
+        // 使用 LIKE 查询，包含三种可能性以及精确匹配 ancestors 的逻辑
+        string sql = @"
+        SELECT * 
+        FROM sys_tenant 
+        WHERE 
+            ancestors LIKE CONCAT('%,', @Id, ',%') OR 
+            ancestors LIKE CONCAT(@Id, ',%') OR 
+            ancestors LIKE CONCAT('%,', @Id) OR 
+            ancestors = @Id";
+
+        // 执行 SQL 查询并返回结果
+        var list = await _sqlSugarClient.Ado.SqlQueryAsync<SysTenant>(sql,new { Id = deptId });
+
+        return list;
     }
 
     /// <summary>
@@ -121,7 +144,7 @@ public class SysTenantRepository : BaseRepository<SysTenant, SysTenantDto>
     /// <returns></returns>
     public async Task<bool> HasChildByDeptIdAsync(long parentDeptId)
     {
-        var query = new SysTenantDto { DelFlag = DelFlag.No, ParentId = parentDeptId };
+        var query = new SysTenantDto { DelFlag = DelFlag.No,ParentId = parentDeptId };
         return await base.AnyAsync(query);
     }
 

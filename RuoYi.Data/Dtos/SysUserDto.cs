@@ -1,11 +1,18 @@
 ﻿using Newtonsoft.Json;
 using RuoYi.Data.Attributes;
+using SqlSugar;
 using System.ComponentModel.DataAnnotations;
 
 namespace RuoYi.Data.Dtos
 {
+    /// <summary>
+    /// 等了用户对象 sys_user
+    /// </summary>
     public class SysUserDto : BaseDto
     {
+        /** 所属组织 */
+        public long TenantId { get; set; }
+
         /** 用户ID */
         [Excel(Name = "用户序号")]
         public long? UserId { get; set; }
@@ -98,5 +105,7 @@ namespace RuoYi.Data.Dtos
         {
             return false;
         }
+
+
     }
 }

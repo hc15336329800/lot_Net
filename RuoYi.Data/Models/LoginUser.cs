@@ -2,23 +2,27 @@
 
 namespace RuoYi.Data.Models
 {
+    /// <summary>
+    /// 登录用户信息
+    /// </summary>
     public class LoginUser
     {
-        public LoginUser() { }
+        public LoginUser( ) { }
 
-        public LoginUser(long userId, long deptId, SysUserDto user, List<string> permissions)
+        public LoginUser(long userId,long deptId,SysUserDto user,List<string> permissions,long tenantId,string companyId)
         {
             this.UserId = userId;
             this.DeptId = deptId;
-            //this.UserName = userName;
             this.User = user;
             this.Permissions = permissions;
+            this.TenantId = tenantId; // 新增
+            this.CompanyId = companyId; // 新增
         }
 
         /// <summary>
         /// 用户名
         /// </summary>
-        [Newtonsoft.Json.JsonProperty(Order = 0)] 
+        [Newtonsoft.Json.JsonProperty(Order = 0)]
         public string UserName { get; set; }
 
         /// <summary>
@@ -35,47 +39,57 @@ namespace RuoYi.Data.Models
         /// <summary>
         /// 用户ID
         /// </summary>
-        public long UserId{ get; set; }
+        public long UserId { get; set; }
 
         /// <summary>
         /// 部门ID
         /// </summary>
-        public long DeptId{ get; set; }
+        public long DeptId { get; set; }
+
+        /// <summary>
+        /// 租户ID
+        /// </summary>
+        public long TenantId { get; set; } // 新增字段
+
+        /// <summary>
+        /// 公司ID
+        /// </summary>
+        public string CompanyId { get; set; } // 新增字段
 
         /// <summary>
         /// 用户唯一标识
         /// </summary>
-        public string Token{ get; set; }
+        public string Token { get; set; }
 
         /// <summary>
         /// 登录时间
         /// </summary>
-        public long LoginTime{ get; set; }
+        public long LoginTime { get; set; }
 
         /// <summary>
         /// 过期时间
         /// </summary>
-        public long ExpireTime{ get; set; }
+        public long ExpireTime { get; set; }
 
         /// <summary>
         /// 登录IP地址
         /// </summary>
-        public string IpAddr{ get; set; }
+        public string IpAddr { get; set; }
 
         /// <summary>
         /// 登录地点
         /// </summary>
-        public string LoginLocation{ get; set; }
+        public string LoginLocation { get; set; }
 
         /// <summary>
         /// 浏览器类型
         /// </summary>
-        public string Browser{ get; set; }
+        public string Browser { get; set; }
 
         /// <summary>
         /// 操作系统
         /// </summary>
-        public string OS{ get; set; }
+        public string OS { get; set; }
 
         /// <summary>
         /// 用户信息
@@ -85,6 +99,6 @@ namespace RuoYi.Data.Models
         /// <summary>
         /// 权限列表
         /// </summary>
-        public List<string> Permissions{ get; set; }
+        public List<string> Permissions { get; set; }
     }
 }

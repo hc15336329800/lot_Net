@@ -5,7 +5,7 @@ namespace RuoYi.System.Repositories;
 ///  author ruoyi
 ///  date   2023-09-04 17:49:57
 /// </summary>
-public class SysDeptRepository : BaseRepository<SysDept, SysDeptDto>
+public class SysDeptRepository : BaseRepository<SysDept,SysDeptDto>
 {
     public SysDeptRepository(ISqlSugarRepository<SysDept> sqlSugarRepository)
     {
@@ -16,29 +16,29 @@ public class SysDeptRepository : BaseRepository<SysDept, SysDeptDto>
     {
         return Repo.AsQueryable()
             .Where((d) => d.DelFlag == DelFlag.No)
-            .WhereIF(dto.DeptId > 0, (d) => d.DeptId == dto.DeptId)
-            .WhereIF(dto.ParentId > 0, (d) => d.ParentId == dto.ParentId)
-            .WhereIF(!string.IsNullOrEmpty(dto.DelFlag), (d) => d.DelFlag == dto.DelFlag)
-            .WhereIF(!string.IsNullOrEmpty(dto.DeptName), (d) => d.DeptName!.Contains(dto.DeptName!))
-            .WhereIF(!string.IsNullOrEmpty(dto.Status), (d) => d.Status == dto.Status)
+            .WhereIF(dto.DeptId > 0,(d) => d.DeptId == dto.DeptId)
+            .WhereIF(dto.ParentId > 0,(d) => d.ParentId == dto.ParentId)
+            .WhereIF(!string.IsNullOrEmpty(dto.DelFlag),(d) => d.DelFlag == dto.DelFlag)
+            .WhereIF(!string.IsNullOrEmpty(dto.DeptName),(d) => d.DeptName!.Contains(dto.DeptName!))
+            .WhereIF(!string.IsNullOrEmpty(dto.Status),(d) => d.Status == dto.Status)
         ;
     }
 
     public override ISugarQueryable<SysDeptDto> DtoQueryable(SysDeptDto dto)
     {
         return Repo.AsQueryable()
-            .LeftJoin<SysRoleDept>((d, rd) => d.DeptId == rd.DeptId)
+            .LeftJoin<SysRoleDept>((d,rd) => d.DeptId == rd.DeptId)
             .Where((d) => d.DelFlag == DelFlag.No)
-            .WhereIF(dto.DeptId > 0, (d) => d.DeptId == dto.DeptId)
-            .WhereIF(dto.ParentId > 0, (d) => d.ParentId == dto.ParentId)
-            .WhereIF(dto.ParentIds!.IsNotEmpty(), (d) => dto.ParentIds!.Contains(d.ParentId))
-            .WhereIF(!string.IsNullOrEmpty(dto.DelFlag), (d) => d.DelFlag == dto.DelFlag)
-            .WhereIF(!string.IsNullOrEmpty(dto.Status), (d) => d.Status == dto.Status)
-            .WhereIF(!string.IsNullOrEmpty(dto.DeptName), (d) => d.DeptName!.Contains(dto.DeptName!))
+            .WhereIF(dto.DeptId > 0,(d) => d.DeptId == dto.DeptId)
+            .WhereIF(dto.ParentId > 0,(d) => d.ParentId == dto.ParentId)
+            .WhereIF(dto.ParentIds!.IsNotEmpty(),(d) => dto.ParentIds!.Contains(d.ParentId))
+            .WhereIF(!string.IsNullOrEmpty(dto.DelFlag),(d) => d.DelFlag == dto.DelFlag)
+            .WhereIF(!string.IsNullOrEmpty(dto.Status),(d) => d.Status == dto.Status)
+            .WhereIF(!string.IsNullOrEmpty(dto.DeptName),(d) => d.DeptName!.Contains(dto.DeptName!))
             // and d.dept_id not in (select d.parent_id from sys_dept d inner join sys_role_dept rd on d.dept_id = rd.dept_id and rd.role_id = #{roleId})
-            .WhereIF(dto.DeptCheckStrictly ?? false, (d) => d.DeptId !=
-                SqlFunc.Subqueryable<SysDept>().InnerJoin<SysRoleDept>((d1, rd1) => d1.DeptId == rd1.DeptId)
-                .Where((d1, rd1) => rd1.RoleId == dto.RoleId)
+            .WhereIF(dto.DeptCheckStrictly ?? false,(d) => d.DeptId !=
+                SqlFunc.Subqueryable<SysDept>().InnerJoin<SysRoleDept>((d1,rd1) => d1.DeptId == rd1.DeptId)
+                .Where((d1,rd1) => rd1.RoleId == dto.RoleId)
                 .GroupBy(d1 => d1.ParentId)
                 .Select(d1 => d1.ParentId))
             .Select((d) => new SysDeptDto
@@ -51,12 +51,12 @@ public class SysDeptRepository : BaseRepository<SysDept, SysDeptDto>
     // dtos 关联表数据
     protected override async Task FillRelatedDataAsync(IEnumerable<SysDeptDto> dtos)
     {
-        if (dtos.IsEmpty()) return;
+        if(dtos.IsEmpty()) return;
 
         // 关联表处理
         var parentIds = dtos.Where(d => d.ParentId.HasValue).Select(d => d.ParentId!.Value).Distinct().ToList();
         var parentDepts = await this.DtoQueryable(new SysDeptDto { ParentIds = parentIds }).ToListAsync();
-        foreach (var dto in dtos)
+        foreach(var dto in dtos)
         {
             dto.ParentName = parentDepts.FirstOrDefault(p => p.DeptId == dto.ParentId)?.DeptName;
         }
@@ -72,9 +72,9 @@ public class SysDeptRepository : BaseRepository<SysDept, SysDeptDto>
     /// <summary>
     /// 根据角色ID查询部门树信息
     /// </summary>
-    public async Task<List<long>> GetDeptListByRoleIdAsync(long roleId, bool isDeptCheckStrictly)
+    public async Task<List<long>> GetDeptListByRoleIdAsync(long roleId,bool isDeptCheckStrictly)
     {
-        SysDeptDto query = new SysDeptDto { RoleId = roleId, DeptCheckStrictly = isDeptCheckStrictly };
+        SysDeptDto query = new SysDeptDto { RoleId = roleId,DeptCheckStrictly = isDeptCheckStrictly };
 
         var list = await base.GetDtoListAsync(query);
 
@@ -87,7 +87,7 @@ public class SysDeptRepository : BaseRepository<SysDept, SysDeptDto>
     /// <param name="deptId">部门ID</param>
     public async Task<int> CountNormalChildrenDeptByIdAsync(long deptId)
     {
-        return await base.CountAsync(d => d.DelFlag == DelFlag.No && d.Status == "0" && SqlFunc.SplitIn(d.Ancestors, deptId.ToString()));
+        return await base.CountAsync(d => d.DelFlag == DelFlag.No && d.Status == "0" && SqlFunc.SplitIn(d.Ancestors,deptId.ToString()));
     }
 
     /// <summary>
@@ -98,7 +98,7 @@ public class SysDeptRepository : BaseRepository<SysDept, SysDeptDto>
     public async Task<List<SysDept>> GetChildrenDeptByIdAsync(long deptId)
     {
         var queryable = Repo.AsQueryable()
-            .Where(d => SqlFunc.SplitIn(d.Ancestors, deptId.ToString()));
+            .Where(d => SqlFunc.SplitIn(d.Ancestors,deptId.ToString()));
         return await queryable.ToListAsync();
     }
 
@@ -121,7 +121,7 @@ public class SysDeptRepository : BaseRepository<SysDept, SysDeptDto>
     /// <returns></returns>
     public async Task<bool> HasChildByDeptIdAsync(long parentDeptId)
     {
-        var query = new SysDeptDto { DelFlag = DelFlag.No, ParentId = parentDeptId };
+        var query = new SysDeptDto { DelFlag = DelFlag.No,ParentId = parentDeptId };
         return await base.AnyAsync(query);
     }
 

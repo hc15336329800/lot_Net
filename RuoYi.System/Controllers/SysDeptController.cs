@@ -65,10 +65,10 @@ namespace RuoYi.System.Controllers
         [HttpPost("")]
         [AppAuthorize("system:dept:add")]
         [TypeFilter(typeof(RuoYi.Framework.DataValidation.DataValidationFilter))]
-        [Log(Title = "部门管理", BusinessType = BusinessType.INSERT)]
+        [Log(Title = "部门管理",BusinessType = BusinessType.INSERT)]
         public async Task<AjaxResult> Add([FromBody] SysDeptDto dept)
         {
-            if (!await _sysDeptService.CheckDeptNameUniqueAsync(dept))
+            if(!await _sysDeptService.CheckDeptNameUniqueAsync(dept))
             {
                 return AjaxResult.Error($"新增部门'{dept.DeptName} '失败，部门名称已存在");
             }
@@ -82,20 +82,20 @@ namespace RuoYi.System.Controllers
         [HttpPut("")]
         [AppAuthorize("system:dept:edit")]
         [TypeFilter(typeof(RuoYi.Framework.DataValidation.DataValidationFilter))]
-        [Log(Title = "部门管理", BusinessType = BusinessType.UPDATE)]
+        [Log(Title = "部门管理",BusinessType = BusinessType.UPDATE)]
         public async Task<AjaxResult> Edit([FromBody] SysDeptDto dept)
         {
             long deptId = dept.DeptId!.Value;
             await _sysDeptService.CheckDeptDataScopeAsync(deptId);
-            if (!await _sysDeptService.CheckDeptNameUniqueAsync(dept))
+            if(!await _sysDeptService.CheckDeptNameUniqueAsync(dept))
             {
                 return AjaxResult.Error("修改部门'" + dept.DeptName + "'失败，部门名称已存在");
             }
-            else if (dept.ParentId.Equals(deptId))
+            else if(dept.ParentId.Equals(deptId))
             {
                 return AjaxResult.Error("修改部门'" + dept.DeptName + "'失败，上级部门不能是自己");
             }
-            else if (UserConstants.DEPT_DISABLE.Equals(dept.Status) && await _sysDeptService.CountNormalChildrenDeptByIdAsync(deptId) > 0)
+            else if(UserConstants.DEPT_DISABLE.Equals(dept.Status) && await _sysDeptService.CountNormalChildrenDeptByIdAsync(deptId) > 0)
             {
                 return AjaxResult.Error("该部门包含未停用的子部门！");
             }
@@ -108,14 +108,14 @@ namespace RuoYi.System.Controllers
         /// </summary>
         [HttpDelete("{deptId}")]
         [AppAuthorize("system:dept:remove")]
-        [Log(Title = "部门管理", BusinessType = BusinessType.DELETE)]
+        [Log(Title = "部门管理",BusinessType = BusinessType.DELETE)]
         public async Task<AjaxResult> Remove(long deptId)
         {
-            if (await _sysDeptService.HasChildByDeptIdAsync(deptId))
+            if(await _sysDeptService.HasChildByDeptIdAsync(deptId))
             {
                 return AjaxResult.Error("存在下级部门,不允许删除");
             }
-            if (await _sysDeptService.CheckDeptExistUserAsync(deptId))
+            if(await _sysDeptService.CheckDeptExistUserAsync(deptId))
             {
                 return AjaxResult.Error("部门存在用户,不允许删除");
             }

@@ -14,6 +14,9 @@ public abstract class BaseService<TEntity, TDto> : ITransient
 {
     public virtual required BaseRepository<TEntity, TDto> BaseRepo { get; set; }
 
+    //-------------------------------------------------------同步----------------------------------------------------------
+
+
     #region sync
 
     /// <summary>
@@ -83,6 +86,8 @@ public abstract class BaseService<TEntity, TDto> : ITransient
 
     #endregion
 
+    //-------------------------------------------------------异步----------------------------------------------------------
+
     #region async
 
     /// <summary>
@@ -123,7 +128,8 @@ public abstract class BaseService<TEntity, TDto> : ITransient
     public virtual async Task<TEntity> FirstOrDefaultAsync(Expression<Func<TEntity, bool>> predicate)
     {
         return await BaseRepo.FirstOrDefaultAsync(predicate);
-    }
+
+     }
 
     /// <summary>
     /// 新增

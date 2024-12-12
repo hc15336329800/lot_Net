@@ -43,7 +43,7 @@ namespace RuoYi.Data.Dtos
         public string? ParentName{ get; set; }
 
         /** 子租户 */
-        public List<SysDeptDto>? Children { get; set; }
+        public List<SysTenantDto>? Children { get; set; }
 
         /** 组织树选择项是否关联显示（0：父子不互相关联显示 1：父子互相关联显示 ） */
         public bool? DeptCheckStrictly { get; set; }

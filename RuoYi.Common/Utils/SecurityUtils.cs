@@ -12,6 +12,9 @@ using System.Security.Claims;
 
 namespace RuoYi.Common.Utils
 {
+    /// <summary>
+    /// 获取当前登录的用户信息
+    /// </summary>
     public static class SecurityUtils
     {
         private static ICache _cache = App.GetService<ICache>();
@@ -19,7 +22,7 @@ namespace RuoYi.Common.Utils
         /// <summary>
         /// 登录用户ID
         /// </summary>
-        public static long GetUserId()
+        public static long GetUserId( )
         {
             var user = GetCurrentUser();
             return user?.UserId ?? 0;
@@ -28,16 +31,42 @@ namespace RuoYi.Common.Utils
         /// <summary>
         /// 获取部门ID
         /// </summary>
-        public static long? GetDeptId()
+        public static long? GetDeptId( )
         {
             var user = GetCurrentUser();
             return user?.DeptId ?? null;
         }
 
-        /**
-         * 获取用户账户
-         **/
-        public static string? GetUsername()
+        /// <summary>
+        /// 获取租户ID
+        /// </summary>
+        public static long GetTenantId( )
+        {
+            var user = GetCurrentUser();
+            if(user == null || user.TenantId == null)
+            {
+                throw new ServiceException("租户ID获取失败，请确保用户已登录并具有租户信息",StatusCodes.Status401Unauthorized);
+            }
+            return user.TenantId;
+        }
+
+        /// <summary>
+        /// 获取公司ID
+        /// </summary>
+        public static string GetCompanyId( )
+        {
+            var user = GetCurrentUser();
+            if(user == null || string.IsNullOrEmpty(user.CompanyId))
+            {
+                throw new ServiceException("公司ID获取失败，请确保用户已登录并具有公司信息",StatusCodes.Status401Unauthorized);
+            }
+            return user.CompanyId;
+        }
+
+        /// <summary>
+        /// 获取用户账户
+        /// </summary>
+        public static string? GetUsername( )
         {
             var user = GetCurrentUser();
             return user?.UserName;
@@ -46,17 +75,17 @@ namespace RuoYi.Common.Utils
         /// <summary>
         /// 获取用户
         /// </summary>
-        public static LoginUser GetLoginUser()
+        public static LoginUser GetLoginUser( )
         {
             LoginUser user = GetCurrentUser();
-            return user == null ? throw new ServiceException("获取用户信息异常", StatusCodes.Status401Unauthorized) : user;
+            return user == null ? throw new ServiceException("获取用户信息异常",StatusCodes.Status401Unauthorized) : user;
         }
 
         public static LoginUser GetLoginUser(HttpRequest request)
         {
             // 获取请求携带的令牌
             string token = GetToken(request);
-            if (!string.IsNullOrEmpty(token))
+            if(!string.IsNullOrEmpty(token))
             {
                 try
                 {
@@ -67,15 +96,15 @@ namespace RuoYi.Common.Utils
                     LoginUser user = _cache.Get<LoginUser>(userKey);
                     return user;
                 }
-                catch (Exception e)
+                catch(Exception e)
                 {
-                    Log.Error("获取用户信息异常'{}'", e.Message);
+                    Log.Error("获取用户信息异常'{}'",e.Message);
                 }
             }
             return null;
         }
 
-        private static LoginUser GetCurrentUser()
+        private static LoginUser GetCurrentUser( )
         {
             return GetLoginUser(App.HttpContext.Request);
         }
@@ -96,9 +125,9 @@ namespace RuoYi.Common.Utils
         public static string GetToken(HttpRequest request)
         {
             string token = request.Headers["Authorization"]!;
-            if (!string.IsNullOrEmpty(token) && token.StartsWith(RuoYi.Data.Constants.TOKEN_PREFIX))
+            if(!string.IsNullOrEmpty(token) && token.StartsWith(RuoYi.Data.Constants.TOKEN_PREFIX))
             {
-                token = token.Replace(RuoYi.Data.Constants.TOKEN_PREFIX, "");
+                token = token.Replace(RuoYi.Data.Constants.TOKEN_PREFIX,"");
             }
             return token;
         }
@@ -121,9 +150,9 @@ namespace RuoYi.Common.Utils
         /// <param name="rawPassword">原始密码</param>
         /// <param name="encodedPassword">加密后字符</param>
         /// <returns>结果</returns>
-        public static bool MatchesPassword(string rawPassword, string encodedPassword)
+        public static bool MatchesPassword(string rawPassword,string encodedPassword)
         {
-            return MD5Encryption.Compare(rawPassword, encodedPassword);
+            return MD5Encryption.Compare(rawPassword,encodedPassword);
         }
 
         #region 是否为管理员
@@ -136,7 +165,7 @@ namespace RuoYi.Common.Utils
             return userId != null && 1L == userId;
         }
 
-        public static bool IsAdmin()
+        public static bool IsAdmin( )
         {
             var userId = GetUserId();
             return IsAdmin(userId);
