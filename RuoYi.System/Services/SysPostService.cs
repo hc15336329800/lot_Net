@@ -64,16 +64,33 @@ public class SysPostService : BaseService<SysPost, SysPostDto>, ITransient
         return this.GetDtoList(dto);
     }
 
+    /// <summary>
+    /// 查询岗位列表 根据userId
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <returns></returns>
     public List<SysPostDto> GetPostsListByUserId(long userId)
     {
         var dto = new SysPostDto { UserId = userId };
         return this.GetDtoList(dto);
     }
 
+    /// <summary>
+    /// 修改：查询岗位信息  
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <returns></returns>
     public List<long> GetPostIdsListByUserId(long userId)
     {
-        var dtos = this.GetPostsListByUserId(userId);
-        return dtos.Where(p => p.PostId.HasValue).Select(p => p.PostId!.Value).Distinct().ToList();
+        // 通过userId去用户岗位中间表(SysUserPos)拿到岗位PostId字段(SysPost)数据
+        var userPosts = _sysUserPostRepository.Queryable(new SysUserPostDto { UserId = userId }).ToList();
+        var postIds = userPosts.Select(up => up.PostId).Distinct().ToList();
+
+        return postIds;
+
+        // 岗位列表  原始代码
+        //var dtos = this.GetPostsListByUserId(userId);
+        //return dtos.Where(p => p.PostId.HasValue && postIds.Contains(p.PostId.Value)).Select(p => p.PostId!.Value).Distinct().ToList();
     }
 
     /// <summary>

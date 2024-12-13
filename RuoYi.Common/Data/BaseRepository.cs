@@ -613,7 +613,7 @@ public abstract class BaseRepository<TEntity, TDto> : ITransient
             if (attrSugarColumn != null)
             {
                 var primaryKey = attrSugarColumn.NamedArguments.Where(arg => arg.MemberInfo.Name.EqualsIgnoreCase("IsPrimaryKey")).FirstOrDefault();
-                if (primaryKey.MemberName != null)
+                if (primaryKey != null)
                 {
                     keyName = prop.Name;
                     type = prop.PropertyType;

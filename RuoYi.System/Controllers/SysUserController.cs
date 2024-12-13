@@ -81,21 +81,30 @@ namespace RuoYi.System.Controllers
             // ajax.Add("roles", SecurityUtils.IsAdmin(userId) ? roles : roles.Where(r => !SecurityUtils.IsAdminRole(r.RoleId)));
             ajax.Add("roles",roles);
             ajax.Add("posts",posts);
-            ajax.Add("tenant",tenanttree);
+            ajax.Add("tenantIds",tenanttree);
 
             // 用户信息 by  id
             if( userId > 0)
             {
                 var user = await _sysUserService.GetDtoAsync(userId);
                 ajax.Add(AjaxResult.DATA_TAG,user);
+
+                List<long> spids =  _sysPostService.GetPostIdsListByUserId(userId);
+
+
                 ajax.Add("postIds",_sysPostService.GetPostIdsListByUserId(userId));
                 ajax.Add("roleIds",user.Roles.Select(x => x.RoleId).ToList());
+                ajax.Add("tenantIds",tenanttree);
+
                 //ajax.Add("tenant",user.Roles.Select(x => x.RoleId).ToList());
 
             }
 
             return ajax;
         }
+
+
+
 
         /// <summary>
         /// 根据用户类型筛选组织树 返回

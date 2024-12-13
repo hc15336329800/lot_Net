@@ -13,7 +13,7 @@ namespace RuoYi.System.Services;
 ///  author ruoyi
 ///  date   2023-08-21 14:40:20
 /// </summary>
-public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
+public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
 {
     private readonly ILogger<SysUserService> _logger;
     private readonly SysUserRepository _sysUserRepository;
@@ -25,6 +25,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     private readonly SysRoleService _sysRoleService;
     private readonly SysPostService _sysPostService;
     private readonly SysConfigService _sysConfigService;
+    private readonly SysUserTenantRepository _sysUserTenantRepository;
 
     public SysUserService(ILogger<SysUserService> logger,
         SysUserRepository sysUserRepository,
@@ -33,7 +34,8 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
         SysRoleService sysRoleService,
         SysPostService sysPostService,
         SysConfigService sysConfigService,
-        SysTenantRepository sysTenantRepository
+        SysTenantRepository sysTenantRepository,
+        SysUserTenantRepository sysUserTenantRepository
         )
     {
         BaseRepo = sysUserRepository;
@@ -47,6 +49,8 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
         _sysPostService = sysPostService;
         _sysConfigService = sysConfigService;
         _sysTenantRepository = sysTenantRepository;
+
+        _sysUserTenantRepository = sysUserTenantRepository;
     }
 
     /// <summary>
@@ -66,7 +70,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// <returns></returns>
     public async Task<SysUserDto> GetDtoByUsernameAsync(string username)
     {
-        var dto = new SysUserDto { UserName = username, DelFlag = DelFlag.No };
+        var dto = new SysUserDto { UserName = username,DelFlag = DelFlag.No };
         var user = await _sysUserRepository.GetUserDtoAsync(dto);
         return user;
     }
@@ -88,7 +92,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// <returns></returns>
     public async Task<SysUserDto> GetByPhoneAsync(string phoneNumber)
     {
-        var dto = new SysUserDto { Phonenumber = phoneNumber, DelFlag = DelFlag.No };
+        var dto = new SysUserDto { Phonenumber = phoneNumber,DelFlag = DelFlag.No };
         var user = await _sysUserRepository.GetUserDtoAsync(dto);
         return user;
     }
@@ -100,7 +104,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// <returns></returns>
     public async Task<SysUserDto> GetByEmailAsync(string email)
     {
-        var dto = new SysUserDto { Email = email, DelFlag = DelFlag.No };
+        var dto = new SysUserDto { Email = email,DelFlag = DelFlag.No };
         var user = await _sysUserRepository.GetUserDtoAsync(dto);
         return user;
     }
@@ -108,7 +112,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// <summary>
     /// 查询用户列表
     /// </summary>
-    [DataScope(DeptAlias = "d", UserAlias = "u")]
+    [DataScope(DeptAlias = "d",UserAlias = "u")]
     public virtual async Task<List<SysUser>> GetUserListAsync(SysUserDto dto)
     {
         return await _sysUserRepository.GetListAsync(dto);
@@ -118,7 +122,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     public List<SysUserDto> ToDtos(List<SysUser> entities)
     {
         var dtos = entities.Adapt<List<SysUserDto>>();
-        foreach (var d in dtos)
+        foreach(var d in dtos)
         {
             d.DeptName = d.Dept?.DeptName;
             d.DeptLeader = d.Dept?.Leader;
@@ -132,7 +136,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// <summary>
     /// 分页查询用户列表
     /// </summary>
-    [DataScope(DeptAlias = "d", UserAlias = "u")]
+    [DataScope(DeptAlias = "d",UserAlias = "u")]
     public virtual async Task<SqlSugarPagedList<SysUser>> GetPagedUserListAsync(SysUserDto dto)
     {
         return await _sysUserRepository.GetPagedListAsync(dto);
@@ -141,7 +145,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// <summary>
     /// 根据条件分页查询已分配用户角色列表
     /// </summary>
-    [DataScope(DeptAlias = "d", UserAlias = "u")]
+    [DataScope(DeptAlias = "d",UserAlias = "u")]
     public virtual async Task<SqlSugarPagedList<SysUserDto>> GetPagedAllocatedListAsync(SysUserDto dto)
     {
         dto.IsAllocated = true;
@@ -151,7 +155,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// <summary>
     /// 根据条件分页查询未分配用户角色列表
     /// </summary>
-    [DataScope(DeptAlias = "d", UserAlias = "u")]
+    [DataScope(DeptAlias = "d",UserAlias = "u")]
     public virtual async Task<SqlSugarPagedList<SysUserDto>> GetPagedUnallocatedListAsync(SysUserDto dto)
     {
         dto.IsAllocated = false;
@@ -166,11 +170,11 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     public string SelectUserRoleGroup(string userName)
     {
         List<SysRoleDto> list = _sysRoleService.GetRolesByUserName(userName);
-        if (!list.IsNotEmpty())
+        if(!list.IsNotEmpty())
         {
             return string.Empty;
         }
-        return string.Join(",", list.Select(r => r.RoleName).ToList());
+        return string.Join(",",list.Select(r => r.RoleName).ToList());
     }
 
     /// <summary>
@@ -181,11 +185,11 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     public string SelectUserPostGroup(string userName)
     {
         List<SysPostDto> list = _sysPostService.GetPostsByUserName(userName);
-        if (!list.IsNotEmpty())
+        if(!list.IsNotEmpty())
         {
             return string.Empty;
         }
-        return string.Join(",", list.Select(r => r.PostName).ToList());
+        return string.Join(",",list.Select(r => r.PostName).ToList());
     }
 
     /// <summary>
@@ -196,7 +200,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     public async Task<bool> CheckUserNameUniqueAsync(SysUserDto user)
     {
         var userDto = await this.GetByUsernameAsync(user.UserName!);
-        if (userDto != null && userDto.UserId != user.UserId)
+        if(userDto != null && userDto.UserId != user.UserId)
         {
             return false;
         }
@@ -211,7 +215,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     public async Task<bool> CheckPhoneUniqueAsync(SysUserDto user)
     {
         var userDto = await this.GetByPhoneAsync(user.Phonenumber!);
-        if (userDto != null && userDto.UserId != user.UserId)
+        if(userDto != null && userDto.UserId != user.UserId)
         {
             return false;
         }
@@ -226,7 +230,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     public async Task<bool> CheckEmailUniqueAsync(SysUserDto user)
     {
         var userDto = await this.GetByEmailAsync(user.Email!);
-        if (userDto != null && userDto.UserId != user.UserId)
+        if(userDto != null && userDto.UserId != user.UserId)
         {
             return false;
         }
@@ -239,7 +243,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// <param name="user"></param>
     public void CheckUserAllowed(SysUserDto user)
     {
-        if (user.UserId > 0 && SecurityUtils.IsAdmin(user.UserId))
+        if(user.UserId > 0 && SecurityUtils.IsAdmin(user.UserId))
         {
             throw new ServiceException("不允许操作超级管理员用户");
         }
@@ -251,11 +255,11 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// <param name="userId">用户id</param>
     public async Task CheckUserDataScope(long userId)
     {
-        if (!SecurityUtils.IsAdmin(SecurityUtils.GetUserId()))
+        if(!SecurityUtils.IsAdmin(SecurityUtils.GetUserId()))
         {
             SysUserDto dto = new SysUserDto { UserId = userId };
             List<SysUser> users = await this.GetUserListAsync(dto);
-            if (users.IsEmpty())
+            if(users.IsEmpty())
             {
                 throw new ServiceException("没有权限访问用户数据！");
             }
@@ -277,8 +281,8 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
         user.DelFlag = DelFlag.No;
         user.TenantId = SecurityUtils.GetTenantId(); // 当前用户的组织
 
-         // 当前用户的类型
-         // todo: 等待前端传过来
+        // 当前用户的类型
+        // todo: 等待前端传过来
 
 
         bool succees = _sysUserRepository.Insert(user);
@@ -294,9 +298,8 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
         InsertUserPost(user);
         // 新增用户与角色管理  ×
         InsertUserRole(user);
-        // 新增用户与组织关联   ×
-        // todo
-         
+        // 新增用户与组织关联组（目前限制一下 不让前端？ 不要限制  只是在登录的时候让用户选择用户，）
+        InsertUserTenant(user); // 传入用户ID
         return succees;
     }
 
@@ -315,13 +318,18 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     public virtual int UpdateUser(SysUserDto user)
     {
         // 删除用户与角色关联
-        _sysUserRoleRepository.DeleteUserRoleByUserId(user.UserId );
+        _sysUserRoleRepository.DeleteUserRoleByUserId(user.UserId);
         // 新增用户与角色管理
         InsertUserRole(user);
         // 删除用户与岗位关联
         _sysUserPostRepository.DeleteUserPostByUserId(user.UserId);
         // 新增用户与岗位管理
         InsertUserPost(user);
+
+        // 新增： 删除用户与组织关联
+        _sysUserTenantRepository.DeleteUserTenantByUserId(user.UserId);
+        // 新增： 新增用户与组织管理
+        InsertUserTenant(user);
 
         return _sysUserRepository.UpdateUser(user);
     }
@@ -331,10 +339,10 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// </summary>
     /// <param name="userId">用户ID</param>
     /// <param name="roleIds">角色组</param>
-    public void InsertUserAuth(long userId, List<long> roleIds)
+    public void InsertUserAuth(long userId,List<long> roleIds)
     {
         _sysUserRoleRepository.DeleteUserRoleByUserId(userId);
-        InsertUserRole(userId, roleIds);
+        InsertUserRole(userId,roleIds);
     }
 
     /// <summary>
@@ -350,7 +358,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// </summary>
     public async Task<int> UpdateUserProfileAsync(SysUserDto user)
     {
-        return await _sysUserRepository.UpdateAsync(user, true);
+        return await _sysUserRepository.UpdateAsync(user,true);
     }
 
     /// <summary>
@@ -368,7 +376,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// <param name="user"></param>
     public void InsertUserRole(SysUserDto user)
     {
-        this.InsertUserRole(user.UserId , user.RoleIds);
+        this.InsertUserRole(user.UserId,user.RoleIds);
     }
 
     /// <summary>
@@ -377,9 +385,9 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// <param name="userName">用户名</param>
     /// <param name="avatar">头像地址</param>
     /// <returns></returns>
-    public async Task<bool> UpdateUserAvatar(string userName, string avatar)
+    public async Task<bool> UpdateUserAvatar(string userName,string avatar)
     {
-        return await _sysUserRepository.UpdateUserAvatarAsync(userName, avatar) > 0;
+        return await _sysUserRepository.UpdateUserAvatarAsync(userName,avatar) > 0;
     }
 
     /// <summary>
@@ -388,7 +396,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     public int ResetPwd(SysUserDto user)
     {
         user.Password = SecurityUtils.EncryptPassword(user.Password!);
-        return _sysUserRepository.Update(user, true);
+        return _sysUserRepository.Update(user,true);
     }
 
     /// <summary>
@@ -396,23 +404,56 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// </summary>
     /// <param name="userName">用户名</param>
     /// <param name="password">加密的密码</param>
-    public async Task<int> ResetUserPwdAsync(string userName, string password)
+    public async Task<int> ResetUserPwdAsync(string userName,string password)
     {
-        return await _sysUserRepository.ResetPasswordAsync(userName, password);
+        return await _sysUserRepository.ResetPasswordAsync(userName,password);
     }
+
+
+
+    /// <summary>
+    /// 新增用户组织中间表i
+    /// </summary>
+    /// <param name="userId">用户ID</param>
+    /// <param name="roleIds">组织组</param>
+    /// <param name="tenantId">所属组织</param>
+    public void InsertUserTenant(SysUserDto user)
+    {
+        var userId = user.UserId;
+
+        var tenantIds = user.TenantIds; //数组
+        var tenantId = user.TenantId;
+
+        if(tenantIds.IsNotEmpty())
+        {
+            // 新增用户与组织管理
+            List<SysUserTenant> list = new List<SysUserTenant>();
+            foreach(long roleId in tenantIds)
+            {
+                SysUserTenant ur = new SysUserTenant();
+                ur.UserId = userId;
+                ur.TId = roleId;
+                ur.TenantId = tenantId;
+                list.Add(ur);
+            }
+            _sysUserTenantRepository.Insert(list);
+        }
+    }
+
+
 
     /// <summary>
     /// 新增用户角色信息
     /// </summary>
     /// <param name="userId">用户ID</param>
     /// <param name="roleIds">角色组</param>
-    public void InsertUserRole(long userId, List<long> roleIds)
+    public void InsertUserRole(long userId,List<long> roleIds)
     {
-        if (roleIds.IsNotEmpty())
+        if(roleIds.IsNotEmpty())
         {
             // 新增用户与角色管理
             List<SysUserRole> list = new List<SysUserRole>();
-            foreach (long roleId in roleIds)
+            foreach(long roleId in roleIds)
             {
                 SysUserRole ur = new SysUserRole();
                 ur.UserId = userId;
@@ -422,8 +463,10 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
             _sysUserRoleRepository.Insert(list);
         }
     }
+
+
     /// <summary>
-    /// 新增用户组织中间表
+    /// 新增用户岗位信息
     /// </summary>
     /// <param name="user"></param>
     public void InsertUserPost(SysUserDto user)
@@ -436,27 +479,6 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
             {
                 SysUserPost up = new SysUserPost();
                 up.UserId = user.UserId;
-                up.PostId = postId;
-                list.Add(up);
-            }
-            _sysUserPostRepository.Insert(list);
-        }
-    }
-
-    /// <summary>
-    /// 新增用户岗位信息
-    /// </summary>
-    /// <param name="user"></param>
-    public void InsertUserPost(SysUserDto user)
-    {
-        if (user.PostIds.IsNotEmpty())
-        {
-            // 新增用户与岗位管理
-            List<SysUserPost> list = new List<SysUserPost>();
-            foreach (long postId in user.PostIds)
-            {
-                SysUserPost up = new SysUserPost();
-                up.UserId = user.UserId ;
                 up.PostId = postId;
                 list.Add(up);
             }
@@ -484,7 +506,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     [Transactional]
     public virtual async Task<int> DeleteUserByIdsAsync(List<long> userIds)
     {
-        foreach (long userId in userIds)
+        foreach(long userId in userIds)
         {
             CheckUserAllowed(new SysUserDto { UserId = userId });
             await CheckUserDataScope(userId);
@@ -501,9 +523,9 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// </summary>
     /// <param name="dtos"></param>
     /// <returns></returns>
-    public async Task<string> ImportDtosAsync(List<SysUserDto> dtos, bool isUpdateSupport, string operName)
+    public async Task<string> ImportDtosAsync(List<SysUserDto> dtos,bool isUpdateSupport,string operName)
     {
-        if (dtos.IsEmpty())
+        if(dtos.IsEmpty())
         {
             throw new ServiceException("导入用户数据不能为空！");
         }
@@ -512,7 +534,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
         StringBuilder successMsg = new StringBuilder();
         StringBuilder failureMsg = new StringBuilder();
         string password = _sysConfigService.SelectConfigByKey("sys.user.initPassword");
-        foreach (SysUserDto user in dtos)
+        foreach(SysUserDto user in dtos)
         {
             user.Sex = Sex.ToVal(user.SexDesc);
             user.Status = Status.ToVal(user.StatusDesc);
@@ -521,7 +543,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
             {
                 // 验证是否存在这个用户
                 SysUserDto u = await _sysUserRepository.GetUserDtoByUserNameAsync(user.UserName!);
-                if (u == null)
+                if(u == null)
                 {
                     user.Validate();
 
@@ -533,16 +555,16 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
                     successNum++;
                     successMsg.Append("<br/>" + successNum + "、账号 " + user.UserName + " 导入成功");
                 }
-                else if (isUpdateSupport)
+                else if(isUpdateSupport)
                 {
                     user.Validate();
 
                     CheckUserAllowed(u);
-                    await CheckUserDataScope(u.UserId );
+                    await CheckUserDataScope(u.UserId);
 
                     user.UserId = u.UserId;
                     user.UpdateBy = operName;
-                    await _sysUserRepository.UpdateAsync(user, true);
+                    await _sysUserRepository.UpdateAsync(user,true);
 
                     successNum++;
                     successMsg.Append("<br/>" + successNum + "、账号 " + user.UserName + " 更新成功");
@@ -553,22 +575,22 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
                     failureMsg.Append("<br/>" + failureNum + "、账号 " + user.UserName + " 已存在");
                 }
             }
-            catch (Exception e)
+            catch(Exception e)
             {
                 failureNum++;
                 string msg = "<br/>" + failureNum + "、账号 " + user.UserName + " 导入失败：";
                 failureMsg.Append(msg + e.Message);
-                _logger.LogError(e, msg);
+                _logger.LogError(e,msg);
             }
         }
-        if (failureNum > 0)
+        if(failureNum > 0)
         {
-            failureMsg.Insert(0, "很抱歉，导入失败！共 " + failureNum + " 条数据格式不正确，错误如下：");
+            failureMsg.Insert(0,"很抱歉，导入失败！共 " + failureNum + " 条数据格式不正确，错误如下：");
             throw new ServiceException(failureMsg.ToString());
         }
         else
         {
-            successMsg.Insert(0, "恭喜您，数据已全部导入成功！共 " + successNum + " 条，数据如下：");
+            successMsg.Insert(0,"恭喜您，数据已全部导入成功！共 " + successNum + " 条，数据如下：");
         }
 
         return successMsg.ToString();

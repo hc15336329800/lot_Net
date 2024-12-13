@@ -10,8 +10,7 @@ namespace RuoYi.Data.Dtos
     /// </summary>
     public class SysUserDto : BaseDto
     {
-        /** 新增：所属组织 */
-        public long? TenantId { get; set; }
+       
 
         /** 新增：用户类型 */
         public string? UserType { get; set; }
@@ -95,11 +94,18 @@ namespace RuoYi.Data.Dtos
         /** 角色ID */
         public long? RoleId { get; set; }
 
+        /** 新增：岗位组 */
+        public List<long> TenantIds { get; set; }
+
         /// <summary>
         /// 是否 已分配用户角色
         /// </summary>
         public bool? IsAllocated { get; set; }
 
+        /** 新增：所属组织 */
+        public long TenantId { get; set; }
+
+ 
         /// <summary>
         /// 不序列化 Password 
         /// </summary>

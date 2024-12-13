@@ -43,5 +43,10 @@ namespace RuoYi.Data.Entities
         /// </summary>
         [SugarColumn(ColumnName = "remark", ColumnDescription = "备注")]
         public string? Remark { get; set; }
+
+        /// <summary>
+        /// 所属组织
+        /// </summary>
+        public long TenantId { get; set; }
     }
 }

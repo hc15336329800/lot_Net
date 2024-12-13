@@ -20,5 +20,10 @@ namespace RuoYi.Data.Entities
         /// </summary>
         [SugarColumn(ColumnName = "role_id", ColumnDescription = "角色ID")]
         public long RoleId { get; set; }
+
+        /// <summary>
+        /// 所属组织
+        /// </summary>
+        public long TenantId { get; set; }
     }
 }

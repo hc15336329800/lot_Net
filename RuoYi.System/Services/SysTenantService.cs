@@ -12,7 +12,7 @@ namespace RuoYi.System.Services;
 ///  author ruoyi
 ///  date   2023-09-04 17:49:57
 /// </summary>
-public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
+public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
 {
     private readonly ILogger<SysTenantService> _logger;
     private readonly SysTenantRepository _sysTenantRepository;
@@ -60,7 +60,7 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     {
         SysRole role = _sysRoleRepository.GetRoleById(roleId);
 
-        return await _sysTenantRepository.GetDeptListByRoleIdAsync(roleId, role.DeptCheckStrictly);
+        return await _sysTenantRepository.GetDeptListByRoleIdAsync(roleId,role.DeptCheckStrictly);
     }
 
     /// <summary>
@@ -99,16 +99,16 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     {
         List<SysTenantDto> returnList = new List<SysTenantDto>();
         List<long> tempList = depts.Where(d => d.Id.HasValue).Select(d => d.Id!.Value).ToList();
-        foreach (SysTenantDto dept in depts)
+        foreach(SysTenantDto dept in depts)
         {
             // 如果是顶级节点, 遍历该父节点的所有子节点
-            if (dept.ParentId.HasValue && !tempList.Contains(dept.ParentId.Value))
+            if(dept.ParentId.HasValue && !tempList.Contains(dept.ParentId.Value))
             {
-                RecursionFn(depts, dept);
+                RecursionFn(depts,dept);
                 returnList.Add(dept);
             }
         }
-        if (returnList.IsEmpty())
+        if(returnList.IsEmpty())
         {
             returnList = depts;
         }
@@ -118,16 +118,16 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     /// <summary>
     /// 递归列表
     /// </summary>
-    private void RecursionFn(List<SysTenantDto> list, SysTenantDto t)
+    private void RecursionFn(List<SysTenantDto> list,SysTenantDto t)
     {
         // 得到子节点列表
-        List<SysTenantDto> childList = GetChildList(list, t);
+        List<SysTenantDto> childList = GetChildList(list,t);
         t.Children = childList;
-        foreach (SysTenantDto tChild in childList)
+        foreach(SysTenantDto tChild in childList)
         {
-            if (HasChild(list, tChild))
+            if(HasChild(list,tChild))
             {
-                RecursionFn(list, tChild);
+                RecursionFn(list,tChild);
             }
         }
     }
@@ -135,12 +135,12 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     /// <summary>
     /// 得到子节点列表
     /// </summary>
-    private List<SysTenantDto> GetChildList(List<SysTenantDto> list, SysTenantDto t)
+    private List<SysTenantDto> GetChildList(List<SysTenantDto> list,SysTenantDto t)
     {
         List<SysTenantDto> tList = new List<SysTenantDto>();
-        foreach (SysTenantDto n in list)
+        foreach(SysTenantDto n in list)
         {
-            if (n.ParentId > 0 && n.ParentId == t.Id)
+            if(n.ParentId > 0 && n.ParentId == t.Id)
             {
                 tList.Add(n);
             }
@@ -168,9 +168,9 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
         return await _sysUserRepository.CheckDeptExistUserAsync(deptId);
     }
 
-    private bool HasChild(List<SysTenantDto> list, SysTenantDto t)
+    private bool HasChild(List<SysTenantDto> list,SysTenantDto t)
     {
-        return GetChildList(list, t).Count > 0;
+        return GetChildList(list,t).Count > 0;
     }
 
     #endregion
@@ -180,8 +180,8 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     /// </summary>
     public async Task<bool> CheckDeptNameUniqueAsync(SysTenantDto dept)
     {
-        SysTenant info = await _sysTenantRepository.GetFirstAsync(new SysTenantDto { DeptName = dept.DeptName, ParentId = dept.ParentId });
-        if (info != null && info.Id != dept.Id)
+        SysTenant info = await _sysTenantRepository.GetFirstAsync(new SysTenantDto { DeptName = dept.DeptName,ParentId = dept.ParentId });
+        if(info != null && info.Id != dept.Id)
         {
             return UserConstants.NOT_UNIQUE;
         }
@@ -194,11 +194,11 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     /// <param name="deptId">部门id</param>
     public async Task CheckDeptDataScopeAsync(long deptId)
     {
-        if (!SecurityUtils.IsAdmin())
+        if(!SecurityUtils.IsAdmin())
         {
             SysTenantDto dto = new SysTenantDto { Id = deptId };
             List<SysTenant> depts = await _sysTenantRepository.GetDeptListAsync(dto);
-            if (depts.IsEmpty())
+            if(depts.IsEmpty())
             {
                 throw new ServiceException("没有权限访问部门数据！");
             }
@@ -212,7 +212,7 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     {
         SysTenant info = await _sysTenantRepository.FirstOrDefaultAsync(d => d.Id == dept.ParentId); // 父节点
         // 如果父节点不为正常状态,则不允许新增子节点
-        if (!UserConstants.DEPT_NORMAL.Equals(info.Status))
+        if(!UserConstants.DEPT_NORMAL.Equals(info.Status))
         {
             throw new ServiceException("部门停用，不允许新增");
         }
@@ -228,16 +228,16 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     {
         SysTenant newParentDept = await this.GetAsync(dept.ParentId.Value);
         SysTenant oldDept = await this.GetAsync(dept.Id.Value);
-        if (newParentDept != null && oldDept != null)
+        if(newParentDept != null && oldDept != null)
         {
             string newAncestors = newParentDept.Ancestors + "," + newParentDept.Id;
             string oldAncestors = oldDept.Ancestors!;
             dept.Ancestors = newAncestors;
-            await UpdateDeptChildrenAsync(dept.Id.Value, newAncestors, oldAncestors);
+            await UpdateDeptChildrenAsync(dept.Id.Value,newAncestors,oldAncestors);
         }
-        int result = await _sysTenantRepository.UpdateAsync(dept, true);
-        if (UserConstants.DEPT_NORMAL.Equals(dept.Status) && StringUtils.IsNotEmpty(dept.Ancestors)
-                && !StringUtils.Equals("0", dept.Ancestors))
+        int result = await _sysTenantRepository.UpdateAsync(dept,true);
+        if(UserConstants.DEPT_NORMAL.Equals(dept.Status) && StringUtils.IsNotEmpty(dept.Ancestors)
+                && !StringUtils.Equals("0",dept.Ancestors))
         {
             // 如果该部门是启用状态，则启用该部门的所有上级部门
             await UpdateParentDeptStatusNormalAsync(dept);
@@ -251,14 +251,14 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     /// <param name="deptId">被修改的部门ID</param>
     /// <param name="newAncestors">新的父ID集合</param>
     /// <param name="oldAncestors">旧的父ID集合</param>
-    public async Task UpdateDeptChildrenAsync(long deptId, string newAncestors, string oldAncestors)
+    public async Task UpdateDeptChildrenAsync(long deptId,string newAncestors,string oldAncestors)
     {
         List<SysTenant> children = await _sysTenantRepository.GetChildrenDeptByIdAsync(deptId);
-        foreach (SysTenant child in children)
+        foreach(SysTenant child in children)
         {
-            child.Ancestors = child.Ancestors!.ReplaceFirst(oldAncestors, newAncestors);
+            child.Ancestors = child.Ancestors!.ReplaceFirst(oldAncestors,newAncestors);
         }
-        if (children.Count > 0)
+        if(children.Count > 0)
         {
             await _sysTenantRepository.UpdateAsync(children);
         }
@@ -282,4 +282,64 @@ public class SysTenantService : BaseService<SysTenant, SysTenantDto>, ITransient
     {
         return await _sysTenantRepository.DeleteDeptByIdAsync(deptId);
     }
+
+
+
+
+
+    /// <summary>
+    /// 根据系统用户名获取系统用户id  ，  构造树结构
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <returns></returns>
+    public async Task<object[]> GetDeptNamesByUserNameAsync(string userName)
+    {
+        // [
+        //    { "label": "深圳代理", "value": 1 },
+        //    { "label": "长沙代理", "value": 2 }
+        // ]
+
+
+
+        // 定义 SQL 查询
+        string sql = @"
+        SELECT t.dept_name  , t.id
+        FROM sys_user u
+        JOIN sys_user_tenant ut ON u.user_id = ut.user_id
+        JOIN sys_tenant t ON ut.t_id = t.id
+        WHERE u.status = '0'  
+          AND u.del_flag = '0' 
+          AND u.user_name = @UserName
+    ";
+
+        try
+        {
+            // 执行 SQL 查询并获取结果
+            var tenantData = await _sysTenantRepository.SqlQueryable(sql,
+                new List<SugarParameter> { new SugarParameter("@UserName",userName) }
+            )
+            .Select(t => new { t.Id,t.DeptName }) // 显式指定选择字段
+            .ToListAsync(); // 获取结果列表
+
+             
+
+            // 构造返回格式，label = dept_name，value = id
+            return tenantData.Select(item => new
+            {
+                label = item.DeptName, // 部门名称
+                value = item.Id        // 部门 ID
+            }).ToArray();
+        }
+
+        catch(Exception ex)
+        {
+            throw new Exception("获取部门信息失败",ex); // 抛出更具体的异常
+        }
+    }
+
+
+
+
+
+
 }

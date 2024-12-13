@@ -16,5 +16,10 @@ namespace RuoYi.Data.Dtos
         /// 角色ID
         /// </summary>
         public long RoleId { get; set; }
+
+        /// <summary>
+        /// 所属组织
+        /// </summary>
+        public long TenantId { get; set; }
     }
 }

@@ -187,7 +187,7 @@ public class SysLoginService : ITransient
             User = user,
             Permissions = permissions,
             //新增
-            TenantId = user.TenantId ?? 0,
+            TenantId = user.TenantId,
             UserType = user.UserType,
 
         };

@@ -24,6 +24,7 @@ namespace RuoYi.System.Repositories
             ;
         }
 
+ 
         public override ISugarQueryable<SysUserPostDto> DtoQueryable(SysUserPostDto dto)
         {
             return Repo.AsQueryable()

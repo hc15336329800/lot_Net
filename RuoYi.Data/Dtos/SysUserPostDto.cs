@@ -16,5 +16,10 @@ namespace RuoYi.Data.Dtos
         /// 岗位ID
         /// </summary>
         public long? PostId { get; set; }
+
+        /// <summary>
+        /// 所属组织
+        /// </summary>
+        public long TenantId { get; set; }
     }
 }

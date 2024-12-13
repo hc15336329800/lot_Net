@@ -56,5 +56,10 @@ namespace RuoYi.Data.Dtos
         /// 用户ID
         /// </summary>
         public long? UserId { get; set; }
+
+        /// <summary>
+        /// 所属组织
+        /// </summary>
+        public long TenantId { get; set; }
     }
 }

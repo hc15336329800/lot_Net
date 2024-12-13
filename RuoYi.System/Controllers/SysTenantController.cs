@@ -24,6 +24,32 @@ namespace RuoYi.System.Controllers
             _sysTenantService = sysTenantService;
         }
 
+
+
+        // 查询用户组织关系表（sys_user_tenant）根据用户ID
+        // 根据系统用户名获取id
+        [HttpGet("GetTenantIdsIdByUserName/{userName}")]
+        public async Task<AjaxResult> GetTenantIdByUserNameAsync(string userName)
+        {
+
+            var tenantId = await  _sysTenantService.GetDeptNamesByUserNameAsync(userName);
+
+            if(tenantId == null || tenantId.Length == 0)
+            {
+                return AjaxResult.Error("未找到对应的部门信息");
+            }
+
+         
+
+            // 返回成功结果
+            return AjaxResult.Success(tenantId);
+ 
+        }
+
+
+
+
+
         /// <summary>
         /// 查询部门表列表
         /// </summary>
