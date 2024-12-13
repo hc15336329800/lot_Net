@@ -50,6 +50,21 @@ namespace RuoYi.Common.Utils
             return user.TenantId;
         }
 
+
+        /// <summary>
+        /// 获取用户类型
+        /// </summary>
+        public static string GetUserType( )
+        {
+            var user = GetCurrentUser();
+            if(user == null || user.UserType == null)
+            {
+                throw new ServiceException("用户类别获取失败，请确保用户已登录并具有信息",StatusCodes.Status401Unauthorized);
+            }
+            return user.UserType;
+        }
+
+
         /// <summary>
         /// 获取公司ID
         /// </summary>

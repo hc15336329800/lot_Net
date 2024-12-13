@@ -31,7 +31,7 @@ public class SysPermissionService : ITransient
         }
         else
         {
-            roles.AddRange(await _sysRoleService.GetRolePermissionByUserId(user.UserId!.Value));
+            roles.AddRange(await _sysRoleService.GetRolePermissionByUserId(user.UserId!));
         }
         return roles;
     }
@@ -59,7 +59,7 @@ public class SysPermissionService : ITransient
             }
             else
             {
-                perms.AddRange(_sysMenuService.SelectMenuPermsByUserId(user.UserId!.Value));
+                perms.AddRange(_sysMenuService.SelectMenuPermsByUserId(user.UserId!));
             }
         }
         return perms;

@@ -19,6 +19,8 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     private readonly SysUserRepository _sysUserRepository;
     private readonly SysUserPostRepository _sysUserPostRepository;
     private readonly SysUserRoleRepository _sysUserRoleRepository;
+    private readonly SysTenantRepository _sysTenantRepository;
+
 
     private readonly SysRoleService _sysRoleService;
     private readonly SysPostService _sysPostService;
@@ -30,7 +32,9 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
         SysUserRoleRepository sysUserRoleRepository,
         SysRoleService sysRoleService,
         SysPostService sysPostService,
-        SysConfigService sysConfigService)
+        SysConfigService sysConfigService,
+        SysTenantRepository sysTenantRepository
+        )
     {
         BaseRepo = sysUserRepository;
 
@@ -42,6 +46,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
         _sysRoleService = sysRoleService;
         _sysPostService = sysPostService;
         _sysConfigService = sysConfigService;
+        _sysTenantRepository = sysTenantRepository;
     }
 
     /// <summary>
@@ -244,9 +249,9 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// 校验用户是否有数据权限
     /// </summary>
     /// <param name="userId">用户id</param>
-    public async Task CheckUserDataScope(long? userId)
+    public async Task CheckUserDataScope(long userId)
     {
-        if (!SecurityUtils.IsAdmin(SecurityUtils.GetUserId()) && userId.HasValue)
+        if (!SecurityUtils.IsAdmin(SecurityUtils.GetUserId()))
         {
             SysUserDto dto = new SysUserDto { UserId = userId };
             List<SysUser> users = await this.GetUserListAsync(dto);
@@ -265,14 +270,33 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     [Transactional]
     public virtual bool InsertUser(SysUserDto user)
     {
+
+
         // 新增用户信息
         user.Password = SecurityUtils.EncryptPassword(user.Password!);
         user.DelFlag = DelFlag.No;
+        user.TenantId = SecurityUtils.GetTenantId(); // 当前用户的组织
+
+         // 当前用户的类型
+         // todo: 等待前端传过来
+
+
         bool succees = _sysUserRepository.Insert(user);
-        // 新增用户岗位关联
+
+        //SysTenantDto tt =   new SysTenantDto();
+        //tt.TenantId = 5;
+        //tt.DeptName = "测试";
+        //bool succees = _sysTenantRepository.Insert(tt);
+
+        // 这里不知道userID
+
+        // 新增用户岗位关联   ×
         InsertUserPost(user);
-        // 新增用户与角色管理
+        // 新增用户与角色管理  ×
         InsertUserRole(user);
+        // 新增用户与组织关联   ×
+        // todo
+         
         return succees;
     }
 
@@ -291,11 +315,11 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     public virtual int UpdateUser(SysUserDto user)
     {
         // 删除用户与角色关联
-        _sysUserRoleRepository.DeleteUserRoleByUserId(user.UserId ?? 0);
+        _sysUserRoleRepository.DeleteUserRoleByUserId(user.UserId );
         // 新增用户与角色管理
         InsertUserRole(user);
         // 删除用户与岗位关联
-        _sysUserPostRepository.DeleteUserPostByUserId(user.UserId ?? 0);
+        _sysUserPostRepository.DeleteUserPostByUserId(user.UserId);
         // 新增用户与岗位管理
         InsertUserPost(user);
 
@@ -344,7 +368,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
     /// <param name="user"></param>
     public void InsertUserRole(SysUserDto user)
     {
-        this.InsertUserRole(user.UserId ?? 0, user.RoleIds);
+        this.InsertUserRole(user.UserId , user.RoleIds);
     }
 
     /// <summary>
@@ -412,7 +436,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
             foreach (long postId in user.PostIds)
             {
                 SysUserPost up = new SysUserPost();
-                up.UserId = user.UserId ?? 0;
+                up.UserId = user.UserId ;
                 up.PostId = postId;
                 list.Add(up);
             }
@@ -494,7 +518,7 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
                     user.Validate();
 
                     CheckUserAllowed(u);
-                    await CheckUserDataScope(u.UserId ?? 0);
+                    await CheckUserDataScope(u.UserId );
 
                     user.UserId = u.UserId;
                     user.UpdateBy = operName;

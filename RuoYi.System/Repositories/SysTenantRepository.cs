@@ -22,6 +22,9 @@ public class SysTenantRepository : BaseRepository<SysTenant,SysTenantDto>
     public override ISugarQueryable<SysTenant> Queryable(SysTenantDto dto)
     {
         return Repo.AsQueryable()
+             //新增，按道理来说是自己查询自己的
+             .Where((d) => d.TenantId == dto.TenantId)
+
             .Where((d) => d.DelFlag == DelFlag.No)
             .WhereIF(dto.Id > 0,(d) => d.Id == dto.Id)
             .WhereIF(dto.ParentId > 0,(d) => d.ParentId == dto.ParentId)

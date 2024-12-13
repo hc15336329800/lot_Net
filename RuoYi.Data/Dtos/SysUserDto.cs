@@ -6,16 +6,19 @@ using System.ComponentModel.DataAnnotations;
 namespace RuoYi.Data.Dtos
 {
     /// <summary>
-    /// 等了用户对象 sys_user
+    /// 用户对象 SysUserDto
     /// </summary>
     public class SysUserDto : BaseDto
     {
-        /** 所属组织 */
-        public long TenantId { get; set; }
+        /** 新增：所属组织 */
+        public long? TenantId { get; set; }
+
+        /** 新增：用户类型 */
+        public string? UserType { get; set; }
 
         /** 用户ID */
         [Excel(Name = "用户序号")]
-        public long? UserId { get; set; }
+        public long UserId { get; set; }
 
         /** 部门ID */
         [Excel(Name = "部门编号", Type = ExcelOperationType.Import)]

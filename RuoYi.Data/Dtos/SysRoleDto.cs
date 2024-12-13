@@ -1,10 +1,15 @@
 ﻿using RuoYi.Data.Attributes;
+using SqlSugar;
 using System.ComponentModel.DataAnnotations;
 
 namespace RuoYi.Data.Dtos
 {
     public class SysRoleDto : BaseDto
     {
+        /** 所属组织 */
+        [SugarColumn(ColumnName = "tenant_id",ColumnDescription = "所属组织")]
+
+        public long TenantId { get; set; }
         /** 角色ID */
         [Excel(Name = "角色序号")]
         public long RoleId{ get; set; }

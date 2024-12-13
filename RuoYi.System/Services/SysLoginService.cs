@@ -20,10 +20,10 @@ public class SysLoginService : ITransient
     private readonly SysPasswordService _sysPasswordService;
     private readonly SysPermissionService _sysPermissionService;
 
-    public SysLoginService(ILogger<SysLoginService> logger, ICaptcha captcha,
-        ICache cache, TokenService tokenService,
-        SysUserService sysUserService, SysConfigService sysConfigService,
-        SysLogininforService sysLogininforService, SysPasswordService sysPasswordService,
+    public SysLoginService(ILogger<SysLoginService> logger,ICaptcha captcha,
+        ICache cache,TokenService tokenService,
+        SysUserService sysUserService,SysConfigService sysConfigService,
+        SysLogininforService sysLogininforService,SysPasswordService sysPasswordService,
         SysPermissionService sysPermissionService)
     {
         _logger = logger;
@@ -45,58 +45,64 @@ public class SysLoginService : ITransient
     /// <param name="code">验证码</param>
     /// <param name="uuid">唯一标识</param>
     /// <returns>结果</returns>
-    public async Task<string> LoginAsync(string username, string password, string code, string uuid,long tenantid)
+    public async Task<string> LoginAsync(string username,string password,string code,string uuid,long tenantid)
     {
         // 验证码校验
-        ValidateCaptcha(username, code, uuid);
+        ValidateCaptcha(username,code,uuid);
         // 登录前置校验
-        LoginPreCheck(username, password);
+        LoginPreCheck(username,password);
         // 用户验证
         var userDto = await _sysUserService.GetDtoByUsernameAsync(username);
-        CheckLoginUser(username, password, userDto);
+        CheckLoginUser(username,password,userDto);
 
         // 记录登录成功
-        await _sysLogininforService.AddAsync(username, Constants.LOGIN_SUCCESS, MessageConstants.User_Login_Success);
+        await _sysLogininforService.AddAsync(username,Constants.LOGIN_SUCCESS,MessageConstants.User_Login_Success);
 
 
         //************************  User用户信息，写入缓存 ***************************************
+        // 查询用户
+        var ust = await _sysUserService.GetDtoByUsernameAsync(username);
+
         //long[] childrenTenant = GetChildrenTenantById(tid);// 获取组织子集
-        userDto.TenantId = tenantid; //组织id
+        userDto.TenantId = tenantid; //组织id  需要判断下
+        userDto.UserType = ust.UserType; // 用户类型
+
+
         //userDto.TenantChildId = childrenTenant; //组织子集
         var loginUser = CreateLoginUser(userDto);
 
         //*****************************************************************************************
 
- 
 
 
 
-        await RecordLoginInfoAsync(userDto.UserId ?? 0);
+
+        await RecordLoginInfoAsync(userDto.UserId);
 
         // 生成token
         return await _tokenService.CreateToken(loginUser);
     }
 
-    private void CheckLoginUser(string username, string password, SysUserDto user)
+    private void CheckLoginUser(string username,string password,SysUserDto user)
     {
-        if (user == null)
+        if(user == null)
         {
             _logger.LogInformation($"登录用户：{username} 不存在.");
             throw new ServiceException(MessageConstants.User_Passwrod_Not_Match);
         }
-        else if (UserStatus.DELETED.GetValue().Equals(user.DelFlag))
+        else if(UserStatus.DELETED.GetValue().Equals(user.DelFlag))
         {
             _logger.LogInformation($"登录用户：{username} 已被删除.");
             throw new ServiceException(MessageConstants.User_Deleted);
         }
-        else if (UserStatus.DISABLE.GetValue().Equals(user.Status))
+        else if(UserStatus.DISABLE.GetValue().Equals(user.Status))
         {
             _logger.LogInformation($"登录用户：{username} 已被停用.");
             throw new ServiceException(MessageConstants.User_Blocked);
         }
 
         // 密码验证
-        _sysPasswordService.Validate(username, password, user);
+        _sysPasswordService.Validate(username,password,user);
     }
 
     /// <summary>
@@ -105,18 +111,18 @@ public class SysLoginService : ITransient
     /// <param name="username">用户名</param>
     /// <param name="code">验证码</param>
     /// <param name="uuid">唯一标识</param>
-    private void ValidateCaptcha(string username, string code, string uuid)
+    private void ValidateCaptcha(string username,string code,string uuid)
     {
         bool captchaEnabled = _sysConfigService.IsCaptchaEnabled();
-        if (captchaEnabled)
+        if(captchaEnabled)
         {
             // 无论验证是否通过, 都删除缓存的验证码
-            var isValidCaptcha = _captcha.Validate(uuid, code, true, true);
-            if (!isValidCaptcha)
+            var isValidCaptcha = _captcha.Validate(uuid,code,true,true);
+            if(!isValidCaptcha)
             {
-                Task.Factory.StartNew(async () =>
+                Task.Factory.StartNew(async ( ) =>
                 {
-                    await _sysLogininforService.AddAsync(username, Constants.LOGIN_FAIL, MessageConstants.Captcha_Invalid);
+                    await _sysLogininforService.AddAsync(username,Constants.LOGIN_FAIL,MessageConstants.Captcha_Invalid);
                 });
                 throw new ServiceException(MessageConstants.Captcha_Invalid);
             }
@@ -128,42 +134,42 @@ public class SysLoginService : ITransient
     /// </summary>
     /// <param name="username">用户名</param>
     /// <param name="password">用户密码</param>
-    private void LoginPreCheck(string username, string password)
+    private void LoginPreCheck(string username,string password)
     {
         // 用户名或密码为空 错误
-        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+        if(string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
         {
-            Task.Factory.StartNew(async () =>
+            Task.Factory.StartNew(async ( ) =>
             {
-                await _sysLogininforService.AddAsync(username, Constants.LOGIN_FAIL, MessageConstants.Required);
+                await _sysLogininforService.AddAsync(username,Constants.LOGIN_FAIL,MessageConstants.Required);
             });
             throw new ServiceException(MessageConstants.Required);
         }
         // 密码如果不在指定范围内 错误
-        if (password.Length < UserConstants.PASSWORD_MIN_LENGTH || password.Length > UserConstants.PASSWORD_MAX_LENGTH)
+        if(password.Length < UserConstants.PASSWORD_MIN_LENGTH || password.Length > UserConstants.PASSWORD_MAX_LENGTH)
         {
-            Task.Factory.StartNew(async () =>
+            Task.Factory.StartNew(async ( ) =>
             {
-                await _sysLogininforService.AddAsync(username, Constants.LOGIN_FAIL, MessageConstants.User_Passwrod_Not_Match);
+                await _sysLogininforService.AddAsync(username,Constants.LOGIN_FAIL,MessageConstants.User_Passwrod_Not_Match);
             });
             throw new ServiceException(MessageConstants.User_Passwrod_Not_Match);
         }
         // 用户名不在指定范围内 错误
-        if (username.Length < UserConstants.USERNAME_MIN_LENGTH || username.Length > UserConstants.USERNAME_MAX_LENGTH)
+        if(username.Length < UserConstants.USERNAME_MIN_LENGTH || username.Length > UserConstants.USERNAME_MAX_LENGTH)
         {
-            Task.Factory.StartNew(async () =>
+            Task.Factory.StartNew(async ( ) =>
             {
-                await _sysLogininforService.AddAsync(username, Constants.LOGIN_FAIL, MessageConstants.User_Passwrod_Not_Match);
+                await _sysLogininforService.AddAsync(username,Constants.LOGIN_FAIL,MessageConstants.User_Passwrod_Not_Match);
             });
             throw new ServiceException(MessageConstants.User_Passwrod_Not_Match);
         }
         // IP黑名单校验
         string? blackStr = _cache.GetString("sys.login.blackIPList");
-        if (IpUtils.IsMatchedIp(blackStr, App.HttpContext.GetRemoteIpAddressToIPv4()))
+        if(IpUtils.IsMatchedIp(blackStr,App.HttpContext.GetRemoteIpAddressToIPv4()))
         {
-            Task.Factory.StartNew(async () =>
+            Task.Factory.StartNew(async ( ) =>
             {
-                await _sysLogininforService.AddAsync(username, Constants.LOGIN_FAIL, MessageConstants.Login_Blocked);
+                await _sysLogininforService.AddAsync(username,Constants.LOGIN_FAIL,MessageConstants.Login_Blocked);
             });
             throw new ServiceException(MessageConstants.Login_Blocked);
         }
@@ -174,14 +180,16 @@ public class SysLoginService : ITransient
         var permissions = _sysPermissionService.GetMenuPermission(user);
         return new LoginUser
         {
-            UserId = user.UserId ?? 0,
+            UserId = user.UserId ,
             DeptId = user.DeptId ?? 0,
             UserName = user.UserName ?? "",
             Password = user.Password ?? "",
             User = user,
             Permissions = permissions,
             //新增
-            TenantId = user.TenantId,
+            TenantId = user.TenantId ?? 0,
+            UserType = user.UserType,
+
         };
     }
 

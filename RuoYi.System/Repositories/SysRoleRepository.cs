@@ -9,7 +9,7 @@ namespace RuoYi.System.Repositories
     ///  author ruoyi
     ///  date   2023-08-21 14:40:22
     /// </summary>
-    public class SysRoleRepository : BaseRepository<SysRole, SysRoleDto>
+    public class SysRoleRepository : BaseRepository<SysRole,SysRoleDto>
     {
         public SysRoleRepository(ISqlSugarRepository<SysRole> sqlSugarRepository)
         {
@@ -21,32 +21,37 @@ namespace RuoYi.System.Repositories
             return Repo.AsQueryable()
                 .OrderBy((r) => r.RoleSort)
                 .Where((r) => r.DelFlag == DelFlag.No)
-                .WhereIF(dto.RoleId > 0, (r) => r.RoleId == dto.RoleId)
-                .WhereIF(!string.IsNullOrEmpty(dto.RoleName), (r) => r.RoleName!.Contains(dto.RoleName!))
-                .WhereIF(!string.IsNullOrEmpty(dto.RoleKey), (r) => r.RoleKey!.Contains(dto.RoleKey!))
-                .WhereIF(!string.IsNullOrEmpty(dto.Status), (r) => r.Status == dto.Status)
-                .WhereIF(dto.Params.BeginTime != null, (r) => r.CreateTime >= dto.Params.BeginTime)
-                .WhereIF(dto.Params.EndTime != null, (r) => r.CreateTime <=  dto.Params.EndTime)
-                .WhereIF(!string.IsNullOrEmpty(dto.Params.DataScopeSql), dto.Params.DataScopeSql)
-            ;
+                .WhereIF(dto.RoleId > 0,(r) => r.RoleId == dto.RoleId)
+                .WhereIF(!string.IsNullOrEmpty(dto.RoleName),(r) => r.RoleName!.Contains(dto.RoleName!))
+                .WhereIF(!string.IsNullOrEmpty(dto.RoleKey),(r) => r.RoleKey!.Contains(dto.RoleKey!))
+                .WhereIF(!string.IsNullOrEmpty(dto.Status),(r) => r.Status == dto.Status)
+                .WhereIF(dto.Params.BeginTime != null,(r) => r.CreateTime >= dto.Params.BeginTime)
+                .WhereIF(dto.Params.EndTime != null,(r) => r.CreateTime <= dto.Params.EndTime)
+                .WhereIF(!string.IsNullOrEmpty(dto.Params.DataScopeSql),dto.Params.DataScopeSql)
+
+                //新增，按道理来说是自己查询自己的
+                 .Where((r) => r.TenantId == dto.TenantId) ;
         }
 
+        // 修改： 去掉部门  增加组织筛选
         public override ISugarQueryable<SysRoleDto> DtoQueryable(SysRoleDto dto)
         {
             return Repo.AsQueryable()
-                .LeftJoin<SysUserRole>((r, ur) => r.RoleId == ur.RoleId)
-                .LeftJoin<SysUser>((r, ur, u) => ur.UserId == u.UserId)
-                .LeftJoin<SysDept>((r, ur, u, d) => u.DeptId == d.DeptId)
+                .LeftJoin<SysUserRole>((r,ur) => r.RoleId == ur.RoleId)
+                .LeftJoin<SysUser>((r,ur,u) => ur.UserId == u.UserId)
                 .OrderBy((r) => r.RoleSort)
                 .Where((r) => r.DelFlag == DelFlag.No)
-                .WhereIF(dto.RoleId > 0, (r) => r.RoleId == dto.RoleId)
-                .WhereIF(!string.IsNullOrEmpty(dto.RoleName), (r) => r.RoleName!.Contains(dto.RoleName!))
-                .WhereIF(!string.IsNullOrEmpty(dto.RoleKey), (r) => r.RoleKey!.Contains(dto.RoleKey!))
-                .WhereIF(!string.IsNullOrEmpty(dto.Status), (r) => r.Status == dto.Status)
-                .WhereIF(dto.Params.BeginTime != null, (r) => r.CreateTime >= dto.Params.BeginTime)
-                .WhereIF(dto.Params.EndTime != null, (r) => r.CreateTime <= dto.Params.EndTime)
-                .WhereIF(!string.IsNullOrEmpty(dto.UserName), (r, ur, u) => u.UserName == dto.UserName)
-                .WhereIF(!string.IsNullOrEmpty(dto.Params.DataScopeSql), dto.Params.DataScopeSql)
+                .WhereIF(dto.RoleId > 0,(r) => r.RoleId == dto.RoleId)
+                .WhereIF(!string.IsNullOrEmpty(dto.RoleName),(r) => r.RoleName!.Contains(dto.RoleName!))
+                .WhereIF(!string.IsNullOrEmpty(dto.RoleKey),(r) => r.RoleKey!.Contains(dto.RoleKey!))
+                .WhereIF(!string.IsNullOrEmpty(dto.Status),(r) => r.Status == dto.Status)
+                .WhereIF(dto.Params.BeginTime != null,(r) => r.CreateTime >= dto.Params.BeginTime)
+                .WhereIF(dto.Params.EndTime != null,(r) => r.CreateTime <= dto.Params.EndTime)
+                .WhereIF(!string.IsNullOrEmpty(dto.UserName),(r,ur,u) => u.UserName == dto.UserName)
+                .WhereIF(!string.IsNullOrEmpty(dto.Params.DataScopeSql),dto.Params.DataScopeSql)
+                //新增，按道理来说是自己查询自己的
+                // .Where((d) => d.TenantId == dto.TenantId)
+
                 .Select((r) => new SysRoleDto
                 {
                     CreateBy = r.CreateBy,
@@ -67,11 +72,12 @@ namespace RuoYi.System.Repositories
                 }).Distinct();
         }
 
+
         protected override async Task FillRelatedDataAsync(IEnumerable<SysRoleDto> dtos)
         {
             await base.FillRelatedDataAsync(dtos);
 
-            foreach (var d in dtos)
+            foreach(var d in dtos)
             {
                 d.StatusDesc = Status.ToDesc(d.Status);
                 d.DataScopeDesc = DataScope.ToDesc(d.DataScope);

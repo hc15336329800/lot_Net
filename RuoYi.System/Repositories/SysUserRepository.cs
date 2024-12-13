@@ -17,28 +17,10 @@ namespace RuoYi.System.Repositories
             Repo = sqlSugarRepository;
         }
 
+        // 修改去掉了筛选部门
         public override ISugarQueryable<SysUser> Queryable(SysUserDto dto)
         {
-            //return this.UserQueryable(dto);
-            return Repo.AsQueryable()
-                //.Includes((u) => u.Dept)
-                .LeftJoin<SysDept>((u, d) => u.DeptId == d.DeptId)
-                .Where(u => u.DelFlag == DelFlag.No)
-                .WhereIF(dto.UserId > 0, u => u.UserId == dto.UserId)
-                .WhereIF(!string.IsNullOrEmpty(dto.UserName), u => u.UserName!.Contains(dto.UserName!))
-                .WhereIF(!string.IsNullOrEmpty(dto.Status), u => u.Status == dto.Status)
-                .WhereIF(!string.IsNullOrEmpty(dto.Phonenumber), u => u.Phonenumber!.Contains(dto.Phonenumber!))
-                .WhereIF(dto.UserId > 0, u => u.UserId == dto.UserId)
-                .WhereIF(dto.Params.BeginTime != null, (u) => u.CreateTime >= dto.Params.BeginTime)
-                .WhereIF(dto.Params.EndTime != null, (u) => u.CreateTime <= dto.Params.EndTime)
-                //.WhereIF(dto.DeptId > 0, $" (u.dept_id = @deptId OR u.dept_id IN ( SELECT t.dept_id FROM sys_dept t WHERE find_in_set(@deptId, ancestors) ))", new { deptId = dto.DeptId })
-                .WhereIF(dto.DeptId > 0, (u) => u.DeptId == dto.DeptId
-                    || u.DeptId == SqlFunc.Subqueryable<SysDept>()
-                        .Where(d => SqlFunc.SplitIn(d.Ancestors, dto.DeptId.ToString()))
-                        .GroupBy(d => d.DeptId)
-                        .Select(d => d.DeptId)
-                )
-                .WhereIF(!string.IsNullOrEmpty(dto.Params.DataScopeSql), dto.Params.DataScopeSql);
+            return Repo.AsQueryable().Where(u => u.DelFlag == DelFlag.No);
         }
 
         public override ISugarQueryable<SysUserDto> DtoQueryable(SysUserDto dto)
@@ -239,7 +221,7 @@ namespace RuoYi.System.Repositories
             var sb = new StringBuilder();
             sb.AppendLine("where u.del_flag = '0'");
 
-            if (dto.UserId.HasValue && dto.UserId > 0)
+            if ( dto.UserId > 0)
             {
                 sb.AppendLine("AND u.user_id = @UserId");
             }

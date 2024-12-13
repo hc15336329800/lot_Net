@@ -59,5 +59,8 @@ namespace RuoYi.Data.Entities
         /** 角色菜单权限 */
         //public Set<string?> permissions{ get; set; }
 
+        /** 所属组织 */
+        [SugarColumn(ColumnName = "tenant_id",ColumnDescription = "所属组织")]
+        public long TenantId { get; set; }
     }
 }

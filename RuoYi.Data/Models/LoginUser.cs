@@ -9,7 +9,7 @@ namespace RuoYi.Data.Models
     {
         public LoginUser( ) { }
 
-        public LoginUser(long userId,long deptId,SysUserDto user,List<string> permissions,long tenantId,string companyId)
+        public LoginUser(long userId,long deptId,SysUserDto user,List<string> permissions,long tenantId,string companyId,string userType)
         {
             this.UserId = userId;
             this.DeptId = deptId;
@@ -17,6 +17,8 @@ namespace RuoYi.Data.Models
             this.Permissions = permissions;
             this.TenantId = tenantId; // 新增
             this.CompanyId = companyId; // 新增
+            this.UserType = userType; // 新增
+
         }
 
         /// <summary>
@@ -55,6 +57,11 @@ namespace RuoYi.Data.Models
         /// 公司ID
         /// </summary>
         public string CompanyId { get; set; } // 新增字段
+
+        /// <summary>
+        /// 用户类型
+        /// </summary>
+        public string UserType { get; set; } // 新增字段
 
         /// <summary>
         /// 用户唯一标识

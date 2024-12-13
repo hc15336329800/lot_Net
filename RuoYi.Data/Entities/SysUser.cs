@@ -5,9 +5,13 @@ namespace RuoYi.Data.Entities
     [SugarTable("sys_user", "用户表")]
     public class SysUser : UserBaseEntity
     {
-        /** 所属组织 */
+        /** 新增：所属组织 */
         [SugarColumn(ColumnName = "tenant_id",ColumnDescription = "所属组织")]
         public long TenantId { get; set; }
+
+        /** 新增：用户类型 */
+        [SugarColumn(ColumnName = "user_type",ColumnDescription = "用户类型")]
+        public string UserType { get; set; }
 
         /** 用户ID */
         [SugarColumn(ColumnName = "user_id", ColumnDescription = "用户ID", IsPrimaryKey = true, IsIdentity = true)]

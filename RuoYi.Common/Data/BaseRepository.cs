@@ -356,6 +356,11 @@ public abstract class BaseRepository<TEntity, TDto> : ITransient
         return Repo.Context.Fastest<TEntity>().BulkCopy(entities.ToList());
     }
 
+    /// <summary>
+    /// 插入单条数据  并回填主键id
+    /// </summary>
+    /// <param name="dto"></param>
+    /// <returns></returns>
     public bool Insert(TDto dto)
     {
         var entity = dto.Adapt<TEntity>();
@@ -590,7 +595,12 @@ public abstract class BaseRepository<TEntity, TDto> : ITransient
     }
     #endregion
 
-    // 将 Entity 的主键值 赋给 Dto 的主键
+    /// <summary>
+    ///  将 Entity 的主键值 赋给 Dto 的主键
+    ///  SetDtoPrimaryKeyValue 方法依赖反射通过 SugarColumn 特性识别主键字段！
+    /// </summary>
+    /// <param name="dto"></param>
+    /// <param name="entity"></param>
     private void SetDtoPrimaryKeyValue(TDto dto, TEntity entity)
     {
         object? id = null;
@@ -608,14 +618,19 @@ public abstract class BaseRepository<TEntity, TDto> : ITransient
                     keyName = prop.Name;
                     type = prop.PropertyType;
                     id = prop.GetValue(entity);
-                    break;
+                   // break;
+                    ReflectUtils.SetPropertyValue(dto,keyName,id);
+
                 }
             }
         }
-        if (keyName.IsNotEmpty())
-        {
-            ReflectUtils.SetPropertyValue(dto, keyName, id);
-        }
+        // bug： 记录
+        // 跟踪到 SetDtoPrimaryKeyValue 里边看看呢, 有没有取到 keyName
+        // keyName为主键
+        //if(keyName.IsNotEmpty())
+        //{
+        //    ReflectUtils.SetPropertyValue(dto, keyName, id);
+        //}
     }
 
     // 新增时: 设置 用户信息
