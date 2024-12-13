@@ -422,6 +422,26 @@ public class SysUserService : BaseService<SysUser, SysUserDto>, ITransient
             _sysUserRoleRepository.Insert(list);
         }
     }
+    /// <summary>
+    /// 新增用户组织中间表
+    /// </summary>
+    /// <param name="user"></param>
+    public void InsertUserPost(SysUserDto user)
+    {
+        if(user.PostIds.IsNotEmpty())
+        {
+            // 新增用户与岗位管理
+            List<SysUserPost> list = new List<SysUserPost>();
+            foreach(long postId in user.PostIds)
+            {
+                SysUserPost up = new SysUserPost();
+                up.UserId = user.UserId;
+                up.PostId = postId;
+                list.Add(up);
+            }
+            _sysUserPostRepository.Insert(list);
+        }
+    }
 
     /// <summary>
     /// 新增用户岗位信息
