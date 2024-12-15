@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using RuoYi.Data.Attributes;
+using RuoYi.Data.Models;
 using SqlSugar;
 using System.ComponentModel.DataAnnotations;
 
@@ -94,7 +95,7 @@ namespace RuoYi.Data.Dtos
         /** 角色ID */
         public long? RoleId { get; set; }
 
-        /** 新增：岗位组 */
+        /** 新增： 组织组 */
         public List<long> TenantIds { get; set; }
 
         /// <summary>

@@ -22,10 +22,11 @@ namespace RuoYi.System.Controllers
         private readonly SysPostService _sysPostService;
         private readonly SysDeptService _sysDeptService;
         private readonly SysTenantService _sysTenantService;
+        private readonly SysUserTenantService _sysUserTenantService;
 
 
         public SysUserController(ILogger<SysUserController> logger,SysTenantService sysTenantService,
-            SysUserService sysUserService,SysRoleService sysRoleService,SysPostService sysPostService,SysDeptService sysDeptService)
+            SysUserService sysUserService,SysRoleService sysRoleService,SysPostService sysPostService,SysDeptService sysDeptService,SysUserTenantService sysUserTenantService)
         {
             _logger = logger;
             _sysUserService = sysUserService;
@@ -33,6 +34,8 @@ namespace RuoYi.System.Controllers
             _sysPostService = sysPostService;
             _sysDeptService = sysDeptService;
             _sysTenantService = sysTenantService;
+            _sysUserTenantService = sysUserTenantService;
+
         }
 
         /// <summary>
@@ -87,16 +90,24 @@ namespace RuoYi.System.Controllers
             if( userId > 0)
             {
                 var user = await _sysUserService.GetDtoAsync(userId);
+
+               
+             
+                 List<long>  ls = _sysUserTenantService.GetTenantIdsListByUserId(userId);// 组织组
+                user.TenantIds = ls;// 组织组
+
                 ajax.Add(AjaxResult.DATA_TAG,user);
 
                 List<long> spids =  _sysPostService.GetPostIdsListByUserId(userId);
 
+ 
 
                 ajax.Add("postIds",_sysPostService.GetPostIdsListByUserId(userId));
                 ajax.Add("roleIds",user.Roles.Select(x => x.RoleId).ToList());
-                ajax.Add("tenantIds",tenanttree);
 
-                //ajax.Add("tenant",user.Roles.Select(x => x.RoleId).ToList());
+                // todo: 这里需要去用户组织中间表拿到用户的组织信息，  根据userid
+                ajax.Add("tenantIds",ls);
+
 
             }
 

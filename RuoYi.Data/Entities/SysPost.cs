@@ -47,6 +47,7 @@ namespace RuoYi.Data.Entities
         /// <summary>
         /// 所属组织
         /// </summary>
+        [SugarColumn(ColumnName = "tenant_id",ColumnDescription = "所属集团")]
         public long TenantId { get; set; }
     }
 }

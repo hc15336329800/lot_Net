@@ -60,5 +60,6 @@ namespace RuoYi.Data.Entities
         /** 子部门 */
         [SugarColumn(IsIgnore = true)]
         public List<SysDept> Children { get; set; } = new List<SysDept>();
+ 
     }
 }

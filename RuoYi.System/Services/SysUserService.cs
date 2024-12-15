@@ -317,14 +317,14 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
     [Transactional]
     public virtual int UpdateUser(SysUserDto user)
     {
-        // 删除用户与角色关联
-        _sysUserRoleRepository.DeleteUserRoleByUserId(user.UserId);
-        // 新增用户与角色管理
-        InsertUserRole(user);
-        // 删除用户与岗位关联
-        _sysUserPostRepository.DeleteUserPostByUserId(user.UserId);
-        // 新增用户与岗位管理
-        InsertUserPost(user);
+        //// 删除用户与角色关联
+        //_sysUserRoleRepository.DeleteUserRoleByUserId(user.UserId);
+        //// 新增用户与角色管理
+        //InsertUserRole(user);
+        //// 删除用户与岗位关联
+        //_sysUserPostRepository.DeleteUserPostByUserId(user.UserId);
+        //// 新增用户与岗位管理
+        //InsertUserPost(user);
 
         // 新增： 删除用户与组织关联
         _sysUserTenantRepository.DeleteUserTenantByUserId(user.UserId);
