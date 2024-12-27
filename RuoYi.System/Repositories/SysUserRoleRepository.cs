@@ -16,9 +16,11 @@ namespace RuoYi.System.Repositories
             Repo = sqlSugarRepository;
         }
 
+        // 增加： tid隔离
         public override ISugarQueryable<SysUserRole> Queryable(SysUserRoleDto dto)
         {
-            return Repo.AsQueryable()
+            return Repo.AsQueryable() 
+                //.Where((d) => d.TenantId == dto.TenantId) //tid
                 .WhereIF(dto.UserId > 0, (t) => t.UserId == dto.UserId)
                 .WhereIF(dto.RoleId > 0, (t) => t.RoleId == dto.RoleId)
             ;
@@ -27,6 +29,7 @@ namespace RuoYi.System.Repositories
         public override ISugarQueryable<SysUserRoleDto> DtoQueryable(SysUserRoleDto dto)
         {
             return Repo.AsQueryable()
+                //.Where((d) => d.TenantId == dto.TenantId) //tid
                 .WhereIF(dto.UserId > 0, (t) => t.UserId == dto.UserId)
                 .WhereIF(dto.RoleId > 0, (t) => t.RoleId == dto.RoleId)
                 .Select((t) => new SysUserRoleDto

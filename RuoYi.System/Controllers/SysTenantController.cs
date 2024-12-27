@@ -36,7 +36,7 @@ namespace RuoYi.System.Controllers
 
             if(tenantId == null || tenantId.Length == 0)
             {
-                return AjaxResult.Error("未找到对应的部门信息");
+                return AjaxResult.Error("未找到对应的租户信息");
             }
 
          
@@ -51,10 +51,10 @@ namespace RuoYi.System.Controllers
 
 
         /// <summary>
-        /// 查询部门表列表
+        /// 查询租户表列表
         /// </summary>
         [HttpGet("list")]
-        [AppAuthorize("system:tenant:list")]
+        //[AppAuthorize("system:tenant:list")]
         public async Task<AjaxResult> GetSysDeptList([FromQuery] SysTenantDto dto)
         {
             // 查询tid
@@ -66,7 +66,7 @@ namespace RuoYi.System.Controllers
         }
 
         /// <summary>
-        /// 查询部门表列表  不用
+        /// 查询租户表列表  不用
         /// </summary>
         [HttpGet("list/exclude/{deptId}")]
         //[AppAuthorize("system:tenant:list")]
@@ -79,7 +79,7 @@ namespace RuoYi.System.Controllers
         }
 
         /// <summary>
-        /// 获取 部门表 详细信息
+        /// 获取 租户表 详细信息
         /// </summary>
         [HttpGet("{deptId}")]
         //[AppAuthorize("system:tenant:query")]
@@ -91,12 +91,12 @@ namespace RuoYi.System.Controllers
         }
 
         /// <summary>
-        /// 新增 部门表
+        /// 新增 租户表
         /// </summary>
         [HttpPost("")]
         //[AppAuthorize("system:tenant:add")]
         [TypeFilter(typeof(RuoYi.Framework.DataValidation.DataValidationFilter))]
-        [Log(Title = "部门管理", BusinessType = BusinessType.INSERT)]
+        [Log(Title = "租户管理", BusinessType = BusinessType.INSERT)]
         public async Task<AjaxResult> Add([FromBody] SysTenantDto tenant)
         {
             // 查询tid
@@ -109,54 +109,54 @@ namespace RuoYi.System.Controllers
 
             if (!await _sysTenantService.CheckDeptNameUniqueAsync(tenant))
             {
-                return AjaxResult.Error($"新增部门'{tenant.DeptName} '失败，部门名称已存在");
+                return AjaxResult.Error($"新增租户'{tenant.DeptName} '失败，租户名称已存在");
             }
             var data = await _sysTenantService.InsertDeptAsync(tenant);
             return AjaxResult.Success(data);
         }
 
         /// <summary>
-        /// 修改 部门表
+        /// 修改 租户表
         /// </summary>
         [HttpPut("")]
         //[AppAuthorize("system:tenant:edit")]
         [TypeFilter(typeof(RuoYi.Framework.DataValidation.DataValidationFilter))]
-        [Log(Title = "部门管理", BusinessType = BusinessType.UPDATE)]
+        [Log(Title = "租户管理", BusinessType = BusinessType.UPDATE)]
         public async Task<AjaxResult> Edit([FromBody] SysTenantDto tenant)
         {
             long deptId = tenant.Id!.Value;
             await _sysTenantService.CheckDeptDataScopeAsync(deptId);
             if (!await _sysTenantService.CheckDeptNameUniqueAsync(tenant))
             {
-                return AjaxResult.Error("修改部门'" + tenant.DeptName + "'失败，部门名称已存在");
+                return AjaxResult.Error("修改租户'" + tenant.DeptName + "'失败，租户名称已存在");
             }
             else if (tenant.ParentId.Equals(deptId))
             {
-                return AjaxResult.Error("修改部门'" + tenant.DeptName + "'失败，上级部门不能是自己");
+                return AjaxResult.Error("修改租户'" + tenant.DeptName + "'失败，上级租户不能是自己");
             }
             else if (UserConstants.DEPT_DISABLE.Equals(tenant.Status) && await _sysTenantService.CountNormalChildrenDeptByIdAsync(deptId) > 0)
             {
-                return AjaxResult.Error("该部门包含未停用的子部门！");
+                return AjaxResult.Error("该租户包含未停用的子租户！");
             }
             var data = await _sysTenantService.UpdateDeptAsync(tenant);
             return AjaxResult.Success(data);
         }
 
         /// <summary>
-        /// 删除 部门表
+        /// 删除 租户表
         /// </summary>
         [HttpDelete("{deptId}")]
         //[AppAuthorize("system:tenant:remove")]
-        [Log(Title = "部门管理", BusinessType = BusinessType.DELETE)]
+        [Log(Title = "租户管理", BusinessType = BusinessType.DELETE)]
         public async Task<AjaxResult> Remove(long deptId)
         {
             if (await _sysTenantService.HasChildByDeptIdAsync(deptId))
             {
-                return AjaxResult.Error("存在下级部门,不允许删除");
+                return AjaxResult.Error("存在下级租户,不允许删除");
             }
             if (await _sysTenantService.CheckDeptExistUserAsync(deptId))
             {
-                return AjaxResult.Error("部门存在用户,不允许删除");
+                return AjaxResult.Error("租户存在用户,不允许删除");
             }
             await _sysTenantService.CheckDeptDataScopeAsync(deptId);
             var data = await _sysTenantService.DeleteDeptByIdAsync(deptId);

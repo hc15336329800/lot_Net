@@ -3,9 +3,11 @@ using RuoYi.Common.Enums;
 using RuoYi.Common.Utils;
 using RuoYi.Data.Dtos;
 using RuoYi.Data.Entities;
+using RuoYi.Data.Enums;
 using RuoYi.Data.Models;
 using RuoYi.Framework;
 using RuoYi.System.Services;
+using RuoYi.System.Utils;
 
 namespace RuoYi.System.Controllers
 {
@@ -39,12 +41,14 @@ namespace RuoYi.System.Controllers
         }
 
         /// <summary>
-        /// 查询用户信息表列表
+        /// 查询用户信息表列表 -- token中的tid
         /// </summary>
         [HttpGet("list")]
         [AppAuthorize("system:user:list")]
         public async Task<SqlSugarPagedList<SysUser>> GetUserList([FromQuery] SysUserDto dto)
         {
+            long tid = SecurityUtils.GetTenantId();// tid
+            dto.TenantId = tid;
             return await _sysUserService.GetPagedUserListAsync(dto);
         }
 
@@ -72,11 +76,17 @@ namespace RuoYi.System.Controllers
            
             // 获取组织树
             string userType = SecurityUtils.GetUserType();
+            // tid应该是前端传递过来的id？？
+            long tid = SecurityUtils.GetTenantId();
             var tenantdto = new SysTenantDto();
-            var tenanttree = await _sysTenantService.GetDeptTreeListAsync(tenantdto);
- 
-            tenanttree = FilterTenantTreeByUserType(tenanttree,userType);  // 根据用户类型筛选组织树
+            tenantdto.TenantId = tid;
 
+            var tenanttree = await _sysTenantService.GetDeptTreeListAsync(tenantdto);
+
+             tenanttree = FilterTenantTreeByUserType(SecurityUtils.GetTenantId(),tenanttree,userType);  // 根据用户类型筛选组织树
+
+            // 获取下拉框结构
+            List<ElSelect> elSelect = TenantUtils.GetElSelectByTenant(userType);
 
             AjaxResult ajax = AjaxResult.Success();
             // 当前用户是否为管理员，动态调整返回的角色集合，
@@ -85,6 +95,7 @@ namespace RuoYi.System.Controllers
             ajax.Add("roles",roles);
             ajax.Add("posts",posts);
             ajax.Add("tenantIds",tenanttree);
+            ajax.Add("userTypes",elSelect);   // 增加用户测试正确，修改用户还没有适配
 
             // 用户信息 by  id
             if( userId > 0)
@@ -123,7 +134,7 @@ namespace RuoYi.System.Controllers
         /// <param name="tenantTree">完整组织树</param>
         /// <param name="userType">用户类型</param>
         /// <returns>筛选后的组织树</returns>
-        private List<TreeSelectTenant> FilterTenantTreeByUserType(List<TreeSelectTenant> tenantTree,string userType)
+        private List<TreeSelectTenant> FilterTenantTreeByUserType(long tid,List<TreeSelectTenant> tenantTree,string userType)
         {
             switch(userType)
             {
@@ -131,39 +142,71 @@ namespace RuoYi.System.Controllers
                     // 超级管理员：返回所有节点
                     return tenantTree;
 
-                //case "GROUP_ADMIN":
-                //    // 集团管理员：只返回集团及下属公司两层节点
-                //    return tenantTree.Select(tree => new TreeSelect
-                //    {
-                //        Id = tree.Id,
-                //        Label = tree.Label,
-                //        Children = tree.Children?.Select(child => new TreeSelect
-                //        {
-                //            Id = child.Id,
-                //            Label = child.Label
-                //        }).ToList()
-                //    }).ToList();
                 case "GROUP_ADMIN":
-                    // 集团管理员：只返回集团下属的公司一层节点
-                    return tenantTree.SelectMany(tree => tree.Children ?? new List<TreeSelectTenant>())
-                                     .Select(company => new TreeSelectTenant
-                                     {
-                                         Id = company.Id,
-                                         Label = company.Label
-                                     }).ToList();
+                    // 集团管理员：只返回指定 tid 下属的一层节点（公司列表）  24-12-18 验证通过 √
+                    var groupNode = FindNodeById(tenantTree,tid);
+                    if(groupNode != null && groupNode.Children != null)
+                    {
+                        // 返回子节点列表
+                        return groupNode.Children.Select(child => new TreeSelectTenant
+                        {
+                            Id = child.Id,
+                            Label = child.Label
+                        }).ToList();
+                    }
+                    else
+                    {
+                        // 如果未找到或没有子节点，返回空列表
+                        return new List<TreeSelectTenant>();
+                    }
 
                 case "COMPANY_ADMIN":
-                    // 公司管理员：只返回公司层级节点
-                    return tenantTree.Select(tree => new TreeSelectTenant
+                    // 公司管理员：只返回当前的 tid 节点    24-12-18 验证通过 √
+                    var companyNode = FindNodeById(tenantTree,tid);
+                    if(companyNode != null)
                     {
-                        Id = tree.Id,
-                        Label = tree.Label
-                    }).ToList();
+                        // 返回当前节点，不包含子节点
+                        return new List<TreeSelectTenant>
+                {
+                    new TreeSelectTenant
+                    {
+                        Id = companyNode.Id,
+                        Label = companyNode.Label
+                    }
+                };
+                    }
+                    else
+                    {
+                        // 如果未找到，返回空列表
+                        return new List<TreeSelectTenant>();
+                    }
 
                 default:
-                    // 普通用户：返回空
+                    // 普通用户：返回空列表
                     return new List<TreeSelectTenant>();
             }
+        }
+
+        /// <summary>
+        /// 在树中根据 Id 查找节点
+        /// </summary>
+        /// <param name="tree">树节点列表</param>
+        /// <param name="id">要查找的节点 Id</param>
+        /// <returns>找到的节点，未找到则返回 null</returns>
+        private TreeSelectTenant? FindNodeById(List<TreeSelectTenant> tree,long id)
+        {
+            foreach(var node in tree)
+            {
+                if(node.Id == id)
+                    return node;
+                if(node.Children != null && node.Children.Any())
+                {
+                    var found = FindNodeById(node.Children,id);
+                    if(found != null)
+                        return found;
+                }
+            }
+            return null;
         }
 
         /// <summary>

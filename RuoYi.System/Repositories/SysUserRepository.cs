@@ -10,7 +10,7 @@ namespace RuoYi.System.Repositories
     ///  author ruoyi
     ///  date   2023-08-21 14:40:20
     /// </summary>
-    public class SysUserRepository : BaseRepository<SysUser, SysUserDto>
+    public class SysUserRepository : BaseRepository<SysUser,SysUserDto>
     {
         public SysUserRepository(ISqlSugarRepository<SysUser> sqlSugarRepository)
         {
@@ -20,13 +20,20 @@ namespace RuoYi.System.Repositories
         // 修改去掉了筛选部门
         public override ISugarQueryable<SysUser> Queryable(SysUserDto dto)
         {
-            return Repo.AsQueryable().Where(u => u.DelFlag == DelFlag.No);
+            return Repo.AsQueryable()
+                .Where(d => d.TenantId == dto.TenantId) //tid
+                .Where(u => u.DelFlag == DelFlag.No);
         }
 
         public override ISugarQueryable<SysUserDto> DtoQueryable(SysUserDto dto)
         {
             return this.UserDtoQueryable(dto);
         }
+
+
+        /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 
         public async Task<SysUser> GetUserByUserNameAsync(string userName)
         {
@@ -45,23 +52,23 @@ namespace RuoYi.System.Repositories
         public async Task<SysUserDto> GetUserDtoAsync(SysUserDto dto)
         {
             var queryable = base.Repo.Context.Queryable<SysUser>()
-                .WhereIF(!string.IsNullOrEmpty(dto.DelFlag), u => u.DelFlag == dto.DelFlag)
-                .WhereIF(!string.IsNullOrEmpty(dto.UserName), u => u.UserName == dto.UserName)
-                .WhereIF(!string.IsNullOrEmpty(dto.Phonenumber), u => u.Phonenumber == dto.Phonenumber)
-                .WhereIF(!string.IsNullOrEmpty(dto.Email), u => u.Email == dto.Email)
-                .WhereIF(dto.UserId > 0, u => u.UserId == dto.UserId);
+                .WhereIF(!string.IsNullOrEmpty(dto.DelFlag),u => u.DelFlag == dto.DelFlag)
+                .WhereIF(!string.IsNullOrEmpty(dto.UserName),u => u.UserName == dto.UserName)
+                .WhereIF(!string.IsNullOrEmpty(dto.Phonenumber),u => u.Phonenumber == dto.Phonenumber)
+                .WhereIF(!string.IsNullOrEmpty(dto.Email),u => u.Email == dto.Email)
+                .WhereIF(dto.UserId > 0,u => u.UserId == dto.UserId);
 
             var user = await queryable.FirstAsync();
             var userDto = user.Adapt<SysUserDto>();
-            if (userDto != null)
+            if(userDto != null)
             {
                 // 部门
                 var dept = await base.Repo.Context.Queryable<SysDept>().FirstAsync(d => d.DeptId == userDto.DeptId);
                 userDto.Dept = dept.Adapt<SysDeptDto>();
                 // 角色
                 var roles = await base.Repo.Context.Queryable<SysRole>()
-                    .InnerJoin<SysUserRole>((r, ur) => r.RoleId == ur.RoleId)
-                    .Where((r, ur) => ur.UserId == userDto.UserId)
+                    .InnerJoin<SysUserRole>((r,ur) => r.RoleId == ur.RoleId)
+                    .Where((r,ur) => ur.UserId == userDto.UserId)
                     .ToListAsync();
                 userDto.Roles = roles.Adapt<List<SysRoleDto>>();
             }
@@ -75,7 +82,7 @@ namespace RuoYi.System.Repositories
         /// <param name="userName">用户名</param>
         /// <param name="avatar">头像地址</param>
         /// <returns></returns>
-        public async Task<int> UpdateUserAvatarAsync(string userName, string avatar)
+        public async Task<int> UpdateUserAvatarAsync(string userName,string avatar)
         {
             return await base.Updateable()
                  .SetColumns(u => u.Avatar == avatar)
@@ -130,7 +137,7 @@ namespace RuoYi.System.Repositories
         /// </summary>
         /// <param name="userName">用户名</param>
         /// <param name="password">加密后的密码</param>
-        public async Task<int> ResetPasswordAsync(string userName, string password)
+        public async Task<int> ResetPasswordAsync(string userName,string password)
         {
             return await base.Updateable().SetColumns(u => u.Password == password).Where(u => u.UserName == userName).ExecuteCommandAsync();
         }
@@ -178,7 +185,7 @@ namespace RuoYi.System.Repositories
             var where = GetDtoWhere(dto);
             sb.AppendLine(where);
 
-            return base.SqlQueryable(sb.ToString(), parameters);
+            return base.SqlQueryable(sb.ToString(),parameters);
         }
 
         /// <summary>
@@ -190,7 +197,7 @@ namespace RuoYi.System.Repositories
             var sb = new StringBuilder();
             sb.AppendLine(GetDtoTable());
             sb.AppendLine(GetDtoWhere(dto));
-            return base.SqlQueryable(sb.ToString(), parameters).Select(u => new SysUserDto
+            return base.SqlQueryable(sb.ToString(),parameters).Select(u => new SysUserDto
             {
                 UserId = u.UserId,
                 UserName = u.UserName,
@@ -205,7 +212,7 @@ namespace RuoYi.System.Repositories
         }
 
         // 返回 dto 查询sql
-        private string GetDtoTable()
+        private string GetDtoTable( )
         {
             return @"
             select distinct u.*
@@ -221,37 +228,37 @@ namespace RuoYi.System.Repositories
             var sb = new StringBuilder();
             sb.AppendLine("where u.del_flag = '0'");
 
-            if ( dto.UserId > 0)
+            if(dto.UserId > 0)
             {
                 sb.AppendLine("AND u.user_id = @UserId");
             }
-            if (!string.IsNullOrEmpty(dto.UserName))
+            if(!string.IsNullOrEmpty(dto.UserName))
             {
                 sb.AppendLine("AND u.user_name like concat('%', @UserName, '%')");
             }
-            if (!string.IsNullOrEmpty(dto.Status))
+            if(!string.IsNullOrEmpty(dto.Status))
             {
                 sb.AppendLine("AND u.user_name = @Status");
             }
-            if (!string.IsNullOrEmpty(dto.Phonenumber))
+            if(!string.IsNullOrEmpty(dto.Phonenumber))
             {
                 sb.AppendLine("AND u.phonenumber like concat('%', @PhoneNumber, '%')");
             }
-            if (dto.Params.BeginTime != null)
+            if(dto.Params.BeginTime != null)
             {
                 sb.AppendLine("AND date_format(u.create_time,'%y%m%d') >= date_format(@BeginTime,'%y%m%d')");
             }
-            if (dto.Params.BeginTime != null)
+            if(dto.Params.BeginTime != null)
             {
                 sb.AppendLine("AND date_format(u.create_time,'%y%m%d') <= date_format(@EndTime,'%y%m%d')");
             }
-            if (dto.DeptId.HasValue && dto.DeptId > 0)
+            if(dto.DeptId.HasValue && dto.DeptId > 0)
             {
                 sb.AppendLine("AND (u.dept_id = @DeptId OR u.dept_id IN ( SELECT t.dept_id FROM sys_dept t WHERE find_in_set(@DeptId, ancestors) ))");
             }
-            if (dto.IsAllocated.HasValue)
+            if(dto.IsAllocated.HasValue)
             {
-                if (dto.IsAllocated.Value)
+                if(dto.IsAllocated.Value)
                 {
                     sb.AppendLine("AND r.role_id = @RoleId");
                 }
@@ -262,7 +269,7 @@ namespace RuoYi.System.Repositories
                 }
             }
             // 数据范围过滤
-            if (!string.IsNullOrEmpty(dto.Params.DataScopeSql))
+            if(!string.IsNullOrEmpty(dto.Params.DataScopeSql))
             {
                 sb.AppendLine($"AND {dto.Params.DataScopeSql}");
             }
@@ -274,39 +281,39 @@ namespace RuoYi.System.Repositories
         private List<SugarParameter> GetSugarParameters(SysUserDto dto)
         {
             var parameters = new List<SugarParameter>();
-            if (dto.UserId > 0)
+            if(dto.UserId > 0)
             {
-                parameters.Add(new SugarParameter("@UserId", dto.UserId));
+                parameters.Add(new SugarParameter("@UserId",dto.UserId));
             }
-            if (!string.IsNullOrEmpty(dto.UserName))
+            if(!string.IsNullOrEmpty(dto.UserName))
             {
-                parameters.Add(new SugarParameter("@UserName", dto.UserName));
+                parameters.Add(new SugarParameter("@UserName",dto.UserName));
             }
-            if (!string.IsNullOrEmpty(dto.DelFlag))
+            if(!string.IsNullOrEmpty(dto.DelFlag))
             {
-                parameters.Add(new SugarParameter("@DelFlag", dto.DelFlag));
+                parameters.Add(new SugarParameter("@DelFlag",dto.DelFlag));
             }
-            if (!string.IsNullOrEmpty(dto.Status))
+            if(!string.IsNullOrEmpty(dto.Status))
             {
-                parameters.Add(new SugarParameter("@Status", dto.Status));
+                parameters.Add(new SugarParameter("@Status",dto.Status));
             }
-            if (!string.IsNullOrEmpty(dto.Phonenumber))
+            if(!string.IsNullOrEmpty(dto.Phonenumber))
             {
-                parameters.Add(new SugarParameter("@PhoneNumber", dto.Phonenumber));
+                parameters.Add(new SugarParameter("@PhoneNumber",dto.Phonenumber));
             }
-            if (dto.Params.BeginTime != null)
+            if(dto.Params.BeginTime != null)
             {
-                parameters.Add(new SugarParameter("@BeginTime", dto.Params.BeginTime));
+                parameters.Add(new SugarParameter("@BeginTime",dto.Params.BeginTime));
             }
-            if (dto.Params.BeginTime != null)
+            if(dto.Params.BeginTime != null)
             {
-                parameters.Add(new SugarParameter("@EndTime", dto.Params.EndTime));
+                parameters.Add(new SugarParameter("@EndTime",dto.Params.EndTime));
             }
-            if (dto.DeptId > 0)
+            if(dto.DeptId > 0)
             {
-                parameters.Add(new SugarParameter("@DeptId", dto.DeptId));
+                parameters.Add(new SugarParameter("@DeptId",dto.DeptId));
             }
-            parameters.Add(new SugarParameter("@RoleId", dto.RoleId));
+            parameters.Add(new SugarParameter("@RoleId",dto.RoleId));
             return parameters;
         }
 

@@ -38,7 +38,7 @@ namespace RuoYi.Common.Utils
         }
 
         /// <summary>
-        /// 获取租户ID
+        /// 获取租户ID（需要查询中间表）
         /// </summary>
         public static long GetTenantId( )
         {

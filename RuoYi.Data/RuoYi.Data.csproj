@@ -15,14 +15,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Enums\**" />
-    <EmbeddedResource Remove="Enums\**" />
-    <None Remove="Enums\**" />
+	<FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="SqlSugarCore" Version="5.1.4.167" />
   </ItemGroup>
 
   <ItemGroup>
-	<FrameworkReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="SqlSugarCore" Version="5.1.4.167" />
+    <Folder Include="新文件夹\" />
   </ItemGroup>
 
 </Project>
