@@ -9,17 +9,42 @@ namespace RuoYi.Data.Models
     {
         public LoginUser( ) { }
 
-        public LoginUser(long userId,long deptId,SysUserDto user,List<string> permissions,long tenantId,string companyId,string userType)
+
+        /// <summary>
+        /// 部门子集
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <param name="deptId"></param>
+        /// <param name="user"></param>
+        /// <param name="permissions"></param>
+        /// <param name="tenantId"></param>
+        /// <param name="userType">用户类型</param>
+        /// <param name="deptChildId">部门子集</param>
+        /// <param name="tenantChildId">组织子集</param>
+        public LoginUser(long userId,long deptId,SysUserDto user,List<string> permissions,long tenantId,string userType,long[] deptChildId,long[] tenantChildId)
         {
             this.UserId = userId;
             this.DeptId = deptId;
             this.User = user;
             this.Permissions = permissions;
+
             this.TenantId = tenantId; // 新增
-            this.CompanyId = companyId; // 新增
             this.UserType = userType; // 新增
+            this.DeptChildId = deptChildId; // 新增
+            this.TenantChildId = tenantChildId; // 新增
 
         }
+
+        /// <summary>
+        /// 部门子集
+        /// </summary>
+        public long[] DeptChildId { get; set; }
+
+        /// <summary>
+        /// 组织子集
+        /// </summary>
+        public long[] TenantChildId { get; set; }
+
 
         /// <summary>
         /// 用户名
@@ -53,10 +78,7 @@ namespace RuoYi.Data.Models
         /// </summary>
         public long TenantId { get; set; } // 新增字段
 
-        /// <summary>
-        /// 公司ID
-        /// </summary>
-        public string CompanyId { get; set; } // 新增字段
+ 
 
         /// <summary>
         /// 用户类型

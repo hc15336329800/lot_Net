@@ -11,7 +11,7 @@ namespace RuoYi.System.Utils
     {
 
         /// <summary>
-        /// 根据条件获取用户类型下拉框
+        /// el-select组件（将参数格式化为下拉框格式）: 根据条件获取用户类型下拉框
         /// </summary>
         /// <param name="string"></param>
         /// <returns></returns>

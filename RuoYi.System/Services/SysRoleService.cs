@@ -38,7 +38,8 @@ public class SysRoleService : BaseService<SysRole, SysRoleDto>, ITransient
     /// <summary>
     /// 分页查询用户列表
     /// </summary>
-    [DataScope(DeptAlias = "d")]
+    //[DataScope(DeptAlias = "d")]
+    [DataAdmin] // 修改为 DataAdmin
     public virtual async Task<SqlSugarPagedList<SysRoleDto>> GetPagedRoleListAsync(SysRoleDto dto)
     {
         return await _sysRoleRepository.GetDtoPagedListAsync(dto);

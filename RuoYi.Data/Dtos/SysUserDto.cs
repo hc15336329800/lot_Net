@@ -11,7 +11,12 @@ namespace RuoYi.Data.Dtos
     /// </summary>
     public class SysUserDto : BaseDto
     {
-       
+        /**  新增：组织子集 */
+        public long[] TenantChildId;
+
+        /** 新增：部门子集 */
+        //public long[] DeptChildId { get; set; }
+        public long[] DeptChildId { get; set; }
 
         /** 新增：用户类型 */
         public string? UserType { get; set; }
@@ -106,7 +111,13 @@ namespace RuoYi.Data.Dtos
         /** 新增：所属组织 */
         public long TenantId { get; set; }
 
- 
+
+        /// <summary>
+        /// 数据范围  - 新增   （ 1：全部数据权限 2：代理范围及以下数据权限 3：公司范围及以下数据权限  4：个人范围）
+        /// </summary>
+        //public string? DataScope { get; set; }
+
+
         /// <summary>
         /// 不序列化 Password 
         /// </summary>

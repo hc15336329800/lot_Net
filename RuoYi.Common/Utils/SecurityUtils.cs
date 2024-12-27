@@ -19,6 +19,28 @@ namespace RuoYi.Common.Utils
     {
         private static ICache _cache = App.GetService<ICache>();
 
+
+
+        /// <summary>
+        /// 获取当前登录用户的部门id子集
+        /// </summary>
+        public static long[] GetDeptChildId( )
+        {
+            var user = GetCurrentUser();
+            return user?.DeptChildId ?? [];
+        }
+
+
+        /// <summary>
+        /// 获取当前登录用户的组织子集
+        /// </summary>
+        public static long[] GetTenantChildId( )
+        {
+            var user = GetCurrentUser();
+            return user?.TenantChildId ?? [];
+        }
+
+
         /// <summary>
         /// 登录用户ID
         /// </summary>
@@ -65,18 +87,7 @@ namespace RuoYi.Common.Utils
         }
 
 
-        /// <summary>
-        /// 获取公司ID
-        /// </summary>
-        public static string GetCompanyId( )
-        {
-            var user = GetCurrentUser();
-            if(user == null || string.IsNullOrEmpty(user.CompanyId))
-            {
-                throw new ServiceException("公司ID获取失败，请确保用户已登录并具有公司信息",StatusCodes.Status401Unauthorized);
-            }
-            return user.CompanyId;
-        }
+         
 
         /// <summary>
         /// 获取用户账户

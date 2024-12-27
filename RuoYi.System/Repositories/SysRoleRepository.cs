@@ -20,45 +20,85 @@ namespace RuoYi.System.Repositories
         {
             return Repo.AsQueryable()
                 .OrderBy((r) => r.RoleSort)
-                .Where((r) => r.DelFlag == DelFlag.No)
+                //.Where((r) => r.DelFlag == DelFlag.No)
                 .WhereIF(dto.RoleId > 0,(r) => r.RoleId == dto.RoleId)
                 .WhereIF(!string.IsNullOrEmpty(dto.RoleName),(r) => r.RoleName!.Contains(dto.RoleName!))
                 .WhereIF(!string.IsNullOrEmpty(dto.RoleKey),(r) => r.RoleKey!.Contains(dto.RoleKey!))
                 .WhereIF(!string.IsNullOrEmpty(dto.Status),(r) => r.Status == dto.Status)
                 .WhereIF(dto.Params.BeginTime != null,(r) => r.CreateTime >= dto.Params.BeginTime)
                 .WhereIF(dto.Params.EndTime != null,(r) => r.CreateTime <= dto.Params.EndTime)
-                .WhereIF(!string.IsNullOrEmpty(dto.Params.DataScopeSql),dto.Params.DataScopeSql)
+                .WhereIF(!string.IsNullOrEmpty(dto.Params.DataScopeSql),dto.Params.DataScopeSql);
 
-                //新增，按道理来说是自己查询自己的
-                 .Where((r) => r.TenantId == dto.TenantId) ;
+                 //新增，按道理来说是自己查询自己的
+                 //.Where((r) => r.TenantId == dto.TenantId);
         }
 
-        // 修改： 去掉部门  增加组织筛选
+
+        /// <summary>
+        /// 多表：查询角色数据并返回 DTO 查询    修改： 去掉部门  增加组织筛选
+        /// </summary>
+        /// <param name="dto">角色 DTO 查询条件</param>
+        /// <returns>查询结果</returns>
+        //public override ISugarQueryable<SysRoleDto> DtoQueryable(SysRoleDto dto)
+        //{
+        //    int i = 0;
+        //    // 构建查询   注意多表中r别名
+        //    var queryable = Repo.AsQueryable()
+        //        .LeftJoin<SysUserRole>((r,ur) => r.RoleId == ur.RoleId) // 左连接角色-用户表
+        //        .LeftJoin<SysUser>((r,ur,u) => ur.UserId == u.UserId)  // 左连接用户表
+        //        .OrderBy(r => r.RoleSort) // 按角色排序字段排序
+        //        //.Where(r => r.DelFlag == DelFlag.No) // 过滤逻辑删除的记录
+        //        .WhereIF(dto.RoleId > 0,r => r.RoleId == dto.RoleId) // 过滤角色ID
+        //        .WhereIF(!string.IsNullOrEmpty(dto.RoleName),r => r.RoleName!.Contains(dto.RoleName!)) // 模糊匹配角色名
+        //        .WhereIF(!string.IsNullOrEmpty(dto.RoleKey),r => r.RoleKey!.Contains(dto.RoleKey!)) // 模糊匹配角色Key
+        //        .WhereIF(!string.IsNullOrEmpty(dto.Status),r => r.Status == dto.Status) // 过滤角色状态
+        //                                                                                //.WhereIF(dto.Params.BeginTime != null, r => r.CreateTime >= dto.Params.BeginTime) // 起始时间过滤
+        //                                                                                //.WhereIF(dto.Params.EndTime != null, r => r.CreateTime <= dto.Params.EndTime) // 截止时间过滤
+        //                                                                                //.WhereIF(!string.IsNullOrEmpty(dto.UserName), (r, ur, u) => u.UserName == dto.UserName) // 过滤用户姓名
+        //        .WhereIF(!string.IsNullOrEmpty(dto.Params.DataScopeSql),dto.Params.DataScopeSql) // 动态数据范围 SQL 条件
+        //        .Select(r => new SysRoleDto
+        //        {
+        //            // 数据映射到 DTO
+        //            CreateBy = r.CreateBy,
+        //            CreateTime = r.CreateTime,
+        //            UpdateBy = r.UpdateBy,
+        //            UpdateTime = r.UpdateTime,
+        //            RoleId = r.RoleId,
+        //            RoleName = r.RoleName,
+        //            RoleKey = r.RoleKey,
+        //            RoleSort = r.RoleSort,
+        //            DataScope = r.DataScope,
+        //            MenuCheckStrictly = r.MenuCheckStrictly,
+        //            DeptCheckStrictly = r.DeptCheckStrictly,
+        //            Status = r.Status,
+        //            DelFlag = r.DelFlag,
+        //            Remark = r.Remark
+        //        }).Distinct(); // 去重
+
+        //    //  打印sql
+        //    var sqlInfo = queryable.ToSql();
+        //    Console.WriteLine($"Generated SQL: {sqlInfo.Key}");
+
+
+        //    return queryable;
+        //}
+
+
+
+        // 单表测试
         public override ISugarQueryable<SysRoleDto> DtoQueryable(SysRoleDto dto)
         {
-            return Repo.AsQueryable()
-                .LeftJoin<SysUserRole>((r,ur) => r.RoleId == ur.RoleId)
-                .LeftJoin<SysUser>((r,ur,u) => ur.UserId == u.UserId)
-                .OrderBy((r) => r.RoleSort)
-                .Where((r) => r.DelFlag == DelFlag.No)
-                .WhereIF(dto.RoleId > 0,(r) => r.RoleId == dto.RoleId)
-                .WhereIF(!string.IsNullOrEmpty(dto.RoleName),(r) => r.RoleName!.Contains(dto.RoleName!))
-                .WhereIF(!string.IsNullOrEmpty(dto.RoleKey),(r) => r.RoleKey!.Contains(dto.RoleKey!))
-                .WhereIF(!string.IsNullOrEmpty(dto.Status),(r) => r.Status == dto.Status)
-                .WhereIF(dto.Params.BeginTime != null,(r) => r.CreateTime >= dto.Params.BeginTime)
-                .WhereIF(dto.Params.EndTime != null,(r) => r.CreateTime <= dto.Params.EndTime)
-                .WhereIF(!string.IsNullOrEmpty(dto.UserName),(r,ur,u) => u.UserName == dto.UserName)
-                .WhereIF(!string.IsNullOrEmpty(dto.Params.DataScopeSql),dto.Params.DataScopeSql)
-                //新增，按道理来说是自己查询自己的
-                // .Where((d) => d.TenantId == dto.TenantId)
-
-                .Select((r) => new SysRoleDto
+            int i = 0;
+            // 构建查询   注意多表中r别名
+            var queryable = Repo.AsQueryable()
+                .WhereIF(!string.IsNullOrEmpty(dto.Params.DataScopeSql),dto.Params.DataScopeSql) // 动态数据范围 SQL 条件
+                .Select(r => new SysRoleDto
                 {
+                    // 数据映射到 DTO
                     CreateBy = r.CreateBy,
                     CreateTime = r.CreateTime,
                     UpdateBy = r.UpdateBy,
                     UpdateTime = r.UpdateTime,
-
                     RoleId = r.RoleId,
                     RoleName = r.RoleName,
                     RoleKey = r.RoleKey,
@@ -69,8 +109,16 @@ namespace RuoYi.System.Repositories
                     Status = r.Status,
                     DelFlag = r.DelFlag,
                     Remark = r.Remark
-                }).Distinct();
+                }).Distinct(); // 去重
+
+            //  打印sql
+            var sqlInfo = queryable.ToSql();
+            Console.WriteLine($"Generated SQL: {sqlInfo.Key}");
+
+
+            return queryable;
         }
+
 
 
         protected override async Task FillRelatedDataAsync(IEnumerable<SysRoleDto> dtos)

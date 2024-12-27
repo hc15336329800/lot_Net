@@ -5,6 +5,7 @@ using RuoYi.Common.Enums;
 using RuoYi.Data.Models;
 using RuoYi.Framework.Cache;
 using RuoYi.Framework.Exceptions;
+using SqlSugar;
 
 namespace RuoYi.System.Services;
 
@@ -19,8 +20,10 @@ public class SysLoginService : ITransient
     private readonly SysLogininforService _sysLogininforService;
     private readonly SysPasswordService _sysPasswordService;
     private readonly SysPermissionService _sysPermissionService;
+    private readonly ISqlSugarClient _sqlSugarClient; // 强行注入 SqlSugarClient 实例 
 
-    public SysLoginService(ILogger<SysLoginService> logger,ICaptcha captcha,
+
+    public SysLoginService(ISqlSugarClient sqlSugarClient,ILogger<SysLoginService> logger,ICaptcha captcha,
         ICache cache,TokenService tokenService,
         SysUserService sysUserService,SysConfigService sysConfigService,
         SysLogininforService sysLogininforService,SysPasswordService sysPasswordService,
@@ -35,6 +38,8 @@ public class SysLoginService : ITransient
         _sysLogininforService = sysLogininforService;
         _sysPasswordService = sysPasswordService;
         _sysPermissionService = sysPermissionService;
+        _sqlSugarClient = sqlSugarClient; // 注入 SqlSugarClient 实例
+
     }
 
     /// <summary>
@@ -59,28 +64,39 @@ public class SysLoginService : ITransient
         await _sysLogininforService.AddAsync(username,Constants.LOGIN_SUCCESS,MessageConstants.User_Login_Success);
 
 
+        var loginUser = CreateLoginUser(userDto); // userDto 转化为loginUser
+
+
         //************************  User用户信息，写入缓存 ***************************************
-        // 查询用户
-        var ust = await _sysUserService.GetDtoByUsernameAsync(username);
+ 
 
-        //long[] childrenTenant = GetChildrenTenantById(tid);// 获取组织子集
-        userDto.TenantId = tenantid; //组织id  需要判断下
-        userDto.UserType = ust.UserType; // 用户类型
-
-
-        //userDto.TenantChildId = childrenTenant; //组织子集
-        var loginUser = CreateLoginUser(userDto);
-
-        //*****************************************************************************************
-
-
-
-
-
+        // 更新用户信息的最后登录手机和ip
         await RecordLoginInfoAsync(userDto.UserId);
 
-        // 生成token
+        // 用户类型
+        var ust = await _sysUserService.GetDtoByUsernameAsync(username); // 查询用户
+        loginUser.UserType = ust.UserType;
+        loginUser.User.UserType = ust.UserType;
+
+        //组织id
+        loginUser.TenantId = tenantid; //组织id  需要判断下
+        loginUser.User.TenantId = tenantid; //组织id  需要判断下
+
+        // 子部门子集写入  新增：
+        long[] septstr = GetChildrenDeptByIdAsync(userDto.DeptId ?? 0);
+        loginUser.DeptChildId = septstr;
+        loginUser.User.DeptChildId = septstr;
+
+ 
+        // 将组织子集写入  新增：
+        long[] tidstr = GetChildrenTenantById(userDto.TenantId);
+        loginUser.TenantChildId = tidstr;
+        loginUser.User.TenantChildId = tidstr;
+
+
+        // 将用户信息生成token,并将token和用户信息存缓存。
         return await _tokenService.CreateToken(loginUser);
+ 
     }
 
     private void CheckLoginUser(string username,string password,SysUserDto user)
@@ -187,8 +203,8 @@ public class SysLoginService : ITransient
             User = user,
             Permissions = permissions,
             //新增
-            TenantId = user.TenantId,
-            UserType = user.UserType,
+            //TenantId = user.TenantId,
+            //UserType = user.UserType,
 
         };
     }
@@ -203,5 +219,60 @@ public class SysLoginService : ITransient
         sysUser.LoginIp = IpUtils.GetIpAddr();
         sysUser.LoginDate = DateTime.Now;
         await _sysUserService.UpdateUserLoginInfoAsync(sysUser);
+    }
+
+    /////////////////////////////new//////////////////////////////////////
+
+    /// <summary>
+    /// 获取本部门及部门下所有部门
+    /// </summary>
+    /// <param name="dept"></param>
+    /// <returns></returns>
+    public long[] GetChildrenDeptByIdAsync(long deptId)
+    {
+        // 使用 LIKE 查询，包含三种可能性以及精确匹配 ancestors 的逻辑
+        string sql = @"
+        SELECT * 
+        FROM sys_dept 
+        WHERE 
+            ancestors LIKE CONCAT('%,', @DeptId, ',%') OR 
+            ancestors LIKE CONCAT(@DeptId, ',%') OR 
+            ancestors LIKE CONCAT('%,', @DeptId) OR 
+            ancestors = @DeptId";
+
+
+        // 执行 SQL 查询并获取结果
+        var list = _sqlSugarClient.Ado.SqlQuery<long>(sql,new { DeptId = deptId });
+        list.Add(deptId);
+        long[] res = list.ToArray();
+
+        // 将结果转为数组并返回
+        return res;
+    }
+
+
+    /// <summary>
+    /// 获取组织子集（包括自身）
+    /// </summary>
+    /// <param name="tenantId">组织ID</param>
+    /// <returns>子集ID数组</returns>
+    public long[] GetChildrenTenantById(long tenantId)
+    {
+        // 使用 LIKE 查询，包含三种可能性以及精确匹配 ancestors 的逻辑
+        string sql = @"
+                SELECT id 
+                FROM sys_tenant 
+                WHERE 
+                    ancestors LIKE CONCAT('%,', @TenantId , ',%') OR 
+                    ancestors LIKE CONCAT(@TenantId , ',%') OR 
+                    ancestors LIKE CONCAT('%,', @TenantId) OR 
+                    ancestors = @TenantId OR 
+                    id = @TenantId"; // 包括自身 ID
+
+        // 执行 SQL 查询并获取结果
+        var list = _sqlSugarClient.Ado.SqlQuery<long>(sql,new { TenantId = tenantId });
+
+        // 转换为数组并返回
+        return list.ToArray();
     }
 }
