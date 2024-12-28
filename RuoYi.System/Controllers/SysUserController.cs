@@ -25,9 +25,11 @@ namespace RuoYi.System.Controllers
         private readonly SysDeptService _sysDeptService;
         private readonly SysTenantService _sysTenantService;
         private readonly SysUserTenantService _sysUserTenantService;
+        private readonly SysUserDeptService _sysUserDeptService;
 
 
-        public SysUserController(ILogger<SysUserController> logger,SysTenantService sysTenantService,
+
+        public SysUserController(ILogger<SysUserController> logger,SysTenantService sysTenantService,SysUserDeptService sysUserDeptService,
             SysUserService sysUserService,SysRoleService sysRoleService,SysPostService sysPostService,SysDeptService sysDeptService,SysUserTenantService sysUserTenantService)
         {
             _logger = logger;
@@ -37,6 +39,8 @@ namespace RuoYi.System.Controllers
             _sysDeptService = sysDeptService;
             _sysTenantService = sysTenantService;
             _sysUserTenantService = sysUserTenantService;
+            _sysUserDeptService = sysUserDeptService;
+
 
         }
 
@@ -65,60 +69,68 @@ namespace RuoYi.System.Controllers
         /// <summary>
         /// 获取 用户信息表 详细信息
         /// </summary>
-        [HttpGet("")]
-        [HttpGet("{userId}")]
+        [HttpGet("")] //新增用户前
+        [HttpGet("{userId}")] // 修改查询指定用户
         [AppAuthorize("system:user:query")]
         public async Task<AjaxResult> GetInfo(long userId)
         {
             await _sysUserService.CheckUserDataScope(userId);
-            var roles = await _sysRoleService.GetListAsync(new SysRoleDto());
+            var roles = await _sysRoleService.GetRoleListAsync(new SysRoleDto());
+            var depts = await _sysUserDeptService.GetListLineAsync(new SysUserDeptDto()); //部门列表   
             var posts = await _sysPostService.GetListAsync(new SysPostDto());
-           
+
             // 获取组织树
             string userType = SecurityUtils.GetUserType();
-            // tid应该是前端传递过来的id？？
+            //todo: tid应该是前端传递过来的id？？
             long tid = SecurityUtils.GetTenantId();
             var tenantdto = new SysTenantDto();
             tenantdto.TenantId = tid;
-
             var tenanttree = await _sysTenantService.GetDeptTreeListAsync(tenantdto);
+            tenanttree = FilterTenantTreeByUserType(SecurityUtils.GetTenantId(),tenanttree,userType);  // 根据用户类型筛选组织树
 
-             tenanttree = FilterTenantTreeByUserType(SecurityUtils.GetTenantId(),tenanttree,userType);  // 根据用户类型筛选组织树
+            // 获取部门树
+            //var deptdto = new SysDeptDto();
+            //deptdto.TenantId = tid;
+            //var deptdtotree = await _sysDeptService.GetDeptTreeListAsync(deptdto);
+            //deptdtotree = FilterDeptTreeByUserType(SecurityUtils.GetTenantId(),deptdtotree,userType);  // 根据用户类型筛选部门树
 
-            // 获取下拉框结构
-            List<ElSelect> elSelect = TenantUtils.GetElSelectByTenant(userType);
+
+            List<ElSelect> elSelect = TenantUtils.GetElSelectByTenant(userType); // 获取下拉框结构（用户类型）
 
             AjaxResult ajax = AjaxResult.Success();
             // 当前用户是否为管理员，动态调整返回的角色集合，
             // 是则返回所有，否则返回 每个角色 r 是否不是超级管理员角色。
             // ajax.Add("roles", SecurityUtils.IsAdmin(userId) ? roles : roles.Where(r => !SecurityUtils.IsAdminRole(r.RoleId)));
+            // ajax.Add("depts",depts); 使用初始化数据
             ajax.Add("roles",roles);
             ajax.Add("posts",posts);
             ajax.Add("tenantIds",tenanttree);
             ajax.Add("userTypes",elSelect);   // 增加用户测试正确，修改用户还没有适配
 
             // 用户信息 by  id
-            if( userId > 0)
+            if(userId > 0)
             {
                 var user = await _sysUserService.GetDtoAsync(userId);
 
-               
-             
-                 List<long>  ls = _sysUserTenantService.GetTenantIdsListByUserId(userId);// 组织组
+
+
+                List<long> ls = _sysUserTenantService.GetTenantIdsListByUserId(userId);// 用户组织子集
+                List<long> DeptChildId = _sysUserDeptService.GetDeptChildIdByUserId(userId); ; // 用户部门子集
+
                 user.TenantIds = ls;// 组织组
+                user.DeptIds = DeptChildId;// 部门组
 
                 ajax.Add(AjaxResult.DATA_TAG,user);
 
-                List<long> spids =  _sysPostService.GetPostIdsListByUserId(userId);
+                //List<long> spids =  _sysPostService.GetPostIdsListByUserId(userId); 查询岗位
+                ajax.Add("postIds",_sysPostService.GetPostIdsListByUserId(userId)); //用户所属岗位数组
+                ajax.Add("roleIds",user.Roles.Select(x => x.RoleId).ToList());//用户所属角色数组
 
- 
-
-                ajax.Add("postIds",_sysPostService.GetPostIdsListByUserId(userId));
-                ajax.Add("roleIds",user.Roles.Select(x => x.RoleId).ToList());
+                // 绑定数据是user中数值， ajax.Add只是下拉表的填充数据！！
+                //ajax.Add("deptIds",SecurityUtils.GetDeptChildId());// 用户部门子集
 
                 // todo: 这里需要去用户组织中间表拿到用户的组织信息，  根据userid
                 ajax.Add("tenantIds",ls);
-
 
             }
 
@@ -127,6 +139,9 @@ namespace RuoYi.System.Controllers
 
 
 
+        #region 筛选组织树
+
+      
 
         /// <summary>
         /// 根据用户类型筛选组织树 返回
@@ -209,6 +224,100 @@ namespace RuoYi.System.Controllers
             return null;
         }
 
+        #endregion
+
+ 
+
+        #region 筛选部门树
+
+
+
+        /// <summary>
+        /// 根据用户类型筛选部门树 返回
+        /// </summary>
+        /// <param name="deptTree">完整部门树</param>
+        /// <param name="userType">用户类型</param>
+        /// <returns>筛选后的组织树</returns>
+        private List<TreeSelectDept> FilterDeptTreeByUserType(long tid,List<TreeSelectDept> deptTree,string userType)
+        {
+            switch(userType)
+            {
+                case "SUPER_ADMIN":
+                    // 超级管理员：返回所有节点
+                    return deptTree;
+
+                case "GROUP_ADMIN":
+                    // 集团管理员：只返回指定 tid 下属的一层节点（公司列表）  24-12-18 验证通过 √
+                    var groupNode = FindNodeById(deptTree,tid);
+                    if(groupNode != null && groupNode.Children != null)
+                    {
+                        // 返回子节点列表
+                        return groupNode.Children.Select(child => new TreeSelectDept
+                        {
+                            Id = child.Id,
+                            Label = child.Label
+                        }).ToList();
+                    }
+                    else
+                    {
+                        // 如果未找到或没有子节点，返回空列表
+                        return new List<TreeSelectDept>();
+                    }
+
+                case "COMPANY_ADMIN":
+                    // 公司管理员：只返回当前的 tid 节点    24-12-18 验证通过 √
+                    var companyNode = FindNodeById(deptTree,tid);
+                    if(companyNode != null)
+                    {
+                        // 返回当前节点，不包含子节点
+                        return new List<TreeSelectDept>
+                {
+                    new TreeSelectDept
+                    {
+                        Id = companyNode.Id,
+                        Label = companyNode.Label
+                    }
+                };
+                    }
+                    else
+                    {
+                        // 如果未找到，返回空列表
+                        return new List<TreeSelectDept>();
+                    }
+
+                default:
+                    // 普通用户：返回空列表
+                    return new List<TreeSelectDept>();
+            }
+        }
+
+        /// <summary>
+        /// 在树中根据 Id 查找节点
+        /// </summary>
+        /// <param name="tree">树节点列表</param>
+        /// <param name="id">要查找的节点 Id</param>
+        /// <returns>找到的节点，未找到则返回 null</returns>
+        private TreeSelectDept? FindNodeById(List<TreeSelectDept> tree,long id)
+        {
+            foreach(var node in tree)
+            {
+                if(node.Id == id)
+                    return node;
+                if(node.Children != null && node.Children.Any())
+                {
+                    var found = FindNodeById(node.Children,id);
+                    if(found != null)
+                        return found;
+                }
+            }
+            return null;
+        }
+
+        #endregion
+
+
+
+
         /// <summary>
         /// 新增用户
         /// </summary>
@@ -229,6 +338,11 @@ namespace RuoYi.System.Controllers
             else if(!string.IsNullOrEmpty(user.Email) && !await _sysUserService.CheckEmailUniqueAsync(user))
             {
                 return AjaxResult.Error("新增用户'" + user.UserName + "'失败，邮箱账号已存在");
+            }
+
+            if(user.TenantId == 0 || user.TenantId == null)
+            {
+                user.TenantId = SecurityUtils.GetTenantId(); //增加所属组织
             }
             var data = _sysUserService.InsertUser(user);
             return AjaxResult.Success(data);
@@ -257,6 +371,13 @@ namespace RuoYi.System.Controllers
             {
                 return AjaxResult.Error("修改用户'" + user.UserName + "'失败，邮箱账号已存在");
             }
+
+
+            treeselect 只有一个子类（不算目录），肯定点击一个都会选择啊！！！
+
+            开始修改用户，适配部门！
+
+
             var data = _sysUserService.UpdateUser(user);
             return AjaxResult.Success(data);
         }
@@ -301,7 +422,7 @@ namespace RuoYi.System.Controllers
         public async Task<AjaxResult> ChangeStatus([FromBody] SysUserDto user)
         {
             _sysUserService.CheckUserAllowed(user);
-            await _sysUserService.CheckUserDataScope(user.UserId );
+            await _sysUserService.CheckUserDataScope(user.UserId);
             var data = await _sysUserService.UpdateUserStatus(user);
             return AjaxResult.Success(data);
         }

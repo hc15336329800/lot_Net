@@ -67,5 +67,8 @@ namespace RuoYi.System.Repositories
             return Repo.Delete(up => up.UserId == userId);
         }
 
+
+
+
     }
 }

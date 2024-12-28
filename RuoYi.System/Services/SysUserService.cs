@@ -24,8 +24,12 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
 
     private readonly SysRoleService _sysRoleService;
     private readonly SysPostService _sysPostService;
+    private readonly SysUserDeptService _sysUserDeptService;
+
     private readonly SysConfigService _sysConfigService;
     private readonly SysUserTenantRepository _sysUserTenantRepository;
+    private readonly SysUserDeptRepository _sysUserDeptRepository;
+
 
     public SysUserService(ILogger<SysUserService> logger,
         SysUserRepository sysUserRepository,
@@ -36,6 +40,11 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
         SysConfigService sysConfigService,
         SysTenantRepository sysTenantRepository,
         SysUserTenantRepository sysUserTenantRepository
+        ,
+
+        SysUserDeptRepository sysUserDeptRepository,
+        SysUserDeptService sysUserDeptService
+
         )
     {
         BaseRepo = sysUserRepository;
@@ -51,6 +60,9 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
         _sysTenantRepository = sysTenantRepository;
 
         _sysUserTenantRepository = sysUserTenantRepository;
+        _sysUserDeptRepository = sysUserDeptRepository;
+
+        _sysUserDeptService = sysUserDeptService;
     }
 
     /// <summary>
@@ -294,12 +306,17 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
 
         // 这里不知道userID
 
+        // 新增用户部门关联
+        InsertUserDept(user);
         // 新增用户岗位关联   ×
         InsertUserPost(user);
         // 新增用户与角色管理  ×
         InsertUserRole(user);
         // 新增用户与组织关联组（目前限制一下 不让前端？ 不要限制  只是在登录的时候让用户选择用户，）
         InsertUserTenant(user); // 传入用户ID
+
+
+
         return succees;
     }
 
@@ -330,6 +347,11 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
         _sysUserTenantRepository.DeleteUserTenantByUserId(user.UserId);
         // 新增： 新增用户与组织管理
         InsertUserTenant(user);
+
+        // 新增： 删除用户与部门关联
+        _sysUserDeptService.DeleteUserDeptByUserId(user.UserId);
+        // 新增： 新增用户与部门管理
+        InsertUserDept(user);
 
         return _sysUserRepository.UpdateUser(user);
     }
@@ -441,6 +463,34 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
     }
 
 
+    /// <summary>
+    /// 新增用户部门中间表i
+    /// </summary>
+    /// <param name="user">用户</param>
+    public void InsertUserDept(SysUserDto user)
+    {
+        var userId = user.UserId;
+
+        var deptIds = user.DeptIds; //数组
+        var tenantId = user.TenantId;
+
+        if(deptIds.IsNotEmpty())
+        {
+            // 新增用户与组织管理
+            List<SysUserDept> list = new List<SysUserDept>();
+            foreach(long deptId in deptIds)
+            {
+                SysUserDept ur = new SysUserDept();
+                ur.UserId = userId;
+                ur.DeptId = deptId;
+                ur.TenantId = tenantId;
+                list.Add(ur);
+            }
+            _sysUserDeptRepository.Insert(list);
+        }
+    }
+
+
 
     /// <summary>
     /// 新增用户角色信息
@@ -464,7 +514,7 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
         }
     }
 
-
+  
     /// <summary>
     /// 新增用户岗位信息
     /// </summary>

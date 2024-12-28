@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using RuoYi.Common.Constants;
 using RuoYi.Common.Interceptors;
 using RuoYi.Common.Utils;
@@ -78,19 +79,25 @@ public class SysDeptService : BaseService<SysDept,SysDeptDto>, ITransient
     /// <summary>
     /// 查询部门树结构信息
     /// </summary>
-    public async Task<List<TreeSelect>> GetDeptTreeListAsync(SysDeptDto dto)
+    public async Task<List<TreeSelectDept>> GetDeptTreeListAsync(SysDeptDto dto)
     {
         List<SysDeptDto> depts = await this.GetDtoListAsync(dto);
-        return BuildDeptTreeSelect(depts);
+
+        // 正确结果就是返回一个对象！！ 这个对象是叠加体，里面包含子节点，层层嵌套！
+        List < TreeSelectDept > ls = BuildDeptTreeSelect(depts);
+        return ls;
+           
     }
 
+ 
+
     /// <summary>
-    /// 构建前端所需要下拉树结构
+    /// 构建前端所需要下拉树结构  todo：bug
     /// </summary>
-    private List<TreeSelect> BuildDeptTreeSelect(List<SysDeptDto> depts)
+    private List<TreeSelectDept> BuildDeptTreeSelect(List<SysDeptDto> depts)
     {
         List<SysDeptDto> deptTrees = BuildDeptTree(depts);
-        return deptTrees.Select(dept => new TreeSelect(dept)).ToList();
+        return deptTrees.Select(dept => new TreeSelectDept(dept.Adapt<SysDept>())).ToList();
     }
 
     /// <summary>
@@ -121,7 +128,7 @@ public class SysDeptService : BaseService<SysDept,SysDeptDto>, ITransient
     /// </summary>
     private void RecursionFn(List<SysDeptDto> list,SysDeptDto t)
     {
-        // 得到子节点列表
+        // 得到子节点列表  bug
         List<SysDeptDto> childList = GetChildList(list,t);
         t.Children = childList;
         foreach(SysDeptDto tChild in childList)
@@ -175,6 +182,8 @@ public class SysDeptService : BaseService<SysDept,SysDeptDto>, ITransient
     }
 
     #endregion
+
+
 
     /// <summary>
     /// 校验部门名称是否唯一

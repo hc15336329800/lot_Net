@@ -97,11 +97,16 @@ namespace RuoYi.Data.Dtos
         /** 岗位组 */
         public List<long>? PostIds { get; set; }
 
+    
+
         /** 角色ID */
         public long? RoleId { get; set; }
 
         /** 新增： 组织组 */
         public List<long> TenantIds { get; set; }
+
+        /** 部门组  新增： */
+        public List<long> DeptIds { get; set; }
 
         /// <summary>
         /// 是否 已分配用户角色

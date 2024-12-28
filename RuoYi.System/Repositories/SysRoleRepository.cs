@@ -18,19 +18,24 @@ namespace RuoYi.System.Repositories
 
         public override ISugarQueryable<SysRole> Queryable(SysRoleDto dto)
         {
-            return Repo.AsQueryable()
+            var queryable = Repo.AsQueryable()
                 .OrderBy((r) => r.RoleSort)
                 //.Where((r) => r.DelFlag == DelFlag.No)
                 .WhereIF(dto.RoleId > 0,(r) => r.RoleId == dto.RoleId)
-                .WhereIF(!string.IsNullOrEmpty(dto.RoleName),(r) => r.RoleName!.Contains(dto.RoleName!))
-                .WhereIF(!string.IsNullOrEmpty(dto.RoleKey),(r) => r.RoleKey!.Contains(dto.RoleKey!))
+                //.WhereIF(!string.IsNullOrEmpty(dto.RoleName),(r) => r.RoleName!.Contains(dto.RoleName!))
+                //.WhereIF(!string.IsNullOrEmpty(dto.RoleKey),(r) => r.RoleKey!.Contains(dto.RoleKey!))
                 .WhereIF(!string.IsNullOrEmpty(dto.Status),(r) => r.Status == dto.Status)
-                .WhereIF(dto.Params.BeginTime != null,(r) => r.CreateTime >= dto.Params.BeginTime)
-                .WhereIF(dto.Params.EndTime != null,(r) => r.CreateTime <= dto.Params.EndTime)
-                .WhereIF(!string.IsNullOrEmpty(dto.Params.DataScopeSql),dto.Params.DataScopeSql);
+                //.WhereIF(dto.Params.BeginTime != null,(r) => r.CreateTime >= dto.Params.BeginTime)
+                //.WhereIF(dto.Params.EndTime != null,(r) => r.CreateTime <= dto.Params.EndTime)
+                .WhereIF(!string.IsNullOrEmpty(dto.Params.DataScopeSql),dto.Params.DataScopeSql); // 动态数据范围 SQL 条件
 
-                 //新增，按道理来说是自己查询自己的
-                 //.Where((r) => r.TenantId == dto.TenantId);
+            //新增，按道理来说是自己查询自己的
+            //.Where((r) => r.TenantId == dto.TenantId);
+
+            //  打印sql
+            var sqlInfo = queryable.ToSql();
+
+            return queryable;
         }
 
 
