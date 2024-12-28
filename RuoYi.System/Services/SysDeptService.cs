@@ -45,7 +45,8 @@ public class SysDeptService : BaseService<SysDept,SysDeptDto>, ITransient
         return entity.Adapt<SysDeptDto>();
     }
 
-    [DataScope(DeptAlias = "d")]
+    //[DataScope(DeptAlias = "d")]
+    [DataAdmin] // 修改为 DataAdmin
     public override async Task<List<SysDeptDto>> GetDtoListAsync(SysDeptDto dto)
     {
         return await _sysDeptRepository.GetDtoListAsync(dto);

@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace RuoYi.System.Repositories;
 
 /// <summary>
@@ -24,28 +26,45 @@ public class SysDeptRepository : BaseRepository<SysDept,SysDeptDto>
         ;
     }
 
+    //public override ISugarQueryable<SysDeptDto> DtoQueryable(SysDeptDto dto)
+    //{
+    //    return Repo.AsQueryable()
+    //        .LeftJoin<SysRoleDept>((d,rd) => d.DeptId == rd.DeptId)
+    //        .Where((d) => d.DelFlag == DelFlag.No)
+    //        .WhereIF(dto.DeptId > 0,(d) => d.DeptId == dto.DeptId)
+    //        .WhereIF(dto.ParentId > 0,(d) => d.ParentId == dto.ParentId)
+    //        .WhereIF(dto.ParentIds!.IsNotEmpty(),(d) => dto.ParentIds!.Contains(d.ParentId))
+    //        .WhereIF(!string.IsNullOrEmpty(dto.DelFlag),(d) => d.DelFlag == dto.DelFlag)
+    //        .WhereIF(!string.IsNullOrEmpty(dto.Status),(d) => d.Status == dto.Status)
+    //        .WhereIF(!string.IsNullOrEmpty(dto.DeptName),(d) => d.DeptName!.Contains(dto.DeptName!))
+    //        // and d.dept_id not in (select d.parent_id from sys_dept d inner join sys_role_dept rd on d.dept_id = rd.dept_id and rd.role_id = #{roleId})
+    //        .WhereIF(dto.DeptCheckStrictly ?? false,(d) => d.DeptId !=
+    //            SqlFunc.Subqueryable<SysDept>().InnerJoin<SysRoleDept>((d1,rd1) => d1.DeptId == rd1.DeptId)
+    //            .Where((d1,rd1) => rd1.RoleId == dto.RoleId)
+    //            .GroupBy(d1 => d1.ParentId)
+    //            .Select(d1 => d1.ParentId))
+    //        .Select((d) => new SysDeptDto
+    //        {
+    //            DeptId = d.DeptId,
+    //        },
+    //        true);
+    //}
+
+    // 该为单表
     public override ISugarQueryable<SysDeptDto> DtoQueryable(SysDeptDto dto)
     {
-        return Repo.AsQueryable()
-            .LeftJoin<SysRoleDept>((d,rd) => d.DeptId == rd.DeptId)
-            .Where((d) => d.DelFlag == DelFlag.No)
-            .WhereIF(dto.DeptId > 0,(d) => d.DeptId == dto.DeptId)
-            .WhereIF(dto.ParentId > 0,(d) => d.ParentId == dto.ParentId)
-            .WhereIF(dto.ParentIds!.IsNotEmpty(),(d) => dto.ParentIds!.Contains(d.ParentId))
-            .WhereIF(!string.IsNullOrEmpty(dto.DelFlag),(d) => d.DelFlag == dto.DelFlag)
-            .WhereIF(!string.IsNullOrEmpty(dto.Status),(d) => d.Status == dto.Status)
-            .WhereIF(!string.IsNullOrEmpty(dto.DeptName),(d) => d.DeptName!.Contains(dto.DeptName!))
-            // and d.dept_id not in (select d.parent_id from sys_dept d inner join sys_role_dept rd on d.dept_id = rd.dept_id and rd.role_id = #{roleId})
-            .WhereIF(dto.DeptCheckStrictly ?? false,(d) => d.DeptId !=
-                SqlFunc.Subqueryable<SysDept>().InnerJoin<SysRoleDept>((d1,rd1) => d1.DeptId == rd1.DeptId)
-                .Where((d1,rd1) => rd1.RoleId == dto.RoleId)
-                .GroupBy(d1 => d1.ParentId)
-                .Select(d1 => d1.ParentId))
+        var queryable = Repo.AsQueryable()
+            .WhereIF(!string.IsNullOrEmpty(dto.Params.DataScopeSql),dto.Params.DataScopeSql) // 动态数据范围 SQL 条件
             .Select((d) => new SysDeptDto
             {
                 DeptId = d.DeptId,
             },
             true);
+
+        //  打印sql
+        var sqlInfo = queryable.ToSql();
+
+        return queryable;
     }
 
     // dtos 关联表数据

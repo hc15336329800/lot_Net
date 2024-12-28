@@ -46,12 +46,9 @@ namespace RuoYi.Data.Entities
         public string? DelFlag { get; set; }
 
         /** 租户ID（新增字段） */
-        [SugarColumn(ColumnName = "tenant_id",ColumnDescription = "租户ID（集团ID）",IsNullable = true)]
+        [SugarColumn(ColumnName = "tenant_id",ColumnDescription = "租户ID（集团ID）")]
         public long? TenantId { get; set; }
-
-        /** 公司ID（新增字段） */
-        [SugarColumn(ColumnName = "company_id",ColumnDescription = "公司ID",Length = 64,IsNullable = true)]
-        public string? CompanyId { get; set; }
+ 
 
         /** 父部门名称 */
         [SugarColumn(IsIgnore = true)]

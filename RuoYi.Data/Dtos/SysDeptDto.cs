@@ -39,13 +39,10 @@ namespace RuoYi.Data.Dtos
         public string? DelFlag { get; set; }
 
         /** 租户ID（新增字段） */
-        [Required(ErrorMessage = "租户ID不能为空")]
+        //[Required(ErrorMessage = "租户ID不能为空")]  必填 验证
         public long? TenantId { get; set; }
 
-        /** 公司ID（新增字段） */
-        [Required(ErrorMessage = "公司ID不能为空"), MaxLength(64,ErrorMessage = "公司ID长度不能超过64个字符")]
-        public string? CompanyId { get; set; }
-
+ 
         /** 父部门名称 */
         public string? ParentName { get; set; }
 

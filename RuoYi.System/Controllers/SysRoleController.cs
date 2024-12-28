@@ -56,6 +56,8 @@ namespace RuoYi.System.Controllers
             return AjaxResult.Success(data);
         }
 
+ 
+
         /// <summary>
         /// 新增 角色信息表
         /// </summary>
@@ -74,6 +76,7 @@ namespace RuoYi.System.Controllers
                 return AjaxResult.Error($"新增角色'{role.RoleName}失败，角色权限已存在");
             }
 
+            role.TenantId = SecurityUtils.GetTenantId(); //增加所属组织
             var data = await _sysRoleService.InsertRoleAsync(role);
             return AjaxResult.Success(data);
         }
@@ -87,6 +90,8 @@ namespace RuoYi.System.Controllers
         [Log(Title = "角色管理", BusinessType = BusinessType.UPDATE)]
         public async Task<AjaxResult> Edit([FromBody] SysRoleDto role)
         {
+            role.TenantId = SecurityUtils.GetTenantId(); //增加所属组织
+
             _sysRoleService.CheckRoleAllowed(role);
             await _sysRoleService.CheckRoleDataScopeAsync(role.RoleId);
             if (!await _sysRoleService.CheckRoleNameUniqueAsync(role))

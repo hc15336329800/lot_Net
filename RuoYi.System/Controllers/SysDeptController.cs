@@ -1,8 +1,10 @@
 using RuoYi.Common.Constants;
 using RuoYi.Common.Enums;
+using RuoYi.Common.Utils;
 using RuoYi.Data.Dtos;
 using RuoYi.Framework;
 using RuoYi.System.Services;
+using StackExchange.Redis;
 
 namespace RuoYi.System.Controllers
 {
@@ -72,6 +74,12 @@ namespace RuoYi.System.Controllers
             {
                 return AjaxResult.Error($"新增部门'{dept.DeptName} '失败，部门名称已存在");
             }
+
+            if(dept.TenantId == 0 || dept.TenantId == null)
+            {
+                dept.TenantId = SecurityUtils.GetTenantId(); //增加所属组织
+            }
+
             var data = await _sysDeptService.InsertDeptAsync(dept);
             return AjaxResult.Success(data);
         }
@@ -98,6 +106,10 @@ namespace RuoYi.System.Controllers
             else if(UserConstants.DEPT_DISABLE.Equals(dept.Status) && await _sysDeptService.CountNormalChildrenDeptByIdAsync(deptId) > 0)
             {
                 return AjaxResult.Error("该部门包含未停用的子部门！");
+            }
+            if(dept.TenantId == 0 || dept.TenantId == null)
+            {
+                dept.TenantId = SecurityUtils.GetTenantId(); //增加所属组织
             }
             var data = await _sysDeptService.UpdateDeptAsync(dept);
             return AjaxResult.Success(data);

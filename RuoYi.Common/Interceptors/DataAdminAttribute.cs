@@ -88,7 +88,7 @@ namespace RuoYi.Common.Interceptors
             // switch(dataScope)
             switch(type)
             {
-                case "SUPER_ADMIN": // 超级管理员
+                case "SUPER_ADMIN": // 超级管理员  这里需要特殊修改逻辑，可能需要特殊的管理页面
                     sqlString.Clear(); // 查询所有数据，无需进一步过滤
                     break;
 
