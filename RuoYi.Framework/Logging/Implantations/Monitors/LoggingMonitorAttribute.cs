@@ -32,7 +32,7 @@ namespace System;
 /// 强大的日志监听器
 /// </summary>
 /// <remarks>主要用于将请求的信息打印出来</remarks>
-[SuppressSniffer, AttributeUsage(AttributeTargets.Method | AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
+[SuppressSniffer, AttributeUsage(AttributeTargets.Method | AttributeTargets.Class,Inherited = true,AllowMultiple = false)]
 public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAsyncPageFilter, IOrderedFilter
 {
     /// <summary>
@@ -48,7 +48,7 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
     /// <summary>
     /// 构造函数
     /// </summary>
-    public LoggingMonitorAttribute()
+    public LoggingMonitorAttribute( )
         : this(new LoggingMonitorSettings())
     {
     }
@@ -122,19 +122,19 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
     /// <param name="context"></param>
     /// <param name="next"></param>
     /// <returns></returns>
-    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+    public async Task OnActionExecutionAsync(ActionExecutingContext context,ActionExecutionDelegate next)
     {
         // 获取动作方法描述器
         var actionMethod = (context.ActionDescriptor as ControllerActionDescriptor)?.MethodInfo;
 
         // 处理 Blazor Server
-        if (actionMethod == null)
+        if(actionMethod == null)
         {
             _ = await next.Invoke();
             return;
         }
 
-        await MonitorAsync(actionMethod, context.ActionArguments, context, next);
+        await MonitorAsync(actionMethod,context.ActionArguments,context,next);
     }
 
     /// <summary>
@@ -154,19 +154,19 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
     /// <param name="next"></param>
     /// <returns></returns>
     /// <exception cref="NotImplementedException"></exception>
-    public async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context, PageHandlerExecutionDelegate next)
+    public async Task OnPageHandlerExecutionAsync(PageHandlerExecutingContext context,PageHandlerExecutionDelegate next)
     {
         // 获取动作方法描述器
         var actionMethod = context.HandlerMethod?.MethodInfo;
 
         // 处理 Blazor Server
-        if (actionMethod == null)
+        if(actionMethod == null)
         {
             _ = await next.Invoke();
             return;
         }
 
-        await MonitorAsync(actionMethod, context.HandlerArguments, context, next);
+        await MonitorAsync(actionMethod,context.HandlerArguments,context,next);
     }
 
     /// <summary>
@@ -176,11 +176,11 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
     /// <param name="claimsPrincipal"></param>
     /// <param name="authorization"></param>
     /// <returns></returns>
-    private List<string> GenerateAuthorizationTemplate(Utf8JsonWriter writer, ClaimsPrincipal claimsPrincipal, StringValues authorization)
+    private List<string> GenerateAuthorizationTemplate(Utf8JsonWriter writer,ClaimsPrincipal claimsPrincipal,StringValues authorization)
     {
         var templates = new List<string>();
 
-        if (!claimsPrincipal.Claims.Any()) return templates;
+        if(!claimsPrincipal.Claims.Any()) return templates;
 
         templates.AddRange(new[]
         {
@@ -192,16 +192,16 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
         // 遍历身份信息
         writer.WritePropertyName("authorizationClaims");
         writer.WriteStartArray();
-        foreach (var claim in claimsPrincipal.Claims)
+        foreach(var claim in claimsPrincipal.Claims)
         {
-            var valueType = claim.ValueType.Replace("http://www.w3.org/2001/XMLSchema#", "");
+            var valueType = claim.ValueType.Replace("http://www.w3.org/2001/XMLSchema#","");
             var value = claim.Value;
 
             // 解析时间戳并转换
-            if (!string.IsNullOrEmpty(value) && (claim.Type == "iat" || claim.Type == "nbf" || claim.Type == "exp"))
+            if(!string.IsNullOrEmpty(value) && (claim.Type == "iat" || claim.Type == "nbf" || claim.Type == "exp"))
             {
-                var succeed = long.TryParse(value, out var seconds);
-                if (succeed)
+                var succeed = long.TryParse(value,out var seconds);
+                if(succeed)
                 {
                     value = $"{value} ({DateTimeOffset.FromUnixTimeSeconds(seconds).ToLocalTime():yyyy-MM-dd HH:mm:ss:ffff(zzz) dddd} L)";
                 }
@@ -209,9 +209,9 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
 
             writer.WriteStartObject();
             templates.Add($"##{claim.Type} ({valueType})## {value}");
-            writer.WriteString("type", claim.Type);
-            writer.WriteString("valueType", valueType);
-            writer.WriteString("value", value);
+            writer.WriteString("type",claim.Type);
+            writer.WriteString("valueType",valueType);
+            writer.WriteString("value",value);
             writer.WriteEndObject();
         }
         writer.WriteEndArray();
@@ -225,11 +225,11 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
     /// <param name="writer"></param>
     /// <param name="headers"></param>
     /// <returns></returns>
-    private List<string> GenerateRequestHeadersTemplate(Utf8JsonWriter writer, IHeaderDictionary headers)
+    private List<string> GenerateRequestHeadersTemplate(Utf8JsonWriter writer,IHeaderDictionary headers)
     {
         var templates = new List<string>();
 
-        if (!headers.Any()) return templates;
+        if(!headers.Any()) return templates;
 
         templates.AddRange(new[]
         {
@@ -240,12 +240,12 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
         // 遍历请求头列表
         writer.WritePropertyName("requestHeaders");
         writer.WriteStartArray();
-        foreach (var (key, value) in headers)
+        foreach(var (key, value) in headers)
         {
             writer.WriteStartObject();
             templates.Add($"##{key}## {value}");
-            writer.WriteString("key", key);
-            writer.WriteString("value", value);
+            writer.WriteString("key",key);
+            writer.WriteString("value",value);
             writer.WriteEndObject();
         }
         writer.WriteEndArray();
@@ -262,12 +262,12 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
     /// <param name="contentType"></param>
     /// <param name="monitorMethod"></param>
     /// <returns></returns>
-    private List<string> GenerateParameterTemplate(Utf8JsonWriter writer, IDictionary<string, object> parameterValues, MethodInfo method, StringValues contentType, LoggingMonitorMethod monitorMethod)
+    private List<string> GenerateParameterTemplate(Utf8JsonWriter writer,IDictionary<string,object> parameterValues,MethodInfo method,StringValues contentType,LoggingMonitorMethod monitorMethod)
     {
         var templates = new List<string>();
         writer.WritePropertyName("parameters");
 
-        if (parameterValues.Count == 0)
+        if(parameterValues.Count == 0)
         {
             writer.WriteStartArray();
             writer.WriteEndArray();
@@ -284,59 +284,59 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
         var parameters = method.GetParameters();
 
         writer.WriteStartArray();
-        foreach (var parameter in parameters)
+        foreach(var parameter in parameters)
         {
             // 判断是否禁用记录特定参数
-            if (parameter.IsDefined(typeof(SuppressMonitorAttribute), false)) continue;
+            if(parameter.IsDefined(typeof(SuppressMonitorAttribute),false)) continue;
 
             // 排除标记 [FromServices] 的解析
-            if (parameter.IsDefined(typeof(FromServicesAttribute), false)) continue;
+            if(parameter.IsDefined(typeof(FromServicesAttribute),false)) continue;
 
             var name = parameter.Name;
             var parameterType = parameter.ParameterType;
 
-            _ = parameterValues.TryGetValue(name, out var value);
+            _ = parameterValues.TryGetValue(name,out var value);
             writer.WriteStartObject();
-            writer.WriteString("name", name);
-            writer.WriteString("type", HandleGenericType(parameterType));
+            writer.WriteString("name",name);
+            writer.WriteString("type",HandleGenericType(parameterType));
 
             object rawValue = default;
 
             // 文件类型参数
-            if (value is IFormFile || value is List<IFormFile>)
+            if(value is IFormFile || value is List<IFormFile>)
             {
                 writer.WritePropertyName("value");
 
                 // 单文件
-                if (value is IFormFile formFile)
+                if(value is IFormFile formFile)
                 {
                     var fileSize = Math.Round(formFile.Length / 1024D);
                     templates.Add($"##{name} ({parameterType.Name})## [name]: {formFile.FileName}; [size]: {fileSize}KB; [content-type]: {formFile.ContentType}");
 
                     writer.WriteStartObject();
-                    writer.WriteString(name, formFile.Name);
-                    writer.WriteString("fileName", formFile.FileName);
-                    writer.WriteNumber("length", formFile.Length);
-                    writer.WriteString("contentType", formFile.ContentType);
+                    writer.WriteString(name,formFile.Name);
+                    writer.WriteString("fileName",formFile.FileName);
+                    writer.WriteNumber("length",formFile.Length);
+                    writer.WriteString("contentType",formFile.ContentType);
                     writer.WriteEndObject();
 
                     goto writeEndObject;
                 }
                 // 多文件
-                else if (value is List<IFormFile> formFiles)
+                else if(value is List<IFormFile> formFiles)
                 {
                     writer.WriteStartArray();
-                    for (var i = 0; i < formFiles.Count; i++)
+                    for(var i = 0; i < formFiles.Count; i++)
                     {
                         var file = formFiles[i];
                         var size = Math.Round(file.Length / 1024D);
                         templates.Add($"##{name}[{i}] ({nameof(IFormFile)})## [name]: {file.FileName}; [size]: {size}KB; [content-type]: {file.ContentType}");
 
                         writer.WriteStartObject();
-                        writer.WriteString(name, file.Name);
-                        writer.WriteString("fileName", file.FileName);
-                        writer.WriteNumber("length", file.Length);
-                        writer.WriteString("contentType", file.ContentType);
+                        writer.WriteString(name,file.Name);
+                        writer.WriteString("fileName",file.FileName);
+                        writer.WriteNumber("length",file.Length);
+                        writer.WriteString("contentType",file.ContentType);
                         writer.WriteEndObject();
                     }
                     writer.WriteEndArray();
@@ -345,41 +345,41 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
                 }
             }
             // 处理 byte[] 参数类型
-            else if (value is byte[] byteArray)
+            else if(value is byte[] byteArray)
             {
                 writer.WritePropertyName("value");
                 templates.Add($"##{name} ({parameterType.Name})## [Length]: {byteArray.Length}");
 
                 writer.WriteStartObject();
-                writer.WriteNumber("length", byteArray.Length);
+                writer.WriteNumber("length",byteArray.Length);
                 writer.WriteEndObject();
 
                 goto writeEndObject;
             }
             // 处理基元类型，字符串类型和空值
-            else if (parameterType.IsPrimitive || value is string || value == null)
+            else if(parameterType.IsPrimitive || value is string || value == null)
             {
                 writer.WritePropertyName("value");
                 rawValue = value;
 
-                if (value == null) writer.WriteNullValue();
-                else if (value is string str) writer.WriteStringValue(str);
-                else if (double.TryParse(value.ToString(), out var r)) writer.WriteNumberValue(r);
+                if(value == null) writer.WriteNullValue();
+                else if(value is string str) writer.WriteStringValue(str);
+                else if(double.TryParse(value.ToString(),out var r)) writer.WriteNumberValue(r);
                 else writer.WriteStringValue(value.ToString());
             }
             // 其他类型统一进行序列化
             else
             {
                 writer.WritePropertyName("value");
-                rawValue = TrySerializeObject(value, monitorMethod, out var succeed);
+                rawValue = TrySerializeObject(value,monitorMethod,out var succeed);
 
-                if (succeed) writer.WriteRawValue(rawValue?.ToString());
+                if(succeed) writer.WriteRawValue(rawValue?.ToString());
                 else writer.WriteNullValue();
             }
 
             templates.Add($"##{name} ({parameterType.Name})## {rawValue}");
 
-        writeEndObject: writer.WriteEndObject();
+            writeEndObject: writer.WriteEndObject();
         }
         writer.WriteEndArray();
 
@@ -394,7 +394,7 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
     /// <param name="method"></param>
     /// <param name="monitorMethod"></param>
     /// <returns></returns>
-    private List<string> GenerateReturnInfomationTemplate(Utf8JsonWriter writer, dynamic resultContext, MethodInfo method, LoggingMonitorMethod monitorMethod)
+    private List<string> GenerateReturnInfomationTemplate(Utf8JsonWriter writer,dynamic resultContext,MethodInfo method,LoggingMonitorMethod monitorMethod)
     {
         var templates = new List<string>();
 
@@ -403,13 +403,13 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
         var result = resultContext.Result as IActionResult;
 
         // 解析返回值
-        if (UnifyContext.CheckVaildResult(result, out var data))
+        if(UnifyContext.CheckVaildResult(result,out var data))
         {
             returnValue = data;
             finalReturnType = data?.GetType();
         }
         // 处理文件类型
-        else if (result is FileResult fresult)
+        else if(result is FileResult fresult)
         {
             returnValue = new
             {
@@ -422,12 +422,12 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
         else finalReturnType = result?.GetType();
 
         // 获取最终呈现值（字符串类型）
-        var displayValue = TrySerializeObject(returnValue, monitorMethod, out var succeed);
+        var displayValue = TrySerializeObject(returnValue,monitorMethod,out var succeed);
         var originValue = displayValue;
 
         // 获取返回值阈值
         var threshold = GetReturnValueThreshold(monitorMethod);
-        if (threshold > 0)
+        if(threshold > 0)
         {
             displayValue = displayValue.Length <= threshold ? displayValue : displayValue[..threshold];
         }
@@ -449,14 +449,14 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
 
         writer.WritePropertyName("returnInformation");
         writer.WriteStartObject();
-        writer.WriteString("type", finalReturnTypeName);
-        writer.WriteNumber(nameof(httpStatusCode), httpStatusCode);
-        writer.WriteString("actType", returnTypeName);
+        writer.WriteString("type",finalReturnTypeName);
+        writer.WriteNumber(nameof(httpStatusCode),httpStatusCode);
+        writer.WriteString("actType",returnTypeName);
         writer.WritePropertyName("value");
-        if (succeed && method.ReturnType != typeof(void) && returnValue != null)
+        if(succeed && method.ReturnType != typeof(void) && returnValue != null)
         {
             // 解决返回值被截断后 json 验证失败异常问题
-            if (threshold > 0 && originValue != displayValue)
+            if(threshold > 0 && originValue != displayValue)
             {
                 writer.WriteStringValue(displayValue);
             }
@@ -476,11 +476,11 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
     /// <param name="exception"></param>
     /// <param name="isValidationException">是否是验证异常</param>
     /// <returns></returns>
-    private List<string> GenerateExcetpionInfomationTemplate(Utf8JsonWriter writer, Exception exception, bool isValidationException)
+    private List<string> GenerateExcetpionInfomationTemplate(Utf8JsonWriter writer,Exception exception,bool isValidationException)
     {
         var templates = new List<string>();
 
-        if (exception == null)
+        if(exception == null)
         {
             writer.WritePropertyName("exception");
             writer.WriteNullValue();
@@ -491,7 +491,7 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
         }
 
         // 处理不是验证异常情况
-        if (!isValidationException)
+        if(!isValidationException)
         {
             var exceptionTypeName = HandleGenericType(exception.GetType());
             templates.AddRange(new[]
@@ -504,9 +504,9 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
 
             writer.WritePropertyName("exception");
             writer.WriteStartObject();
-            writer.WriteString("type", exceptionTypeName);
-            writer.WriteString("message", exception.Message);
-            writer.WriteString("stackTrace", exception.StackTrace?.ToString());
+            writer.WriteString("type",exceptionTypeName);
+            writer.WriteString("message",exception.Message);
+            writer.WriteString("stackTrace",exception.StackTrace?.ToString());
             writer.WriteEndObject();
 
             writer.WritePropertyName("validation");
@@ -527,8 +527,8 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
 
             writer.WritePropertyName("validation");
             writer.WriteStartObject();
-            writer.WriteString("errorCode", serviceException?.Code?.ToString());
-            writer.WriteString("message", serviceException?.Message);
+            writer.WriteString("errorCode",serviceException?.Code?.ToString());
+            writer.WriteString("message",serviceException?.Message);
             writer.WriteEndObject();
         }
 
@@ -542,10 +542,10 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
     /// <param name="monitorMethod"></param>
     /// <param name="succeed"></param>
     /// <returns></returns>
-    private string TrySerializeObject(object obj, LoggingMonitorMethod monitorMethod, out bool succeed)
+    private string TrySerializeObject(object obj,LoggingMonitorMethod monitorMethod,out bool succeed)
     {
         // 排除 IQueryable<> 泛型
-        if (obj != null && obj.GetType().HasImplementedRawGeneric(typeof(IQueryable<>)))
+        if(obj != null && obj.GetType().HasImplementedRawGeneric(typeof(IQueryable<>)))
         {
             succeed = true;
             return "{}";
@@ -553,15 +553,15 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
 
         try
         {
-            var contractResolver = GetContractResolver(ContractResolver, monitorMethod);
+            var contractResolver = GetContractResolver(ContractResolver,monitorMethod);
 
             // 序列化默认配置
             var jsonSerializerSettings = new JsonSerializerSettings()
             {
                 // 解决属性忽略问题
                 ContractResolver = contractResolver == ContractResolverTypes.CamelCase
-                ? new CamelCasePropertyNamesContractResolverWithIgnoreProperties(GetIgnorePropertyNames(monitorMethod), GetIgnorePropertyTypes(monitorMethod))
-                : new DefaultContractResolverWithIgnoreProperties(GetIgnorePropertyNames(monitorMethod), GetIgnorePropertyTypes(monitorMethod)),
+                ? new CamelCasePropertyNamesContractResolverWithIgnoreProperties(GetIgnorePropertyNames(monitorMethod),GetIgnorePropertyTypes(monitorMethod))
+                : new DefaultContractResolverWithIgnoreProperties(GetIgnorePropertyNames(monitorMethod),GetIgnorePropertyTypes(monitorMethod)),
 
                 // 解决循环引用问题
                 ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
@@ -571,7 +571,7 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
                 DateParseHandling = DateParseHandling.None,
             };
 
-            if (CheckIsSetLongTypeConverter(monitorMethod))
+            if(CheckIsSetLongTypeConverter(monitorMethod))
             {
                 // 解决 long 精度问题
                 jsonSerializerSettings.Converters.AddLongTypeConverters();
@@ -581,12 +581,12 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
             jsonSerializerSettings.Converters.Add(new JsonElementConverter());
 
             // 解决 DateTimeOffset 序列化/反序列化问题
-            if (obj is DateTimeOffset)
+            if(obj is DateTimeOffset)
             {
                 jsonSerializerSettings.Converters.Add(new IsoDateTimeConverter { DateTimeStyles = Globalization.DateTimeStyles.AssumeUniversal });
             }
 
-            var result = Newtonsoft.Json.JsonConvert.SerializeObject(obj, jsonSerializerSettings);
+            var result = Newtonsoft.Json.JsonConvert.SerializeObject(obj,jsonSerializerSettings);
 
             succeed = true;
             return result;
@@ -652,7 +652,7 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
     /// <param name="jsonBehavior"></param>
     /// <param name="monitorMethod"></param>
     /// <returns></returns>
-    private JsonBehavior GetJsonBehavior(object jsonBehavior, LoggingMonitorMethod monitorMethod)
+    private JsonBehavior GetJsonBehavior(object jsonBehavior,LoggingMonitorMethod monitorMethod)
     {
         return jsonBehavior == null
             ? (monitorMethod?.JsonBehavior ?? Settings.JsonBehavior)
@@ -665,7 +665,7 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
     /// <param name="contractResolver"></param>
     /// <param name="monitorMethod"></param>
     /// <returns></returns>
-    private ContractResolverTypes GetContractResolver(object contractResolver, LoggingMonitorMethod monitorMethod)
+    private ContractResolverTypes GetContractResolver(object contractResolver,LoggingMonitorMethod monitorMethod)
     {
         return contractResolver == null
             ? (monitorMethod?.ContractResolver ?? Settings.ContractResolver)
@@ -707,16 +707,16 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
     /// <returns></returns>
     private static string HandleGenericType(Type type)
     {
-        if (type == null) return string.Empty;
+        if(type == null) return string.Empty;
 
         var typeName = type.FullName ?? (!string.IsNullOrEmpty(type.Namespace) ? type.Namespace + "." : string.Empty) + type.Name;
 
         // 处理泛型类型问题
-        if (type.IsConstructedGenericType)
+        if(type.IsConstructedGenericType)
         {
             var prefix = type.GetGenericArguments()
                 .Select(genericArg => HandleGenericType(genericArg))
-                .Aggregate((previous, current) => previous + ", " + current);
+                .Aggregate((previous,current) => previous + ", " + current);
 
             typeName = typeName.Split('`').First() + "<" + prefix + ">";
         }
@@ -724,10 +724,10 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
         return typeName;
     }
 
-    private async Task MonitorAsync(MethodInfo actionMethod, IDictionary<string, object> parameterValues, FilterContext context, dynamic next)
+    private async Task MonitorAsync(MethodInfo actionMethod,IDictionary<string,object> parameterValues,FilterContext context,dynamic next)
     {
         // 排除 WebSocket 请求处理
-        if (context.HttpContext.IsWebSocketRequest())
+        if(context.HttpContext.IsWebSocketRequest())
         {
             _ = await next();
             return;
@@ -737,15 +737,15 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
         var isPageDescriptor = context.ActionDescriptor is CompiledPageActionDescriptor;
 
         // 如果贴了 [SuppressMonitor] 特性则跳过
-        if (actionMethod.IsDefined(typeof(SuppressMonitorAttribute), true)
-            || actionMethod.DeclaringType.IsDefined(typeof(SuppressMonitorAttribute), true))
+        if(actionMethod.IsDefined(typeof(SuppressMonitorAttribute),true)
+            || actionMethod.DeclaringType.IsDefined(typeof(SuppressMonitorAttribute),true))
         {
             _ = await next();
             return;
         }
 
         // 判断是否自定义了日志筛选器，如果是则检查是否符合条件
-        if (LoggingMonitorSettings.InternalWriteFilter?.Invoke(context) == false)
+        if(LoggingMonitorSettings.InternalWriteFilter?.Invoke(context) == false)
         {
             _ = await next();
             return;
@@ -755,23 +755,23 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
         var methodFullName = actionMethod.DeclaringType.FullName + "." + actionMethod.Name;
 
         // 只有方法没有贴有 [LoggingMonitor] 特性才判断全局，贴了特性优先级最大
-        var isDefinedScopedAttribute = actionMethod.IsDefined(typeof(LoggingMonitorAttribute), true);
+        var isDefinedScopedAttribute = actionMethod.IsDefined(typeof(LoggingMonitorAttribute),true);
 
         // 解决局部和全局触发器同时配置触发两次问题
-        if (isDefinedScopedAttribute && Settings.FromGlobalFilter == true)
+        if(isDefinedScopedAttribute && Settings.FromGlobalFilter == true)
         {
             _ = await next();
             return;
         }
 
-        if (!isDefinedScopedAttribute)
+        if(!isDefinedScopedAttribute)
         {
             // 解决通过 AddMvcFilter 的问题
-            if (!Settings.IsMvcFilterRegister)
+            if(!Settings.IsMvcFilterRegister)
             {
                 // 处理不启用但排除的情况
-                if (!Settings.GlobalEnabled
-                    && !Settings.IncludeOfMethods.Contains(methodFullName, StringComparer.OrdinalIgnoreCase))
+                if(!Settings.GlobalEnabled
+                    && !Settings.IncludeOfMethods.Contains(methodFullName,StringComparer.OrdinalIgnoreCase))
                 {
                     // 查找是否包含匹配，忽略大小写
                     _ = await next();
@@ -779,8 +779,8 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
                 }
 
                 // 处理启用但排除的情况
-                if (Settings.GlobalEnabled
-                    && Settings.ExcludeOfMethods.Contains(methodFullName, StringComparer.OrdinalIgnoreCase))
+                if(Settings.GlobalEnabled
+                    && Settings.ExcludeOfMethods.Contains(methodFullName,StringComparer.OrdinalIgnoreCase))
                 {
                     _ = await next();
                     return;
@@ -789,7 +789,7 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
         }
 
         // 获取全局 LoggingMonitorMethod 配置
-        var monitorMethod = Settings.MethodsSettings.FirstOrDefault(m => m.FullName.Equals(methodFullName, StringComparison.OrdinalIgnoreCase));
+        var monitorMethod = Settings.MethodsSettings.FirstOrDefault(m => m.FullName.Equals(methodFullName,StringComparison.OrdinalIgnoreCase));
 
         // 创建 json 写入器
         using var stream = new MemoryStream();
@@ -799,9 +799,9 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
         jsonWriterOptions.Indented = CheckIsSetJsonIndented(monitorMethod);
 
         // 创建 JSON 写入器
-        using var writer = new Utf8JsonWriter(stream, jsonWriterOptions);
+        using var writer = new Utf8JsonWriter(stream,jsonWriterOptions);
         writer.WriteStartObject();
-        writer.WriteString("title", Title);
+        writer.WriteString("title",Title);
 
         // 创建日志上下文
         var logContext = new LogContext();
@@ -811,21 +811,21 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
         var controllerName = routeData.Values["controller"];
         var actionName = routeData.Values["action"];
         var areaName = routeData.DataTokens["area"];
-        writer.WriteString(nameof(controllerName), controllerName?.ToString());
-        writer.WriteString("controllerTypeName", actionMethod.DeclaringType.Name);
-        writer.WriteString(nameof(actionName), actionName?.ToString());
-        writer.WriteString("actionTypeName", actionMethod.Name);
-        writer.WriteString("areaName", areaName?.ToString());
+        writer.WriteString(nameof(controllerName),controllerName?.ToString());
+        writer.WriteString("controllerTypeName",actionMethod.DeclaringType.Name);
+        writer.WriteString(nameof(actionName),actionName?.ToString());
+        writer.WriteString("actionTypeName",actionMethod.Name);
+        writer.WriteString("areaName",areaName?.ToString());
 
         // 调用呈现链名称
         var displayName = methodFullName;
-        writer.WriteString(nameof(displayName), displayName);
+        writer.WriteString(nameof(displayName),displayName);
 
         // [DisplayName] 特性
-        var displayNameAttribute = actionMethod.IsDefined(typeof(DisplayNameAttribute), true)
+        var displayNameAttribute = actionMethod.IsDefined(typeof(DisplayNameAttribute),true)
             ? actionMethod.GetCustomAttribute<DisplayNameAttribute>(true)
             : default;
-        writer.WriteString("displayTitle", displayNameAttribute?.DisplayName);
+        writer.WriteString("displayTitle",displayNameAttribute?.DisplayName);
 
         // 获取 HttpContext 和 HttpRequest 对象
         var httpContext = context.HttpContext;
@@ -833,57 +833,57 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
 
         // 获取服务端 IPv4 地址
         var localIPv4 = httpContext.GetLocalIpAddressToIPv4();
-        writer.WriteString(nameof(localIPv4), localIPv4);
+        writer.WriteString(nameof(localIPv4),localIPv4);
 
         // 获取客户端 IPv4 地址
         var remoteIPv4 = httpContext.GetRemoteIpAddressToIPv4();
-        writer.WriteString(nameof(remoteIPv4), remoteIPv4);
+        writer.WriteString(nameof(remoteIPv4),remoteIPv4);
 
         // 获取请求方式
         var httpMethod = httpContext.Request.Method;
-        writer.WriteString(nameof(httpMethod), httpMethod);
+        writer.WriteString(nameof(httpMethod),httpMethod);
 
         // 客户端连接 ID
         var traceId = App.GetTraceId();
-        writer.WriteString(nameof(traceId), traceId);
+        writer.WriteString(nameof(traceId),traceId);
 
         // 线程 Id
         var threadId = App.GetThreadId();
-        writer.WriteNumber(nameof(threadId), threadId);
+        writer.WriteNumber(nameof(threadId),threadId);
 
         // 获取请求的 Url 地址
         var requestUrl = Uri.UnescapeDataString(httpRequest.GetRequestUrlAddress());
-        writer.WriteString(nameof(requestUrl), requestUrl);
+        writer.WriteString(nameof(requestUrl),requestUrl);
 
         // 获取来源 Url 地址
         var refererUrl = Uri.UnescapeDataString(httpRequest.GetRefererUrlAddress());
-        writer.WriteString(nameof(refererUrl), refererUrl);
+        writer.WriteString(nameof(refererUrl),refererUrl);
 
         // 客户端浏览器信息
         var userAgent = httpRequest.Headers["User-Agent"];
-        writer.WriteString(nameof(userAgent), userAgent);
+        writer.WriteString(nameof(userAgent),userAgent);
 
         // 客户端请求区域语言
         var acceptLanguage = httpRequest.Headers["accept-language"];
-        writer.WriteString(nameof(acceptLanguage), acceptLanguage);
+        writer.WriteString(nameof(acceptLanguage),acceptLanguage);
 
         // 请求来源（swagger还是其他）
         var requestFrom = httpRequest.Headers["request-from"].ToString();
         requestFrom = string.IsNullOrWhiteSpace(requestFrom) ? "client" : requestFrom;
-        writer.WriteString(nameof(requestFrom), requestFrom);
+        writer.WriteString(nameof(requestFrom),requestFrom);
 
         // 获取授权用户
         var user = httpContext.User;
 
         // 获取请求 cookies 信息
         var requestHeaderCookies = Uri.UnescapeDataString(httpRequest.Headers["cookie"].ToString());
-        writer.WriteString(nameof(requestHeaderCookies), requestHeaderCookies);
+        writer.WriteString(nameof(requestHeaderCookies),requestHeaderCookies);
 
         // 计算接口执行时间
         var timeOperation = Stopwatch.StartNew();
         var resultContext = await next();
         timeOperation.Stop();
-        writer.WriteNumber("timeOperationElapsedMilliseconds", timeOperation.ElapsedMilliseconds);
+        writer.WriteNumber("timeOperationElapsedMilliseconds",timeOperation.ElapsedMilliseconds);
 
         var resultHttpContext = (resultContext as FilterContext).HttpContext;
 
@@ -897,11 +897,11 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
         var authorization = string.IsNullOrWhiteSpace(accessToken)
             ? httpRequest.Headers["Authorization"].ToString()
             : "Bearer " + accessToken;
-        writer.WriteString("accessToken", isAuth ? authorization : default);
+        writer.WriteString("accessToken",isAuth ? authorization : default);
 
         // 获取响应 cookies 信息
         var responseHeaderCookies = Uri.UnescapeDataString(resultHttpContext.Response.Headers["Set-Cookie"].ToString());
-        writer.WriteString(nameof(responseHeaderCookies), responseHeaderCookies);
+        writer.WriteString(nameof(responseHeaderCookies),responseHeaderCookies);
 
         // 获取系统信息
         var osDescription = RuntimeInformation.OSDescription;
@@ -910,32 +910,32 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
         var basicFrameworkDescription = typeof(App).Assembly.GetName();
         var basicFramework = basicFrameworkDescription.Name;
         var basicFrameworkVersion = basicFrameworkDescription.Version?.ToString();
-        writer.WriteString(nameof(osDescription), osDescription);
-        writer.WriteString(nameof(osArchitecture), osArchitecture);
-        writer.WriteString(nameof(frameworkDescription), frameworkDescription);
-        writer.WriteString(nameof(basicFramework), basicFramework);
-        writer.WriteString(nameof(basicFrameworkVersion), basicFrameworkVersion);
+        writer.WriteString(nameof(osDescription),osDescription);
+        writer.WriteString(nameof(osArchitecture),osArchitecture);
+        writer.WriteString(nameof(frameworkDescription),frameworkDescription);
+        writer.WriteString(nameof(basicFramework),basicFramework);
+        writer.WriteString(nameof(basicFrameworkVersion),basicFrameworkVersion);
 
         // 获取启动信息
         var entryAssemblyName = Assembly.GetEntryAssembly().GetName().Name;
-        writer.WriteString(nameof(entryAssemblyName), entryAssemblyName);
+        writer.WriteString(nameof(entryAssemblyName),entryAssemblyName);
 
         // 获取进程信息
         var process = Process.GetCurrentProcess();
         var processName = process.ProcessName;
-        writer.WriteString(nameof(processName), processName);
+        writer.WriteString(nameof(processName),processName);
 
         // 获取部署程序
         var deployServer = processName == entryAssemblyName ? "Kestrel" : processName;
-        writer.WriteString(nameof(deployServer), deployServer);
+        writer.WriteString(nameof(deployServer),deployServer);
 
         // 服务器环境
         var environment = httpContext.RequestServices.GetRequiredService<IWebHostEnvironment>().EnvironmentName;
-        writer.WriteString(nameof(environment), environment);
+        writer.WriteString(nameof(environment),environment);
 
         // 获取异常对象情况
         Exception exception = resultContext.Exception;
-        if (exception == null)
+        if(exception == null)
         {
             // 解析存储的验证信息
             var validationFailedKey = nameof(DataValidationFilter) + nameof(ValidationMetadata);
@@ -943,11 +943,11 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
                 ? default
                 : httpContext.Items[validationFailedKey] as ValidationMetadata;
 
-            if (validationMetadata != null)
+            if(validationMetadata != null)
             {
                 // 创建全局验证异常
-                var error = TrySerializeObject(validationMetadata.ValidationResult, monitorMethod, out _);
-                exception = new ServiceException(error, validationMetadata.StatusCode ?? StatusCodes.Status400BadRequest)
+                var error = TrySerializeObject(validationMetadata.ValidationResult,monitorMethod,out _);
+                exception = new ServiceException(error,validationMetadata.StatusCode ?? StatusCodes.Status400BadRequest)
                 {
                     ValidationException = true
                 };
@@ -959,94 +959,71 @@ public sealed class LoggingMonitorAttribute : Attribute, IAsyncActionFilter, IAs
 
         var monitorItems = new List<string>()
         {
-            $"##控制器名称## {actionMethod.DeclaringType.Name}"
-            , $"##操作名称## {actionMethod.Name}"
-            , $"##显示名称## {displayNameAttribute?.DisplayName}"
-            , $"##路由信息## [area]: {areaName}; [controller]: {controllerName}; [action]: {actionName}"
-            , $"##请求方式## {httpMethod}"
-            , $"##请求地址## {requestUrl}"
-            , $"##来源地址## {refererUrl}"
-            , $"##请求端源## {requestFrom}"
-            , $"##浏览器标识## {userAgent}"
-            , $"##客户端区域语言## {acceptLanguage}"
-            , $"##客户端 IP 地址## {remoteIPv4}"
-            , $"##服务端 IP 地址## {localIPv4}"
-            , $"##客户端连接 ID## {traceId}"
-            , $"##服务线程 ID## #{threadId}"
+            $"##请求地址及控制器## {httpMethod}:{requestUrl}"
+            , $"##控制器信息## {actionMethod.DeclaringType.Name}：{actionMethod.Name}"
+            , $"##客户/服务端IP## {remoteIPv4},{localIPv4}"
             , $"##执行耗时## {timeOperation.ElapsedMilliseconds}ms"
-            ,"━━━━━━━━━━━━━━━  Cookies ━━━━━━━━━━━━━━━"
-            , $"##请求端## {requestHeaderCookies}"
-            , $"##响应端## {responseHeaderCookies}"
-            ,"━━━━━━━━━━━━━━━  系统信息 ━━━━━━━━━━━━━━━"
-            , $"##系统名称## {osDescription}"
-            , $"##系统架构## {osArchitecture}"
-            , $"##基础框架## {basicFramework} v{basicFrameworkVersion}"
-            , $"##.NET 架构## {frameworkDescription}"
-            ,"━━━━━━━━━━━━━━━  启动信息 ━━━━━━━━━━━━━━━"
             , $"##运行环境## {environment}"
-            , $"##启动程序集## {entryAssemblyName}"
-            , $"##进程名称## {processName}"
-            , $"##托管程序## {deployServer}"
         };
 
-        // 如果用户实际授权才打印
-        if (isAuth)
-        {
-            // 添加 JWT 授权信息日志模板
-            monitorItems.AddRange(GenerateAuthorizationTemplate(writer, user, authorization));
-        }
+        //// 如果用户实际授权才打印 
+        //if(isAuth)
+        //{ 
+        //    // 添加 JWT 授权信息日志模板
+        //    monitorItems.AddRange(GenerateAuthorizationTemplate(writer,user,authorization));
+        //}
 
-        // 生成请求头日志模板
-        monitorItems.AddRange(GenerateRequestHeadersTemplate(writer, httpRequest.Headers));
+        //// 生成请求头日志模板
+        //monitorItems.AddRange(GenerateRequestHeadersTemplate(writer,httpRequest.Headers));
 
-        // 添加请求参数信息日志模板
-        monitorItems.AddRange(GenerateParameterTemplate(writer, parameterValues, actionMethod, httpRequest.Headers["Content-Type"], monitorMethod));
+        //// 添加请求参数信息日志模板
+        //monitorItems.AddRange(GenerateParameterTemplate(writer,parameterValues,actionMethod,httpRequest.Headers["Content-Type"],monitorMethod));
 
-        // 判断是否启用返回值打印
-        if (CheckIsSetWithReturnValue(monitorMethod))
-        {
-            // 添加返回值信息日志模板
-            monitorItems.AddRange(GenerateReturnInfomationTemplate(writer, resultContext, actionMethod, monitorMethod));
-        }
+        //// 判断是否启用返回值打印
+        //if(CheckIsSetWithReturnValue(monitorMethod))
+        //{
+        //    // 添加返回值信息日志模板
+        //    monitorItems.AddRange(GenerateReturnInfomationTemplate(writer,resultContext,actionMethod,monitorMethod));
+        //}
 
         // 添加异常信息日志模板
-        monitorItems.AddRange(GenerateExcetpionInfomationTemplate(writer, exception, isValidationException));
+        monitorItems.AddRange(GenerateExcetpionInfomationTemplate(writer,exception,isValidationException));
 
         // 生成最终模板
-        var monitorMessage = TP.Wrapper(Title, displayName, monitorItems.ToArray());
+        var monitorMessage = TP.Wrapper(Title,displayName,monitorItems.ToArray());
 
         // 创建日志记录器
         var logger = httpContext.RequestServices.GetRequiredService<ILogger<LoggingMonitor>>();
 
         // 调用外部配置
-        LoggingMonitorSettings.Configure?.Invoke(logger, logContext, resultContext as FilterContext);
+        LoggingMonitorSettings.Configure?.Invoke(logger,logContext,resultContext as FilterContext);
 
         writer.WriteEndObject();
         writer.Flush();
 
         // 获取 json 字符串
         var jsonString = Encoding.UTF8.GetString(stream.ToArray());
-        logContext.Set("loggingMonitor", jsonString);
+        logContext.Set("loggingMonitor",jsonString);
 
         // 设置日志上下文
         using var scope = logger.ScopeContext(logContext);
 
         // 获取最终写入日志消息格式
-        var finalMessage = GetJsonBehavior(JsonBehavior, monitorMethod) == RuoYi.Framework.Logging.JsonBehavior.OnlyJson ? jsonString : monitorMessage;
+        var finalMessage = GetJsonBehavior(JsonBehavior,monitorMethod) == RuoYi.Framework.Logging.JsonBehavior.OnlyJson ? jsonString : monitorMessage;
 
         // 写入日志，如果没有异常默认使用 LogInformation，否则使用 LogError
-        if (exception == null)
+        if(exception == null)
         {
-            logger.Log(Settings.LogLevel, finalMessage);
+            logger.Log(Settings.LogLevel,finalMessage);
         }
         else
         {
             // 如果不是验证异常，写入 Error
-            if (!isValidationException) logger.LogError(exception, finalMessage);
+            if(!isValidationException) logger.LogError(exception,finalMessage);
             else
             {
                 // 读取配置的日志级别并写入
-                logger.Log(Settings.ServiceLogLevel, finalMessage);
+                logger.Log(Settings.ServiceLogLevel,finalMessage);
             }
         }
     }

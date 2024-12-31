@@ -23,17 +23,18 @@ public static class TP
     /// <returns><see cref="string"/></returns>
     public static string Wrapper(string title, string description, params string[] items)
     {
+            
         // 处理不同编码问题
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
         var stringBuilder = new StringBuilder();
         stringBuilder.Append($"┏━━━━━━━━━━━  {title} ━━━━━━━━━━━").AppendLine();
 
-        // 添加描述
-        if (!string.IsNullOrWhiteSpace(description))
-        {
-            stringBuilder.Append($"┣ {description}").AppendLine().Append("┣ ").AppendLine();
-        }
+        //// 添加描述
+        //if (!string.IsNullOrWhiteSpace(description))
+        //{
+        //    stringBuilder.Append($"┣ {description}").AppendLine().Append("┣ ").AppendLine();
+        //}
 
         // 添加项
         if (items != null && items.Length > 0)
