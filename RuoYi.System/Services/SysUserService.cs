@@ -334,14 +334,14 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
     [Transactional]
     public virtual int UpdateUser(SysUserDto user)
     {
-        //// 删除用户与角色关联
-        //_sysUserRoleRepository.DeleteUserRoleByUserId(user.UserId);
-        //// 新增用户与角色管理
-        //InsertUserRole(user);
-        //// 删除用户与岗位关联
-        //_sysUserPostRepository.DeleteUserPostByUserId(user.UserId);
-        //// 新增用户与岗位管理
-        //InsertUserPost(user);
+        // 删除用户与角色关联
+        _sysUserRoleRepository.DeleteUserRoleByUserId(user.UserId);
+        // 新增用户与角色管理
+        InsertUserRole(user);
+        // 删除用户与岗位关联
+        _sysUserPostRepository.DeleteUserPostByUserId(user.UserId);
+        // 新增用户与岗位管理
+        InsertUserPost(user);
 
         // 新增： 删除用户与组织关联
         _sysUserTenantRepository.DeleteUserTenantByUserId(user.UserId);
@@ -543,6 +543,13 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
     [Transactional]
     public virtual int DeleteUserByIdAsync(long userId)
     {
+
+
+        // 新增： 删除用户与部门关联
+        _sysUserDeptService.DeleteUserDeptByUserId(userId);
+        // 新增： 删除用户与组织关联
+        _sysUserTenantRepository.DeleteUserTenantByUserId(userId);
+
         // 删除用户与角色关联
         _sysUserRoleRepository.DeleteUserRoleByUserId(userId);
         // 删除用户与岗位表
@@ -561,6 +568,12 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
             CheckUserAllowed(new SysUserDto { UserId = userId });
             await CheckUserDataScope(userId);
         }
+
+        // 删除用户与部门关联  新增： 
+        _sysUserDeptService.DeleteUserDeptByUserId(userIds);
+        // 删除用户与组织关联  新增： 
+        _sysUserTenantRepository.DeleteUserTenantByUserId(userIds);
+
         // 删除用户与角色关联
         _sysUserRoleRepository.DeleteUserRole(userIds);
         // 删除用户与岗位关联

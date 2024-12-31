@@ -68,6 +68,18 @@ namespace RuoYi.System.Repositories
         }
 
 
+        /// <summary>
+        /// 批量删除   未测试
+        /// </summary>
+        /// <param name="userId"></param>
+        /// <returns></returns>
+        public int DeleteUserTenantByUserId(List<long> userIds)
+        {
+            return Repo.Delete(r => userIds.Contains(r.UserId));
+        }
+
+
+
 
 
     }

@@ -12,11 +12,14 @@ namespace RuoYi.Data.Dtos
     public class SysUserDto : BaseDto
     {
         /**  新增：组织子集 */
-        public long[] TenantChildId;
+        public long[] TenantChildId { get; set; }
 
         /** 新增：部门子集 */
         //public long[] DeptChildId { get; set; }
-        public long[] DeptChildId { get; set; }
+        public long[]? DeptChildId { get; set; }
+
+        /** 部门组  新增： */
+        public List<long> DeptIds { get; set; }
 
         /** 新增：用户类型 */
         public string? UserType { get; set; }
@@ -105,8 +108,7 @@ namespace RuoYi.Data.Dtos
         /** 新增： 组织组 */
         public List<long> TenantIds { get; set; }
 
-        /** 部门组  新增： */
-        public List<long> DeptIds { get; set; }
+
 
         /// <summary>
         /// 是否 已分配用户角色

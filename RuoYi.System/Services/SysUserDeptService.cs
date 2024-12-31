@@ -60,7 +60,16 @@ public class SysUserDeptService : BaseService<SysUserDept,SysUserDeptDto>, ITran
         return _sysUserDeptRepository.Delete(up => up.UserId == userId);
     }
 
- 
+    /// <summary>
+    /// 批量删除用户部门中间表  未测试
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <returns></returns>
+    public int DeleteUserDeptByUserId(List<long> userIds)
+    {
+        return _sysUserDeptRepository.Delete(r => userIds.Contains(r.UserId));
+    }
+
 
     /// <summary>
     /// 修改：查询部门信息  

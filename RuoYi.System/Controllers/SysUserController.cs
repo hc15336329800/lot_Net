@@ -75,9 +75,8 @@ namespace RuoYi.System.Controllers
         public async Task<AjaxResult> GetInfo(long userId)
         {
             await _sysUserService.CheckUserDataScope(userId);
-            var roles = await _sysRoleService.GetRoleListAsync(new SysRoleDto());
-            var depts = await _sysUserDeptService.GetListLineAsync(new SysUserDeptDto()); //部门列表   
-            var posts = await _sysPostService.GetListAsync(new SysPostDto());
+            var roles = await _sysRoleService.GetRoleListAsync(new SysRoleDto()); //角色列表
+            var posts = await _sysPostService.GetListAsync(new SysPostDto()); // 岗位列表
 
             // 获取组织树
             string userType = SecurityUtils.GetUserType();
@@ -94,7 +93,7 @@ namespace RuoYi.System.Controllers
             //var deptdtotree = await _sysDeptService.GetDeptTreeListAsync(deptdto);
             //deptdtotree = FilterDeptTreeByUserType(SecurityUtils.GetTenantId(),deptdtotree,userType);  // 根据用户类型筛选部门树
 
-
+            // 获取部门下拉框
             List<ElSelect> elSelect = TenantUtils.GetElSelectByTenant(userType); // 获取下拉框结构（用户类型）
 
             AjaxResult ajax = AjaxResult.Success();
@@ -102,36 +101,34 @@ namespace RuoYi.System.Controllers
             // 是则返回所有，否则返回 每个角色 r 是否不是超级管理员角色。
             // ajax.Add("roles", SecurityUtils.IsAdmin(userId) ? roles : roles.Where(r => !SecurityUtils.IsAdminRole(r.RoleId)));
             // ajax.Add("depts",depts); 使用初始化数据
-            ajax.Add("roles",roles);
-            ajax.Add("posts",posts);
-            ajax.Add("tenantIds",tenanttree);
-            ajax.Add("userTypes",elSelect);   // 增加用户测试正确，修改用户还没有适配
+           
+            ajax.Add("roles",roles);  // 角色下拉框
+            ajax.Add("posts",posts);  // 岗位下拉框
+            ajax.Add("tenantIds",tenanttree);  // 组织树结构
+            ajax.Add("userTypes",elSelect);   // 用户下拉框
 
             // 用户信息 by  id
             if(userId > 0)
             {
+                // form表单中的实际数值
                 var user = await _sysUserService.GetDtoAsync(userId);
-
-
-
                 List<long> ls = _sysUserTenantService.GetTenantIdsListByUserId(userId);// 用户组织子集
                 List<long> DeptChildId = _sysUserDeptService.GetDeptChildIdByUserId(userId); ; // 用户部门子集
-
                 user.TenantIds = ls;// 组织组
                 user.DeptIds = DeptChildId;// 部门组
+                user.PostIds = _sysPostService.GetPostIdsListByUserId(userId); //用户所属岗位数组
+                user.RoleIds = user.Roles.Select(x => x.RoleId).ToList();//用户所属角色数组
+        
+
+                ////List<long> spids =  _sysPostService.GetPostIdsListByUserId(userId); 查询岗位
+                //ajax.Add("postIds",_sysPostService.GetPostIdsListByUserId(userId)); //用户所属岗位数组
+                //ajax.Add("roleIds",user.Roles.Select(x => x.RoleId).ToList());//用户所属角色数组
+
+                //// todo: 这里需要去用户组织中间表拿到用户的组织信息，  根据userid
+                //ajax.Add("tenantIds",ls);
 
                 ajax.Add(AjaxResult.DATA_TAG,user);
-
-                //List<long> spids =  _sysPostService.GetPostIdsListByUserId(userId); 查询岗位
-                ajax.Add("postIds",_sysPostService.GetPostIdsListByUserId(userId)); //用户所属岗位数组
-                ajax.Add("roleIds",user.Roles.Select(x => x.RoleId).ToList());//用户所属角色数组
-
-                // 绑定数据是user中数值， ajax.Add只是下拉表的填充数据！！
-                //ajax.Add("deptIds",SecurityUtils.GetDeptChildId());// 用户部门子集
-
-                // todo: 这里需要去用户组织中间表拿到用户的组织信息，  根据userid
-                ajax.Add("tenantIds",ls);
-
+ 
             }
 
             return ajax;
@@ -353,7 +350,7 @@ namespace RuoYi.System.Controllers
         /// </summary>
         [HttpPut("")]
         [AppAuthorize("system:user:edit")]
-        [TypeFilter(typeof(RuoYi.Framework.DataValidation.DataValidationFilter))]
+       // [TypeFilter(typeof(RuoYi.Framework.DataValidation.DataValidationFilter))] //数据验证拦截器 DataValidationFilter
         [Log(Title = "用户管理",BusinessType = BusinessType.UPDATE)]
         public async Task<AjaxResult> Edit([FromBody] SysUserDto user)
         {
@@ -371,12 +368,7 @@ namespace RuoYi.System.Controllers
             {
                 return AjaxResult.Error("修改用户'" + user.UserName + "'失败，邮箱账号已存在");
             }
-
-
-            treeselect 只有一个子类（不算目录），肯定点击一个都会选择啊！！！
-
-            开始修改用户，适配部门！
-
+ 
 
             var data = _sysUserService.UpdateUser(user);
             return AjaxResult.Success(data);
