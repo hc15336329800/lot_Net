@@ -56,7 +56,8 @@ public class SysLoginService : ITransient
         ValidateCaptcha(username,code,uuid);
         // 登录前置校验
         LoginPreCheck(username,password);
-        // 查询用户信息
+
+        // 查询用户信息，映射到userDto
         var userDto = await _sysUserService.GetDtoByUsernameAsync(username);
 
         // 账户密码验证
