@@ -17,7 +17,7 @@ public class SysPermissionService : ITransient
     }
 
     /// <summary>
-    /// 获取角色数据权限
+    /// 获取角色数据权限   角色集合
     /// </summary>
     /// <param name="user">用户信息</param>
     /// <returns>角色权限信息</returns>
@@ -36,6 +36,11 @@ public class SysPermissionService : ITransient
         return roles;
     }
 
+    /// <summary>
+    /// // 权限集合  
+    /// </summary>
+    /// <param name="user"></param>
+    /// <returns></returns>
     public List<string> GetMenuPermission(SysUserDto user)
     {
         List<string> perms = new List<string>();

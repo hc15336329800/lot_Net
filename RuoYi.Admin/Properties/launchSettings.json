@@ -14,7 +14,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:5000;https://localhost:5001"
+      "applicationUrl": "https://localhost:5001"   //修改端口
     },
     "Docker": {
       "commandName": "Docker",

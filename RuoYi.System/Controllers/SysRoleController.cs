@@ -94,18 +94,19 @@ namespace RuoYi.System.Controllers
 
             _sysRoleService.CheckRoleAllowed(role);
             await _sysRoleService.CheckRoleDataScopeAsync(role.RoleId);
-            if (!await _sysRoleService.CheckRoleNameUniqueAsync(role))
-            {
-                return AjaxResult.Error($"修改角色'{role.RoleName}'失败，角色名称已存在");
-            }
-            else if (!await _sysRoleService.CheckRoleKeyUniqueAsync(role))
-            {
-                return AjaxResult.Error($"修改角色'{role.RoleName}'失败，角色权限已存在");
-            };
+
+            //if (!await _sysRoleService.CheckRoleNameUniqueAsync(role))
+            //{
+            //    return AjaxResult.Error($"修改角色'{role.RoleName}'失败，角色名称已存在");
+            //}
+            //else if (!await _sysRoleService.CheckRoleKeyUniqueAsync(role))
+            //{
+            //    return AjaxResult.Error($"修改角色'{role.RoleName}'失败，角色权限已存在");
+            //};
 
             if (await _sysRoleService.UpdateRoleAsync(role) > 0)
             {
-                // 更新缓存用户权限
+                // 更新缓存用户权限  目前下面这个没有正确执行！
                 LoginUser loginUser = SecurityUtils.GetLoginUser();
                 if (loginUser.User != null && !SecurityUtils.IsAdmin(loginUser.User))
                 {

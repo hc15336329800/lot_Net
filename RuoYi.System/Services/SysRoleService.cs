@@ -75,18 +75,39 @@ public class SysRoleService : BaseService<SysRole,SysRoleDto>, ITransient
         return await _sysRoleRepository.FirstOrDefaultAsync(e => e.RoleId == id);
     }
 
+    /// <summary>
+    /// 角色集合
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <returns></returns>
     public async Task<List<string>> GetRolePermissionByUserId(long userId)
     {
-        List<SysRole> perms = await _sysRoleRepository.GetListAsync(new SysRoleDto { UserId = userId });
-        List<string> permsSet = new List<string>();
-        foreach(SysRole perm in perms)
+
+        // 原始代码
+        //List<SysRole> perms = await _sysRoleRepository.GetListAsync(new SysRoleDto { UserId = userId });
+        //List<string> permsSet = new List<string>();
+        //foreach(SysRole perm in perms)
+        //{
+        //    if(perm != null)
+        //    {
+        //        permsSet.AddRange(perm.RoleKey!.Trim().Split(","));
+        //    }
+        //}
+        //return permsSet;
+
+ 
+        //  整改： 查询用户ID对应的角色名称
+        var roleNames = await _sysUserRoleRepository.GetRoleNamesByUserIdAsync(userId);
+
+        // 如果用户没有任何角色，返回空列表
+        if(roleNames == null || roleNames.Count == 0)
         {
-            if(perm != null)
-            {
-                permsSet.AddRange(perm.RoleKey!.Trim().Split(","));
-            }
+            return new List<string>();
         }
-        return permsSet;
+
+        return roleNames;
+
+
     }
 
     public List<SysRoleDto> GetRolesByUserName(string userName)

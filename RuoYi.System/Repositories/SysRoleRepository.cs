@@ -22,8 +22,9 @@ namespace RuoYi.System.Repositories
                 .OrderBy((r) => r.RoleSort)
                 //.Where((r) => r.DelFlag == DelFlag.No)
                 .WhereIF(dto.RoleId > 0,(r) => r.RoleId == dto.RoleId)
-                //.WhereIF(!string.IsNullOrEmpty(dto.RoleName),(r) => r.RoleName!.Contains(dto.RoleName!))
-                //.WhereIF(!string.IsNullOrEmpty(dto.RoleKey),(r) => r.RoleKey!.Contains(dto.RoleKey!))
+//.WhereIF(dto.UserId > 0,(r) => r.RoleId == dto.UserId)  // 筛选角色  未经验证
+                .WhereIF(!string.IsNullOrEmpty(dto.RoleName),(r) => r.RoleName!.Contains(dto.RoleName!)) // 增修的查重
+                .WhereIF(!string.IsNullOrEmpty(dto.RoleKey),(r) => r.RoleKey!.Contains(dto.RoleKey!))  // 增修的查重
                 .WhereIF(!string.IsNullOrEmpty(dto.Status),(r) => r.Status == dto.Status)
                 //.WhereIF(dto.Params.BeginTime != null,(r) => r.CreateTime >= dto.Params.BeginTime)
                 //.WhereIF(dto.Params.EndTime != null,(r) => r.CreateTime <= dto.Params.EndTime)
@@ -34,6 +35,7 @@ namespace RuoYi.System.Repositories
 
             //  打印sql
             var sqlInfo = queryable.ToSql();
+            Console.WriteLine($"SQL语句: {sqlInfo.Key}");
 
             return queryable;
         }

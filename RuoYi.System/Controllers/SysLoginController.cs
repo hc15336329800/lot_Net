@@ -1,4 +1,5 @@
 ﻿using RuoYi.Common.Utils;
+using RuoYi.Data.Enums;
 using RuoYi.Data.Models;
 using RuoYi.System.Services;
 
@@ -69,15 +70,15 @@ namespace RuoYi.Admin
         }
 
         /// <summary>
-        /// 获取用户信息
+        /// 获取用户信息，以及权限集合
         /// </summary>
         [HttpGet("/getInfo")]
         public async Task<AjaxResult> GetInfo()
         {
             SysUserDto user = SecurityUtils.GetLoginUser().User;
-            // 角色集合
+            // 角色集合  已整改
             List<string> roles = await _sysPermissionService.GetRolePermissionAsync(user);
-            // 权限集合
+            // 权限集合  
             List<string> permissions = _sysPermissionService.GetMenuPermission(user);
 
             AjaxResult ajax = AjaxResult.Success();
@@ -93,8 +94,37 @@ namespace RuoYi.Admin
         [HttpGet("/getRouters")]
         public AjaxResult GetRouters()
         {
+            // 原始代码
+            //long userId = SecurityUtils.GetUserId();
+            //List<SysMenu> menus = _sysMenuService.SelectMenuTreeByUserId(userId);
+            //var treeMenus = _sysMenuService.BuildMenus(menus);
+            //return AjaxResult.Success(treeMenus);
+
             long userId = SecurityUtils.GetUserId();
-            List<SysMenu> menus = _sysMenuService.SelectMenuTreeByUserId(userId);
+            string userType = SecurityUtils.GetUserType(); // 如：SUPER_ADMIN、GROUP_ADMIN、COMPANY_ADMIN、GROUP_USER、COMPANY_USER
+
+            List<SysMenu> menus = null;
+
+            if(userType == "SUPER_ADMIN") //超级管理员1
+            {
+                menus = _sysMenuService.SelectMenuTreeByUserId(userId);
+            }
+            else if(userType == "GROUP_ADMIN") //集团管理员2   已验证
+            {
+                // 这里传入 int 类型的菜单类型，例如 2 表示集团管理员菜单
+                menus = _sysMenuService.SelectMenuTreeByType(2);
+            }
+            else if(userType == "COMPANY_ADMIN") //公司管理员3
+            {
+                // 传入 3 表示公司管理员菜单
+                menus = _sysMenuService.SelectMenuTreeByType(3);
+            }
+            else // 普通用户4
+            {
+                // 对于普通用户，使用原有的用户 ID 查询方法
+                menus = _sysMenuService.SelectMenuTreeByUserId(userId);
+            }
+
             var treeMenus = _sysMenuService.BuildMenus(menus);
             return AjaxResult.Success(treeMenus);
         }

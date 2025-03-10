@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using RuoYi.Common.Constants;
 using RuoYi.Common.Enums;
 using RuoYi.Common.Utils;
@@ -26,10 +27,11 @@ namespace RuoYi.System.Controllers
         }
 
         /// <summary>
-        /// 查询部门表列表
+        /// 查询部门表列表 
         /// </summary>
         [HttpGet("list")]
-        [AppAuthorize("system:dept:list")]
+        [AppAuthorize("system:dept:list")] //  则是框架自定义的权限标识校验，细化到功能权限。
+        // [AppRoleAuthorize("666")]   // 权限判断基于角色
         public async Task<AjaxResult> GetSysDeptList([FromQuery] SysDeptDto dto)
         {
             var data = await _sysDeptService.GetDtoListAsync(dto);

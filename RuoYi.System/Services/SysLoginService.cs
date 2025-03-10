@@ -56,8 +56,10 @@ public class SysLoginService : ITransient
         ValidateCaptcha(username,code,uuid);
         // 登录前置校验
         LoginPreCheck(username,password);
-        // 用户验证
+        // 查询用户信息
         var userDto = await _sysUserService.GetDtoByUsernameAsync(username);
+
+        // 账户密码验证
         CheckLoginUser(username,password,userDto);
 
         // 记录登录成功
@@ -94,7 +96,9 @@ public class SysLoginService : ITransient
         loginUser.User.TenantChildId = tidstr;
 
 
-        // 将用户信息生成token,并将token和用户信息存缓存。
+        // todo: 缺少角色信息
+
+        // 将用户信息生成token,并将token和用户信息存radis缓存。
         return await _tokenService.CreateToken(loginUser);
  
     }

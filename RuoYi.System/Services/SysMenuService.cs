@@ -102,7 +102,7 @@ public class SysMenuService : BaseService<SysMenu, SysMenuDto>, ITransient
     }
 
     /// <summary>
-    /// 根据用户ID查询菜单
+    /// 根据用户ID查询菜单   默认
     /// </summary>
     public List<SysMenu> SelectMenuTreeByUserId(long userId)
     {
@@ -117,6 +117,20 @@ public class SysMenuService : BaseService<SysMenu, SysMenuDto>, ITransient
         }
         return GetChildPerms(menus, 0);
     }
+
+    /// <summary>
+    /// 改造：根据菜单 type 查询菜单树（不基于用户 ID，仅根据 type 字段）
+    /// </summary>
+    /// <param name="menuType">菜单类型（int 类型）</param>
+    /// <returns>构造好的菜单树</returns>
+    public List<SysMenu> SelectMenuTreeByType(int menuType)
+    {
+        // 调用仓储层方法获取原始菜单列表
+        List<SysMenu> menus = _sysMenuRepository.SelectMenuListByType(menuType);
+        // 调用已有的递归方法构造树结构（假设 GetChildPerms 是当前服务中用来构造菜单树的方法）
+        return GetChildPerms(menus,0);
+    }
+
 
     /// <summary>
     /// 根据角色ID查询菜单树信息

@@ -1,3 +1,5 @@
+using RuoYi.System.Services;
+
 namespace RuoYi.System.Repositories;
 
 /// <summary>
@@ -112,6 +114,26 @@ public class SysMenuRepository : BaseRepository<SysMenu, SysMenuDto>
         SysMenuDto dto = new SysMenuDto { Status = Status.Enabled, MenuTypes = new List<string> { "M", "C" } };
         return this.GetList(dto);
     }
+
+
+
+    /// <summary>
+    /// 改造：根据菜单 type 获取菜单树
+    /// </summary>
+    /// <param name="menuType">菜单类型（数据库中的 type 字段值）</param>
+    /// <returns>该类型对应的菜单列表（树状结构）</returns>
+    /// <summary>
+    public List<SysMenu> SelectMenuListByType(int menuType)
+    {
+        return Repo.AsQueryable()
+            .Where(m => m.Status == Status.Enabled && m.Type == menuType)
+            .OrderBy(m => new { m.ParentId,m.OrderNum })
+            .ToList();
+    }
+
+
+
+
 
     /// <summary>
     /// 根据用户ID查询菜单

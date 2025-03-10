@@ -1,6 +1,8 @@
 using RuoYi.Data;
 using RuoYi.Data.Dtos;
 using RuoYi.Data.Entities;
+using SqlSugar;
+using System.Linq;
 using System.Text;
 
 namespace RuoYi.System.Repositories
@@ -20,14 +22,27 @@ namespace RuoYi.System.Repositories
         // 修改去掉了筛选部门
         public override ISugarQueryable<SysUser> Queryable(SysUserDto dto)
         {
-            return Repo.AsQueryable()
+
+            var queryable = Repo.AsQueryable()
                 .Where(d => d.TenantId == dto.TenantId) //tid
                 .Where(u => u.DelFlag == DelFlag.No);
+
+            //  打印sql
+            var sqlInfo = queryable.ToSql();
+            Console.WriteLine($"SQL语句: {sqlInfo.Key}");
+
+            return queryable;
         }
 
         public override ISugarQueryable<SysUserDto> DtoQueryable(SysUserDto dto)
         {
-            return this.UserDtoQueryable(dto);
+            var queryable =  this.UserDtoQueryable(dto);
+
+            //  打印sql
+            var sqlInfo = queryable.ToSql();
+            Console.WriteLine($"SQL语句: {sqlInfo.Key}");
+
+            return queryable;
         }
 
 
@@ -197,7 +212,7 @@ namespace RuoYi.System.Repositories
             var sb = new StringBuilder();
             sb.AppendLine(GetDtoTable());
             sb.AppendLine(GetDtoWhere(dto));
-            return base.SqlQueryable(sb.ToString(),parameters).Select(u => new SysUserDto
+            var queryable = base.SqlQueryable(sb.ToString(),parameters).Select(u => new SysUserDto
             {
                 UserId = u.UserId,
                 UserName = u.UserName,
@@ -209,6 +224,10 @@ namespace RuoYi.System.Repositories
                 CreateTime = u.CreateTime,
                 Remark = u.Remark
             });
+
+            //  打印sql
+            var sqlInfo = queryable.ToSql();
+            return queryable;
         }
 
         // 返回 dto 查询sql

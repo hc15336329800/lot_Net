@@ -68,5 +68,20 @@ namespace RuoYi.System.Repositories
         {
             return await Repo.DeleteAsync(r => r.RoleId == roleId && userIds.Contains(r.UserId));
         }
+
+
+        /// <summary>
+        /// 整改：根据用户ID查询角色名称列表
+        /// </summary>
+        public async Task<List<string>> GetRoleNamesByUserIdAsync(long userId)
+        {
+            return await Repo.AsQueryable()
+                .InnerJoin<SysRole>((ur,r) => ur.RoleId == r.RoleId) // 关联 sys_role
+                .Where((ur,r) => ur.UserId == userId) // 筛选指定 user_id
+                .Select((ur,r) => r.RoleName) // 只查询 role_name
+                .ToListAsync();
+        }
+
+
     }
 }

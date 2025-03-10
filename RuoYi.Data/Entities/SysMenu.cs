@@ -5,6 +5,12 @@ namespace RuoYi.Data.Entities
     [SugarTable("sys_menu", "菜单权限表")]
     public class SysMenu : UserBaseEntity
     {
+
+        /** 改造：类型 */
+        [SugarColumn(ColumnName = "type",ColumnDescription = "类型")]
+        public int Type { get; set; }
+
+
         /** 菜单ID */
         [SugarColumn(ColumnName = "menu_id", ColumnDescription = "菜单ID", IsPrimaryKey = true, IsIdentity = true)]
         public long MenuId { get; set; }
