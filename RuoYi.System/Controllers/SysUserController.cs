@@ -122,11 +122,13 @@ namespace RuoYi.System.Controllers
 
                 //todo: tid应该是前端传递过来的id？？
                 long tid =  SecurityUtils.GetTenantId();
+
+                // 获取组织全部专属菜单
                 var tenantdto = new SysTenantDto();
-                tenantdto.TenantId = tid;
+                tenantdto.TenantId = 0;// tid;   这里统一使用系统组织
                 var tenanttree = await _sysTenantService.GetDeptTreeListAsync(tenantdto); //所有tid=0？ 的菜单集合
-                //tid = 101; //测试
-                tenanttree = FilterTenantTreeByUserType(tid,tenanttree,userType);  // 根据用户类型筛选组织树
+                
+                 tenanttree = FilterTenantTreeByUserType(tid,tenanttree,userType);  // 根据用户类型筛选组织树
   
                 ajax.Add("tenantIds",tenanttree);  // 组织树结构
  
@@ -148,9 +150,7 @@ namespace RuoYi.System.Controllers
             else // 普通用户4
             {
             }
-
-
-           
+ 
             return ajax;
 
         }
@@ -176,12 +176,33 @@ namespace RuoYi.System.Controllers
                     return tenantTree;
 
                 case "GROUP_ADMIN":
+                   
+
+
+                    // 更新
+                    var groupNode = FindNodeWithDirectChildrenById(tenantTree,tid);
+
+                    if(groupNode != null)
+                    {
+                        // 直接返回 groupNode 本身
+                        return new List<TreeSelectTenant> { groupNode };
+                    }
+                    else
+                    {
+                        return new List<TreeSelectTenant>();
+                    }
+
+
+                   
+
+                case "COMPANY_ADMIN":
+
                     // 集团管理员：只返回指定 tid 下属的一层节点（公司列表）  24-12-18 验证通过 √
-                    var groupNode = FindNodeById(tenantTree,tid);
-                    if(groupNode != null && groupNode.Children != null)
+                    var groupNode1 = FindNodeById(tenantTree,tid);
+                    if(groupNode1 != null && groupNode1.Children != null)
                     {
                         // 返回子节点列表
-                        return groupNode.Children.Select(child => new TreeSelectTenant
+                        return groupNode1.Children.Select(child => new TreeSelectTenant
                         {
                             Id = child.Id,
                             Label = child.Label
@@ -190,27 +211,6 @@ namespace RuoYi.System.Controllers
                     else
                     {
                         // 如果未找到或没有子节点，返回空列表
-                        return new List<TreeSelectTenant>();
-                    }
-
-                case "COMPANY_ADMIN":
-                    // 公司管理员：只返回当前的 tid 节点    24-12-18 验证通过 √
-                    var companyNode = FindNodeById(tenantTree,tid);
-                    if(companyNode != null)
-                    {
-                        // 返回当前节点，不包含子节点
-                        return new List<TreeSelectTenant>
-                {
-                    new TreeSelectTenant
-                    {
-                        Id = companyNode.Id,
-                        Label = companyNode.Label
-                    }
-                };
-                    }
-                    else
-                    {
-                        // 如果未找到，返回空列表
                         return new List<TreeSelectTenant>();
                     }
 
@@ -242,9 +242,49 @@ namespace RuoYi.System.Controllers
             return null;
         }
 
+
+        /// <summary>
+        /// 在树中根据 Id 查找节点，只返回当前节点及其直属子节点（下属一层）
+        /// </summary>
+        /// <param name="tree">树节点列表</param>
+        /// <param name="id">要查找的节点 Id</param>
+        /// <returns>找到的节点（子节点的 Children 置空），未找到则返回 null</returns>
+        /// <summary>
+        private TreeSelectTenant? FindNodeWithDirectChildrenById(List<TreeSelectTenant> tree,long id)
+        {
+            foreach(var node in tree)
+            {
+                if(node.Id == id)
+                {
+                    // 构造新对象，仅返回直接子节点（子节点的 Children 置为空）
+                    return new TreeSelectTenant
+                    {
+                        Id = node.Id,
+                        Label = node.Label,
+                        Children = node.Children != null
+                            ? node.Children.Select(child => new TreeSelectTenant
+                            {
+                                Id = child.Id,
+                                Label = child.Label,
+                                Children = null  // 只返回一级子节点
+                            }).ToList()
+                            : null
+                    };
+                }
+                if(node.Children != null && node.Children.Any())
+                {
+                    var found = FindNodeWithDirectChildrenById(node.Children,id);
+                    if(found != null)
+                        return found;
+                }
+            }
+            return null;
+        }
+
+
         #endregion
 
- 
+
 
         #region 筛选部门树
 
