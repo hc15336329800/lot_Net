@@ -16,7 +16,11 @@ public class SysMenuRepository : BaseRepository<SysMenu, SysMenuDto>
 
     public override ISugarQueryable<SysMenu> Queryable(SysMenuDto dto)
     {
-        return Repo.AsQueryable()
+
+
+        var queryable = Repo.AsQueryable()
+
+            .WhereIF(dto.Type > 0,m => m.Type == dto.Type) //判断它是否大于 0
             .WhereIF(!string.IsNullOrEmpty(dto.Status), (m) => m.Status == dto.Status)
             .WhereIF(!string.IsNullOrEmpty(dto.MenuName), (m) => m.MenuName!.Contains(dto.MenuName!))
             .WhereIF(!string.IsNullOrEmpty(dto.Visible), (m) => m.Visible == dto.Visible)
@@ -24,6 +28,12 @@ public class SysMenuRepository : BaseRepository<SysMenu, SysMenuDto>
             .WhereIF(dto.MenuTypes.Count > 0, (m) => dto.MenuTypes.Contains(m.MenuType!))
             .OrderBy(m => new { m.ParentId, m.OrderNum })
         ;
+
+        //  打印sql
+        var sqlInfo = queryable.ToSql();
+        Console.WriteLine($"SQL语句: {sqlInfo.Key}");
+
+        return queryable;
     }
 
     public override ISugarQueryable<SysMenuDto> DtoQueryable(SysMenuDto dto)
@@ -64,6 +74,7 @@ public class SysMenuRepository : BaseRepository<SysMenu, SysMenuDto>
             }).Distinct();
     }
 
+    // 获取用户菜单
     public async Task<List<SysMenu>> SelectMenuListAsync(SysMenuDto dto)
     {
         var entities = await this.GetListAsync(dto);

@@ -4,6 +4,9 @@ namespace RuoYi.Data.Dtos
 {
     public class SysMenuDto : BaseDto
     {
+        /** 改造：类型 */
+         public int Type { get; set; }
+
         /** 菜单ID */
         public long MenuId { get; set; }
 

@@ -18,13 +18,15 @@ namespace RuoYi.Admin
         private readonly SysPermissionService _sysPermissionService;
         private readonly SysMenuService _sysMenuService;
         private readonly SysLogininforService _sysLogininforService;
+        private readonly SysUserTenantService _sysUserTenantService;
 
         public SysLoginController(ILogger<SysLoginController> logger,
             TokenService tokenService,
             SysLoginService sysLoginService,
             SysPermissionService sysPermissionService,
             SysMenuService sysMenuService,
-            SysLogininforService sysLogininforService)
+            SysLogininforService sysLogininforService,
+            SysUserTenantService sysUserTenantService)
         {
             _logger = logger;
             _tokenService = tokenService;
@@ -32,20 +34,31 @@ namespace RuoYi.Admin
             _sysPermissionService = sysPermissionService;
             _sysMenuService = sysMenuService;
             _sysLogininforService = sysLogininforService;
+            _sysUserTenantService = sysUserTenantService;
+            
         }
 
         /// <summary>
-        /// 登录验证
+        /// 登录验证 - 组织登录
         /// </summary>
         /// <returns></returns>
         [HttpPost("/login")]
         public async Task<AjaxResult> Login([FromBody]LoginBody loginBody)
         {
+ 
             AjaxResult ajax = AjaxResult.Success();
-            // 生成令牌
-            string token = await _sysLoginService.LoginAsync(loginBody.Username, loginBody.Password, loginBody.Code, loginBody.Uuid,loginBody.TenantId);
-            ajax.Add(Constants.TOKEN, token);
+            //1、登录界面切换组织写法   2、生成令牌
+            //loginBody.Tenantid = 0;
+            string token = await _sysLoginService.LoginAsync(loginBody.Username,loginBody.Password,loginBody.Code,loginBody.Uuid,loginBody.Tenantid,loginBody.Usertype);
+            ajax.Add(Constants.TOKEN,token);
+
+
+
+            // 注意：修改逻辑：登录后默认使用集合组织的1号组织，可切换
+            // 后台管理员只准属于一个组织！    公司员工可以设置多个归属！
+            
             return ajax;
+
         }
 
         /// <summary>

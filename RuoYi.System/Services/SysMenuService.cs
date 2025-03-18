@@ -43,17 +43,33 @@ public class SysMenuService : BaseService<SysMenu, SysMenuDto>, ITransient
     /// </summary>
     public async Task<List<SysMenu>> SelectMenuListAsync(SysMenuDto menu, long userId)
     {
+        // 改造新增
+        LoginUser User = SecurityUtils.GetLoginUser(); // 获取当前登录用户信息
+        string userType = User.UserType;// 当前用户的用户类型
         List<SysMenu> menuList = null;
-        // 管理员显示所有菜单信息
-        if (SecurityUtils.IsAdmin(userId))
+
+
+        if(userType == "SUPER_ADMIN") //超级管理员1
         {
             menuList = await _sysMenuRepository.SelectMenuListAsync(menu);
         }
-        else
+        else if(userType == "GROUP_ADMIN") //集团管理员2   已验证
+        {
+            //
+            menu.Type = 2;
+            menuList = await _sysMenuRepository.SelectMenuListAsync(menu);
+
+        }
+        else if(userType == "COMPANY_ADMIN") //公司管理员3
+        {
+         }
+        else // 普通用户4
         {
             menu.UserId = userId;
             menuList = await _sysMenuRepository.SelectMenuListByUserIdAsync(menu);
         }
+
+ 
         return menuList;
     }
 

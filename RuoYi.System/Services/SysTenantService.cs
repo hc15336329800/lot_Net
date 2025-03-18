@@ -1,6 +1,7 @@
 using RuoYi.Common.Constants;
 using RuoYi.Common.Interceptors;
 using RuoYi.Common.Utils;
+using RuoYi.Data.Enums;
 using RuoYi.Data.Models;
 using RuoYi.Framework.Exceptions;
 using RuoYi.System.Repositories;
@@ -288,7 +289,7 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
 
 
     /// <summary>
-    /// 根据系统用户名获取系统用户id  ，  构造树结构
+    /// 根据系统用户名获取当前用户的组织集合    
     /// </summary>
     /// <param name="userId"></param>
     /// <returns></returns>
@@ -298,8 +299,6 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
         //    { "label": "深圳代理", "value": 1 },
         //    { "label": "长沙代理", "value": 2 }
         // ]
-
-
 
         // 定义 SQL 查询
         string sql = @"
@@ -312,6 +311,7 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
           AND u.user_name = @UserName
     ";
 
+ 
         try
         {
             // 执行 SQL 查询并获取结果
@@ -336,6 +336,84 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
             throw new Exception("获取部门信息失败",ex); // 抛出更具体的异常
         }
     }
+
+
+
+    /// <summary>
+    /// 根据系统用户名获取当前用户的组织集合   升级
+    /// </summary>
+    /// <param name="userId"></param>
+    /// <returns></returns>
+    public async Task<object[]> GetDeptNamesByUserNameAsync(string userName,string userType)
+    {
+        // [
+        //    { "label": "深圳代理", "value": 1 },
+        //    { "label": "长沙代理", "value": 2 }
+        // ]
+
+        // 定义 SQL 查询
+        string sql = @"
+        SELECT t.dept_name  , t.id
+        FROM sys_user u
+        JOIN sys_user_tenant ut ON u.user_id = ut.user_id
+        JOIN sys_tenant t ON ut.t_id = t.id
+        WHERE u.status = '0'  
+          AND u.del_flag = '0' 
+          AND u.user_name = @UserName
+    ";
+
+        if(userType == "SUPER_ADMIN") //超级管理员1  ,这个不走这里
+        {
+
+        }
+        else if(userType == "GROUP_ADMIN") //集团管理员2   已验证
+        {
+            sql = @"
+                SELECT 
+                pt.dept_name AS dept_name,
+                pt.id        AS id
+                FROM sys_user u
+                JOIN sys_user_tenant ut ON u.user_id = ut.user_id
+                JOIN sys_tenant t ON ut.t_id = t.id
+                LEFT JOIN sys_tenant pt ON t.parent_id = pt.id
+                WHERE u.status = '0'
+                  AND u.del_flag = '0'
+                  AND u.user_name = @UserName  ";
+        }
+        else if(userType == "COMPANY_ADMIN") //公司管理员3
+        {
+
+        }
+        else // 普通用户4
+        {
+        }
+
+        try
+        {
+            // 执行 SQL 查询并获取结果
+            var tenantData = await _sysTenantRepository.SqlQueryable(sql,
+                new List<SugarParameter> { new SugarParameter("@UserName",userName) }
+            )
+            .Select(t => new { t.Id,t.DeptName }) // 显式指定选择字段
+            .ToListAsync(); // 获取结果列表
+
+
+
+            // 构造返回格式，label = dept_name，value = id
+            return tenantData.Select(item => new
+            {
+                label = item.DeptName, // 部门名称
+                value = item.Id        // 部门 ID
+            }).ToArray();
+        }
+
+        catch(Exception ex)
+        {
+            throw new Exception("获取部门信息失败",ex); // 抛出更具体的异常
+        }
+    }
+
+
 
 
 

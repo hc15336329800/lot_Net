@@ -74,64 +74,85 @@ namespace RuoYi.System.Controllers
         [AppAuthorize("system:user:query")]
         public async Task<AjaxResult> GetInfo(long userId)
         {
-            await _sysUserService.CheckUserDataScope(userId);
-            var roles = await _sysRoleService.GetRoleListAsync(new SysRoleDto()); //角色列表
-            var posts = await _sysPostService.GetListAsync(new SysPostDto()); // 岗位列表
-
-            // 获取组织树
-            string userType = SecurityUtils.GetUserType();
-            //todo: tid应该是前端传递过来的id？？
-            long tid = SecurityUtils.GetTenantId();
-            var tenantdto = new SysTenantDto();
-            tenantdto.TenantId = tid;
-            var tenanttree = await _sysTenantService.GetDeptTreeListAsync(tenantdto);
-            tenanttree = FilterTenantTreeByUserType(SecurityUtils.GetTenantId(),tenanttree,userType);  // 根据用户类型筛选组织树
-
-            // 获取部门树
-            //var deptdto = new SysDeptDto();
-            //deptdto.TenantId = tid;
-            //var deptdtotree = await _sysDeptService.GetDeptTreeListAsync(deptdto);
-            //deptdtotree = FilterDeptTreeByUserType(SecurityUtils.GetTenantId(),deptdtotree,userType);  // 根据用户类型筛选部门树
-
-            // 获取部门下拉框
-            List<ElSelect> elSelect = TenantUtils.GetElSelectByTenant(userType); // 获取下拉框结构（用户类型）
-
+            string userType = SecurityUtils.GetUserType(); // 如：SUPER_ADMIN、GROUP_ADMIN、COMPANY_ADMIN、GROUP_USER、COMPANY_USER
             AjaxResult ajax = AjaxResult.Success();
-            // 当前用户是否为管理员，动态调整返回的角色集合，
-            // 是则返回所有，否则返回 每个角色 r 是否不是超级管理员角色。
-            // ajax.Add("roles", SecurityUtils.IsAdmin(userId) ? roles : roles.Where(r => !SecurityUtils.IsAdminRole(r.RoleId)));
-            // ajax.Add("depts",depts); 使用初始化数据
-           
-            ajax.Add("roles",roles);  // 角色下拉框
-            ajax.Add("posts",posts);  // 岗位下拉框
-            ajax.Add("tenantIds",tenanttree);  // 组织树结构
-            ajax.Add("userTypes",elSelect);   // 用户下拉框
 
-            // 用户信息 by  id
-            if(userId > 0)
+            if(userType == "SUPER_ADMIN") //超级管理员1
             {
-                // form表单中的实际数值
-                var user = await _sysUserService.GetDtoAsync(userId);
-                List<long> ls = _sysUserTenantService.GetTenantIdsListByUserId(userId);// 用户组织子集
-                List<long> DeptChildId = _sysUserDeptService.GetDeptChildIdByUserId(userId); ; // 用户部门子集
-                user.TenantIds = ls;// 组织组
-                user.DeptIds = DeptChildId;// 部门组
-                user.PostIds = _sysPostService.GetPostIdsListByUserId(userId); //用户所属岗位数组
-                user.RoleIds = user.Roles.Select(x => x.RoleId).ToList();//用户所属角色数组
-        
-
-                ////List<long> spids =  _sysPostService.GetPostIdsListByUserId(userId); 查询岗位
-                //ajax.Add("postIds",_sysPostService.GetPostIdsListByUserId(userId)); //用户所属岗位数组
-                //ajax.Add("roleIds",user.Roles.Select(x => x.RoleId).ToList());//用户所属角色数组
-
-                //// todo: 这里需要去用户组织中间表拿到用户的组织信息，  根据userid
-                //ajax.Add("tenantIds",ls);
-
-                ajax.Add(AjaxResult.DATA_TAG,user);
+                await _sysUserService.CheckUserDataScope(userId);
+                var roles = await _sysRoleService.GetRoleListAsync(new SysRoleDto()); //角色列表
+                var posts = await _sysPostService.GetListAsync(new SysPostDto()); // 岗位列表
  
+                //todo: tid应该是前端传递过来的id？？
+                long tid = SecurityUtils.GetTenantId();
+                var tenantdto = new SysTenantDto();
+                tenantdto.TenantId = tid;
+                var tenanttree = await _sysTenantService.GetDeptTreeListAsync(tenantdto);
+                tenanttree = FilterTenantTreeByUserType(SecurityUtils.GetTenantId(),tenanttree,userType);  // 根据用户类型筛选组织树
+
+
+                // 获取部门下拉框
+                List<ElSelect> elSelect = TenantUtils.GetElSelectByTenant(userType); // 获取下拉框结构（用户类型）
+
+                ajax.Add("roles",roles);  // 角色下拉框
+                ajax.Add("posts",posts);  // 岗位下拉框
+                ajax.Add("tenantIds",tenanttree);  // 组织树结构
+                ajax.Add("userTypes",elSelect);   // 用户下拉框
+
+                // 用户信息 by  id
+                if(userId > 0)
+                {
+                    // form表单中的实际数值
+                    var user = await _sysUserService.GetDtoAsync(userId);
+                    List<long> ls = _sysUserTenantService.GetTenantIdsListByUserId(userId);// 用户组织子集
+                    List<long> DeptChildId = _sysUserDeptService.GetDeptChildIdByUserId(userId); ; // 用户部门子集
+                    user.TenantIds = ls;// 组织组
+                    user.DeptIds = DeptChildId;// 部门组
+                    user.PostIds = _sysPostService.GetPostIdsListByUserId(userId); //用户所属岗位数组
+                    user.RoleIds = user.Roles.Select(x => x.RoleId).ToList();//用户所属角色数组
+
+                    ajax.Add(AjaxResult.DATA_TAG,user);
+
+                }
+                return ajax;
+
+            }
+            else if(userType == "GROUP_ADMIN") //集团管理员2   已验证
+            {
+
+                //todo: tid应该是前端传递过来的id？？
+                long tid =  SecurityUtils.GetTenantId();
+                var tenantdto = new SysTenantDto();
+                tenantdto.TenantId = tid;
+                var tenanttree = await _sysTenantService.GetDeptTreeListAsync(tenantdto); //所有tid=0？ 的菜单集合
+                //tid = 101; //测试
+                tenanttree = FilterTenantTreeByUserType(tid,tenanttree,userType);  // 根据用户类型筛选组织树
+  
+                ajax.Add("tenantIds",tenanttree);  // 组织树结构
+ 
+                // 用户信息 by  id
+                if(userId > 0)
+                {
+                    // form表单中的实际数值
+                    var user = await _sysUserService.GetDtoAsync(userId);
+                    List<long> ls = _sysUserTenantService.GetTenantIdsListByUserId(userId);// 用户组织子集
+                    user.TenantIds = ls;// 组织组
+
+                    ajax.Add(AjaxResult.DATA_TAG,user);
+
+                }
+             }
+            else if(userType == "COMPANY_ADMIN") //公司管理员3
+            {
+            }
+            else // 普通用户4
+            {
             }
 
+
+           
             return ajax;
+
         }
 
 

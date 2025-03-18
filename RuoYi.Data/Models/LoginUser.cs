@@ -78,12 +78,16 @@ namespace RuoYi.Data.Models
         /// </summary>
         public long TenantId { get; set; } // 新增字段
 
- 
+
 
         /// <summary>
         /// 用户类型
+        /// 用户类型
+        /// SUPER_ADMIN：  超级管理员、
+        /// GROUP_ADMIN：  集团管理员、GROUP_USER：集团普通用户、
+        /// COMPANY_ADMIN：公司管理员、COMPANY_USER：公司普通用户
         /// </summary>
-        public string UserType { get; set; } // 新增字段
+        public string UserType { get; set; } // 新增字段  
 
         /// <summary>
         /// 用户唯一标识

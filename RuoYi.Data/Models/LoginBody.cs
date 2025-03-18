@@ -6,8 +6,13 @@
         /// <summary>
         /// 租户
         /// </summary>
-        public long TenantId { get; set; }
-        
+        public long Tenantid { get; set; }
+
+        /// <summary>
+        /// 登录类型   如：SUPER_ADMIN、GROUP_ADMIN、COMPANY_ADMIN、GROUP_USER、COMPANY_USER
+        /// </summary>
+        public string Usertype { get; set; }
+
 
         /// <summary>
         /// 用户名

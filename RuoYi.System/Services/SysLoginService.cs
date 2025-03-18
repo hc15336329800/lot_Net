@@ -2,6 +2,7 @@
 using Lazy.Captcha.Core;
 using RuoYi.Common.Constants;
 using RuoYi.Common.Enums;
+using RuoYi.Data.Enums;
 using RuoYi.Data.Models;
 using RuoYi.Framework.Cache;
 using RuoYi.Framework.Exceptions;
@@ -49,8 +50,10 @@ public class SysLoginService : ITransient
     /// <param name="password">密码</param>
     /// <param name="code">验证码</param>
     /// <param name="uuid">唯一标识</param>
+    /// <param name="tenantid">登录时下拉框的组织id</param>
+    /// <param name="userType">登录的类型  后台还是业务</param>
     /// <returns>结果</returns>
-    public async Task<string> LoginAsync(string username,string password,string code,string uuid,long tenantid)
+    public async Task<string> LoginAsync(string username,string password,string code,string uuid,long tenantid,string usertype)
     {
         // 验证码校验
         ValidateCaptcha(username,code,uuid);
@@ -81,7 +84,10 @@ public class SysLoginService : ITransient
         loginUser.UserType = ust.UserType;
         loginUser.User.UserType = ust.UserType;
 
+       
+
         //组织id
+        // 修改逻辑：登录后默认使用集合组织的1号组织，可切换
         loginUser.TenantId = tenantid; //组织id  需要判断下
         loginUser.User.TenantId = tenantid; //组织id  需要判断下
 
@@ -92,10 +98,31 @@ public class SysLoginService : ITransient
 
  
         // 将组织子集写入  新增：
-        long[] tidstr = GetChildrenTenantById(userDto.TenantId);
+        long[] tidstr = new long[5]; 
+
+        // 登录类型判断  备用
+        if(loginUser.UserType == "SUPER_ADMIN") //超级管理员1
+        {
+        }
+        else if(loginUser.UserType == "GROUP_ADMIN") //集团管理员2   已验证
+        {
+            // 整改  查询子集
+            tidstr = GetChildrenTenantByIdAdminGroup(userDto.TenantId);
+            loginUser.TenantChildId = tidstr;
+            loginUser.User.TenantChildId = tidstr;
+            return await _tokenService.CreateToken(loginUser);
+
+        }
+        else if(loginUser.UserType == "COMPANY_ADMIN") //公司管理员3
+        {
+        }
+        else // 普通用户4
+        {
+        }
+
+        tidstr = GetChildrenTenantById(userDto.TenantId);
         loginUser.TenantChildId = tidstr;
         loginUser.User.TenantChildId = tidstr;
-
 
         // todo: 缺少角色信息
 
@@ -278,6 +305,22 @@ public class SysLoginService : ITransient
         var list = _sqlSugarClient.Ado.SqlQuery<long>(sql,new { TenantId = tenantId });
 
         // 转换为数组并返回
+        return list.ToArray();
+    }
+
+
+    /// <summary>
+    /// 获取组织子集 ，直查parent_id = tenantId
+    /// </summary>
+    /// <param name="tenantId">组织ID</param>
+    /// <returns>子集ID数组</returns>
+    public long[] GetChildrenTenantByIdAdminGroup(long tenantId)
+    {
+        // 修改为直接查询：满足自身（id = tenantId）或直属下级（parent_id = tenantId）
+        string sql = @"SELECT id FROM sys_tenant WHERE id = @TenantId OR parent_id = @TenantId";
+
+        var list = _sqlSugarClient.Ado.SqlQuery<long>(sql,new { TenantId = tenantId });
+
         return list.ToArray();
     }
 }

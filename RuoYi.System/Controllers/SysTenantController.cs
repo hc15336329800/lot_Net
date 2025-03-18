@@ -26,20 +26,36 @@ namespace RuoYi.System.Controllers
 
 
 
+        //  作用：先查询，然后带着tid参数调用登录接口 ！
         // 查询用户组织关系表（sys_user_tenant）根据用户ID
         // 根据系统用户名获取id
-        [HttpGet("GetTenantIdsIdByUserName/{userName}")]
-        public async Task<AjaxResult> GetTenantIdByUserNameAsync(string userName)
+        [HttpGet("GetTenantIdsIdByUserName/{userName}/{type}")]
+        public async Task<AjaxResult> GetTenantIdByUserNameAsync(string userName,string type)
         {
 
-            var tenantId = await  _sysTenantService.GetDeptNamesByUserNameAsync(userName);
+            // 此处注意  因为还没有实际登录  所以获取不到缓存中的用户信息！
+            //   string userType = SecurityUtils.GetUserType(); // 如：SUPER_ADMIN、GROUP_ADMIN、COMPANY_ADMIN、GROUP_USER、COMPANY_USER
+
+            if(type == "SUPER_ADMIN") //超级管理员1
+            {
+            }
+            else if(type == "GROUP_ADMIN") //集团管理员2   已验证
+            {
+                type = "GROUP_ADMIN";
+            }
+            else if(type == "COMPANY_ADMIN") //公司管理员3
+            {
+            }
+            else // 普通用户4
+            {
+            }
+
+            var tenantId = await  _sysTenantService.GetDeptNamesByUserNameAsync(userName,type);
 
             if(tenantId == null || tenantId.Length == 0)
             {
                 return AjaxResult.Error("未找到对应的租户信息");
             }
-
-         
 
             // 返回成功结果
             return AjaxResult.Success(tenantId);

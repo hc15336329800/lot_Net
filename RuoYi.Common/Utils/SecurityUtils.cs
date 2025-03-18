@@ -13,7 +13,7 @@ using System.Security.Claims;
 namespace RuoYi.Common.Utils
 {
     /// <summary>
-    /// 获取当前登录的用户信息
+    /// 获取当前登录的用户信息,从缓存中。
     /// </summary>
     public static class SecurityUtils
     {
