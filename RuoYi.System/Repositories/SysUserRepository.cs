@@ -1,6 +1,8 @@
+using RuoYi.Common.Utils;
 using RuoYi.Data;
 using RuoYi.Data.Dtos;
 using RuoYi.Data.Entities;
+using RuoYi.Data.Models;
 using SqlSugar;
 using System.Linq;
 using System.Text;
@@ -34,9 +36,21 @@ namespace RuoYi.System.Repositories
             return queryable;
         }
 
+
+
         public override ISugarQueryable<SysUserDto> DtoQueryable(SysUserDto dto)
         {
-            var queryable =  this.UserDtoQueryable(dto);
+            // 原始的复杂写法
+            var queryable = this.UserDtoQueryable(dto);
+
+
+            // 如果集团则：
+            LoginUser User = SecurityUtils.GetLoginUser(); 
+            if(User.UserType == "GROUP_ADMIN")
+            {
+                queryable = GetUnallocatedUsersQueryForGroupAdmin(dto);
+            }
+
 
             //  打印sql
             var sqlInfo = queryable.ToSql();
@@ -44,6 +58,98 @@ namespace RuoYi.System.Repositories
 
             return queryable;
         }
+
+
+        /// ////////////////////////////////////////////////////集团新增///////////////////////////////////////////////////////////////
+
+
+        /// <summary>
+        /// 根据集团管理员查询用户，支持筛选已授权和未授权用户
+        /// </summary>
+        /// <param name="dto">查询条件，必须包含 TenantId 和 IsAllocated（true: 查询已授权，false: 查询未授权；未设置则不过滤）</param>
+        /// <returns>返回 ISugarQueryable<SysUserDto> 查询对象</returns>
+        private ISugarQueryable<SysUserDto> GetUnallocatedUsersQueryForGroupAdmin(SysUserDto dto)
+        {
+            // 构造基本查询条件：租户、未删除、状态正常
+            var sysUserQuery = Repo.AsQueryable()
+                .Where(u => u.TenantId == dto.TenantId)
+                .Where(u => u.DelFlag == DelFlag.No)
+                .Where(u => u.Status == "0");
+
+            // 根据 dto.IsAllocated 的值进行过滤
+            if(dto.IsAllocated.HasValue)
+            {
+                if(dto.IsAllocated.Value)
+                {
+                    // 如果 IsAllocated 为 true，查询已授权用户，即存在 sys_user_role 记录
+                    sysUserQuery = sysUserQuery.Where(u => SqlFunc.Subqueryable<SysUserRole>()
+                        .Where(ur => ur.UserId == u.UserId && ur.TenantId == dto.TenantId)
+                        .Any());
+                }
+                else
+                {
+                    // 如果 IsAllocated 为 false，查询未授权用户，即不存在 sys_user_role 记录
+                    sysUserQuery = sysUserQuery.Where(u => !SqlFunc.Subqueryable<SysUserRole>()
+                        .Where(ur => ur.UserId == u.UserId && ur.TenantId == dto.TenantId)
+                        .Any());
+                }
+            }
+
+            // 将查询结果投影为 SysUserDto 对象
+            var query = sysUserQuery.Select(u => new SysUserDto
+            {
+                UserId = u.UserId,
+                TenantId = u.TenantId,
+                UserType = u.UserType,
+                DeptId = u.DeptId,
+                UserName = u.UserName,
+                NickName = u.NickName,
+                Email = u.Email,
+                Phonenumber = u.Phonenumber,
+                Sex = u.Sex,
+                Avatar = u.Avatar,
+                Password = u.Password,
+                Status = u.Status,
+                DelFlag = u.DelFlag,
+                LoginIp = u.LoginIp,
+                LoginDate = u.LoginDate ?? default,
+                Remark = u.Remark
+                // 根据需要，可增加其它字段映射
+            });
+
+            return query;
+        }
+
+
+
+        ///集团新增：根据条件分页查询未分配用户角色列表  -- 可以返回列表   --备用
+        public async Task<List<SysUser>> GetPagedUnallocatedListAsyncGROUP_ADMIN( )
+        {
+            string sql = @"
+        SELECT *
+        FROM sys_user u
+        WHERE u.status = '0'
+          AND u.del_flag = '0'
+          AND u.tenant_id = @TenantId
+          AND NOT EXISTS (
+              SELECT 1 
+              FROM sys_user_role ur 
+              WHERE ur.user_id = u.user_id
+                AND ur.tenant_id = @TenantId
+          );
+    ";
+
+            var parameters = new List<SugarParameter>
+    {
+        new SugarParameter("@TenantId", 101)
+    };
+
+            // 使用 ToListAsync() 来异步获取数据
+            var users = await Repo.SqlQueryable(sql,parameters).ToListAsync();
+            return users;
+        }
+
+
 
 
         /// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -211,7 +317,7 @@ namespace RuoYi.System.Repositories
             var parameters = this.GetSugarParameters(dto);
             var sb = new StringBuilder();
             sb.AppendLine(GetDtoTable());
-            sb.AppendLine(GetDtoWhere(dto));
+            sb.AppendLine(GetDtoWhere(dto));  //查询条件函数
             var queryable = base.SqlQueryable(sb.ToString(),parameters).Select(u => new SysUserDto
             {
                 UserId = u.UserId,
@@ -275,7 +381,7 @@ namespace RuoYi.System.Repositories
             {
                 sb.AppendLine("AND (u.dept_id = @DeptId OR u.dept_id IN ( SELECT t.dept_id FROM sys_dept t WHERE find_in_set(@DeptId, ancestors) ))");
             }
-            if(dto.IsAllocated.HasValue)
+            if(dto.IsAllocated.HasValue) // 是否分配角色！
             {
                 if(dto.IsAllocated.Value)
                 {

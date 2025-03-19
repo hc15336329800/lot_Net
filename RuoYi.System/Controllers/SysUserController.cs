@@ -129,9 +129,19 @@ namespace RuoYi.System.Controllers
                 var tenanttree = await _sysTenantService.GetDeptTreeListAsync(tenantdto); //所有tid=0？ 的菜单集合
                 
                  tenanttree = FilterTenantTreeByUserType(tid,tenanttree,userType);  // 根据用户类型筛选组织树
-  
+
+                //用户类型下拉框, 集团固定
+                //List<ElSelect> elSelect = TenantUtils.GetElSelectByTenant(userType);
+                List<ElSelect> elSelect = new List<ElSelect>
+                    {
+                        //new ElSelect { Value = "GROUP_ADMIN", Label = "集团管理员" },
+                        new ElSelect { Value = "COMPANY_ADMIN", Label = "公司管理员" }
+                    };
+
                 ajax.Add("tenantIds",tenanttree);  // 组织树结构
- 
+                ajax.Add("userTypes",elSelect);   //  用户类型下拉框
+
+
                 // 用户信息 by  id
                 if(userId > 0)
                 {

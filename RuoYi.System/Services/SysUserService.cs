@@ -174,6 +174,18 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
         return await _sysUserRepository.GetDtoPagedListAsync(dto);
     }
 
+
+    /// <summary>
+    /// 集团新增：根据条件分页查询未分配用户角色列表  
+    /// </summary>
+    public virtual async Task<SqlSugarPagedList<SysUserDto>> GetPagedUnallocatedListAsyncGROUP_ADMIN(SysUserDto dto)
+    {
+        dto.IsAllocated = false;
+        return await _sysUserRepository.GetDtoPagedListAsync(dto);
+    }
+
+
+
     /// <summary>
     /// 查询用户所属角色组
     /// </summary>

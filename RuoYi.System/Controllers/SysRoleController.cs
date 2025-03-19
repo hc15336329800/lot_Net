@@ -188,17 +188,23 @@ namespace RuoYi.System.Controllers
         [AppAuthorize("system:role:list")]
         public async Task<SqlSugarPagedList<SysUserDto>> GetAllocatedList([FromQuery] SysUserDto dto)
         {
+            //集团新增：根据条件分页查询未分配用户角色列表
+            dto.TenantId = SecurityUtils.GetTenantId();
             return await _sysUserService.GetPagedAllocatedListAsync(dto);
         }
 
         /// <summary>
-        /// 查询未分配用户角色列表
+        /// 查询未分配用户角色列表   修改：
         /// </summary>
         [HttpGet("authUser/unallocatedList")]
         [AppAuthorize("system:role:list")]
         public async Task<SqlSugarPagedList<SysUserDto>> GetUnallocatedList([FromQuery] SysUserDto dto)
         {
-            return await _sysUserService.GetPagedUnallocatedListAsync(dto);
+            //return await _sysUserService.GetPagedUnallocatedListAsync(dto);
+
+            //集团新增：根据条件分页查询未分配用户角色列表
+            dto.TenantId = SecurityUtils.GetTenantId();
+            return await _sysUserService.GetPagedUnallocatedListAsyncGROUP_ADMIN(dto);
         }
 
         /// <summary>

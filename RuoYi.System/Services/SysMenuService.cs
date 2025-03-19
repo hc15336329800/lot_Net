@@ -56,8 +56,10 @@ public class SysMenuService : BaseService<SysMenu, SysMenuDto>, ITransient
         else if(userType == "GROUP_ADMIN") //集团管理员2   已验证
         {
             //
-            menu.Type = 2;
-            menuList = await _sysMenuRepository.SelectMenuListAsync(menu);
+            // 禁止删除：menu.Type = 2; 此处改造的，根据type回传固定菜单
+
+            menu.UserId = userId;
+            menuList = await _sysMenuRepository.SelectMenuListByUserIdAsync(menu);
 
         }
         else if(userType == "COMPANY_ADMIN") //公司管理员3

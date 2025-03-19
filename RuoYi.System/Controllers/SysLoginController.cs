@@ -124,8 +124,15 @@ namespace RuoYi.Admin
             }
             else if(userType == "GROUP_ADMIN") //集团管理员2   已验证
             {
+                // 禁止删除：此语句为固定菜单，根据type字段筛选！！
                 // 这里传入 int 类型的菜单类型，例如 2 表示集团管理员菜单
-                menus = _sysMenuService.SelectMenuTreeByType(2);
+                // 改造：根据菜单 type 查询菜单树（不基于用户 ID，仅根据 type 字段）
+                // menus = _sysMenuService.SelectMenuTreeByType(2);
+
+
+                List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
+                var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
+                return AjaxResult.Success(treeMenusGROUP_ADMIN);
             }
             else if(userType == "COMPANY_ADMIN") //公司管理员3
             {
