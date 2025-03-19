@@ -232,7 +232,7 @@ namespace RuoYi.System.Controllers
         }
 
         /// <summary>
-        /// 批量选择用户授权
+        /// 批量选择用户授权   （角色添加用户）
         /// </summary>
         [HttpPut("authUser/selectAll")]
         [AppAuthorize("system:role:edit")]

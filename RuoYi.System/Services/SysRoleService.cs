@@ -1,6 +1,7 @@
 using RuoYi.Common.Constants;
 using RuoYi.Common.Interceptors;
 using RuoYi.Common.Utils;
+using RuoYi.Data.Models;
 using RuoYi.Framework.Exceptions;
 using RuoYi.Framework.Interceptors;
 using RuoYi.System.Repositories;
@@ -327,6 +328,9 @@ public class SysRoleService : BaseService<SysRole,SysRoleDto>, ITransient
     /// <returns></returns>
     public async Task<int> InsertAuthUsersAsync(long roleId,List<long> userIds)
     {
+
+        LoginUser User = SecurityUtils.GetLoginUser(); // 获取当前登录用户信息
+
         // 新增用户与角色管理
         List<SysUserRole> list = new List<SysUserRole>();
         foreach(long userId in userIds)
@@ -334,7 +338,8 @@ public class SysRoleService : BaseService<SysRole,SysRoleDto>, ITransient
             SysUserRole ur = new SysUserRole
             {
                 UserId = userId,
-                RoleId = roleId
+                RoleId = roleId,
+                TenantId = User.TenantId,
             };
             list.Add(ur);
         }
