@@ -6,7 +6,14 @@
 		<SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
 		<PublishReadyToRunComposite>true</PublishReadyToRunComposite>
 		<ImplicitUsings>enable</ImplicitUsings>
-	</PropertyGroup>	
+	</PropertyGroup>
+
+	<ItemGroup>
+	  <Compile Remove="logs\**" />
+	  <Content Remove="logs\**" />
+	  <EmbeddedResource Remove="logs\**" />
+	  <None Remove="logs\**" />
+	</ItemGroup>	
 
 	<ItemGroup>
 	  <ProjectReference Include="..\RuoYi.Common\RuoYi.Common.csproj" />

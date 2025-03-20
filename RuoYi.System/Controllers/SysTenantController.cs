@@ -45,6 +45,7 @@ namespace RuoYi.System.Controllers
             }
             else if(type == "COMPANY_ADMIN") //公司管理员3
             {
+                type = "COMPANY_ADMIN";
             }
             else // 普通用户4
             {

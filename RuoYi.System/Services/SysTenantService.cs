@@ -368,20 +368,43 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
         }
         else if(userType == "GROUP_ADMIN") //集团管理员2   已验证
         {
-            sql = @"
-                SELECT 
-                pt.dept_name AS dept_name,
-                pt.id        AS id
-                FROM sys_user u
-                JOIN sys_user_tenant ut ON u.user_id = ut.user_id
-                JOIN sys_tenant t ON ut.t_id = t.id
-                LEFT JOIN sys_tenant pt ON t.parent_id = pt.id
-                WHERE u.status = '0'
-                  AND u.del_flag = '0'
-                  AND u.user_name = @UserName  ";
+            //这个是查询上一级 ，备用
+            //sql = @"
+            //    SELECT 
+            //    pt.dept_name AS dept_name,
+            //    pt.id        AS id
+            //    FROM sys_user u
+            //    JOIN sys_user_tenant ut ON u.user_id = ut.user_id
+            //    JOIN sys_tenant t ON ut.t_id = t.id
+            //    LEFT JOIN sys_tenant pt ON t.parent_id = pt.id
+            //    WHERE u.status = '0'
+            //      AND u.del_flag = '0'
+            //      AND u.user_name = @UserName  ";
+
+             sql = @"
+                           SELECT 
+                t.dept_name AS dept_name,
+                t.id AS id
+            FROM sys_user u
+            JOIN sys_user_tenant ut ON u.user_id = ut.user_id
+            JOIN sys_tenant t ON ut.t_id = t.id
+            WHERE u.status = '0'
+              AND u.del_flag = '0'
+              AND u.user_name = @UserName  ";
+
         }
         else if(userType == "COMPANY_ADMIN") //公司管理员3
         {
+            sql = @"
+                           SELECT 
+                t.dept_name AS dept_name,
+                t.id AS id
+            FROM sys_user u
+            JOIN sys_user_tenant ut ON u.user_id = ut.user_id
+            JOIN sys_tenant t ON ut.t_id = t.id
+            WHERE u.status = '0'
+              AND u.del_flag = '0'
+              AND u.user_name = @UserName  ";
 
         }
         else // 普通用户4

@@ -121,6 +121,11 @@ namespace RuoYi.Admin
             if(userType == "SUPER_ADMIN") //超级管理员1
             {
                 menus = _sysMenuService.SelectMenuTreeByUserId(userId);
+
+                 // 动态确定前缀，比如根据用户类型或者配置：
+                string componentPrefix = "sys_manage/"; // 或 "sys_manage_group/" 或 "sys_manage_company/"
+                // 为 menus 中所有的 Component 字段添加前缀
+                AddPrefixToComponent(menus,componentPrefix);
             }
             else if(userType == "GROUP_ADMIN") //集团管理员2   已验证
             {
@@ -131,6 +136,7 @@ namespace RuoYi.Admin
 
 
                 List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
+                AddPrefixToComponent(menusGROUP_ADMIN,"sys_manage_group/");  // 动态确定前缀，sys_manage_group
                 var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
                 return AjaxResult.Success(treeMenusGROUP_ADMIN);
             }
@@ -140,6 +146,7 @@ namespace RuoYi.Admin
                 //menus = _sysMenuService.SelectMenuTreeByType(3);
 
                 List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
+                AddPrefixToComponent(menusGROUP_ADMIN,"sys_manage_company/");  // 动态确定前缀，sys_manage_company
                 var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
                 return AjaxResult.Success(treeMenusGROUP_ADMIN);
             }
@@ -152,5 +159,35 @@ namespace RuoYi.Admin
             var treeMenus = _sysMenuService.BuildMenus(menus);
             return AjaxResult.Success(treeMenus);
         }
+
+
+
+        /// <summary>
+        /// 递归遍历整个菜单树，然后对每个菜单项的 Component（组件路径） 字段进行修改，添加前缀 "sys_manage/
+        /// </summary>
+        /// <param name="menus"></param>
+        /// <param name="prefix"></param>
+        private void AddPrefixToComponent(List<SysMenu> menus,string prefix)
+        {
+            if(menus == null || !menus.Any())
+                return;
+
+            foreach(var menu in menus)
+            {
+                // 如果 Component 不为空且不已经包含指定的前缀，则添加前缀
+                if(!string.IsNullOrEmpty(menu.Component) && !menu.Component.StartsWith(prefix))
+                {
+                    menu.Component = prefix + menu.Component;
+                }
+
+                // 递归处理子菜单
+                if(menu.Children != null && menu.Children.Any())
+                {
+                    AddPrefixToComponent(menu.Children,prefix);
+                }
+            }
+        }
+
+
     }
 }
