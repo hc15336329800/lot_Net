@@ -1,6 +1,8 @@
+using RuoYi.Common.Utils;
 using RuoYi.Data;
 using RuoYi.Data.Dtos;
 using RuoYi.Data.Entities;
+using RuoYi.Data.Models;
 
 namespace RuoYi.System.Repositories
 {
@@ -95,10 +97,12 @@ namespace RuoYi.System.Repositories
         // 单表测试
         public override ISugarQueryable<SysRoleDto> DtoQueryable(SysRoleDto dto)
         {
+            // 原始的业务过滤复杂写法
             int i = 0;
             // 构建查询   注意多表中r别名
             var queryable = Repo.AsQueryable()
                 .WhereIF(!string.IsNullOrEmpty(dto.Params.DataScopeSql),dto.Params.DataScopeSql) // 动态数据范围 SQL 条件
+                 //.Where(r => r.TenantId == dto.TenantId)
                 .Select(r => new SysRoleDto
                 {
                     // 数据映射到 DTO
@@ -118,6 +122,23 @@ namespace RuoYi.System.Repositories
                     Remark = r.Remark
                 }).Distinct(); // 去重
 
+
+
+
+            // 如果集团管理员则：
+            LoginUser User = SecurityUtils.GetLoginUser();
+            if(User.UserType == "GROUP_ADMIN")
+            {
+                queryable = GetSimpleFilteredRoles(dto);
+            }
+            else if(User.UserType == "COMPANY_ADMIN") // 如果公司管理员则：
+            {
+                queryable = GetSimpleFilteredRoles(dto);
+
+            }
+
+
+
             //  打印sql
             var sqlInfo = queryable.ToSql();
             Console.WriteLine($"Generated SQL: {sqlInfo.Key}");
@@ -126,6 +147,40 @@ namespace RuoYi.System.Repositories
             return queryable;
         }
 
+
+        /// //////////////////////////////////DtoQueryable过滤分支/////////////////////////////////////////////////////
+
+
+        // 单独封装简单过滤条件的方法，返回 ISugarQueryable<SysRoleDto>
+        private ISugarQueryable<SysRoleDto> GetSimpleFilteredRoles(SysRoleDto dto)
+        {
+            // 直接在 Repo 中查询 SysRole，增加简单的过滤条件 TenantId、Status='0'、DelFlag='0'
+            return Repo.AsQueryable()
+                   .Where(r => r.TenantId == dto.TenantId
+                            && r.Status == "0"
+                            && r.DelFlag == "0")
+                   .Select(r => new SysRoleDto
+                   {
+                       CreateBy = r.CreateBy,
+                       CreateTime = r.CreateTime,
+                       UpdateBy = r.UpdateBy,
+                       UpdateTime = r.UpdateTime,
+                       RoleId = r.RoleId,
+                       RoleName = r.RoleName,
+                       RoleKey = r.RoleKey,
+                       RoleSort = r.RoleSort,
+                       DataScope = r.DataScope,
+                       MenuCheckStrictly = r.MenuCheckStrictly,
+                       DeptCheckStrictly = r.DeptCheckStrictly,
+                       Status = r.Status,
+                       DelFlag = r.DelFlag,
+                       Remark = r.Remark
+                       // 如果有其他需要映射的字段，请在此补充
+                   })
+                   .Distinct();
+        }
+
+        /// //////////////////////////////////////////////////// ///////////////////////////////////////////////////////////////
 
 
         protected override async Task FillRelatedDataAsync(IEnumerable<SysRoleDto> dtos)

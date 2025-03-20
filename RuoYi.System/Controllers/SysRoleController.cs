@@ -2,6 +2,7 @@ using RuoYi.Common.Enums;
 using RuoYi.Common.Utils;
 using RuoYi.Data.Models;
 using RuoYi.System.Services;
+using StackExchange.Redis;
 
 namespace RuoYi.System.Controllers
 {
@@ -35,12 +36,15 @@ namespace RuoYi.System.Controllers
         }
 
         /// <summary>
-        /// 查询角色信息表列表
+        /// 查询角色信息表列表 （全部和指定组织列表）
         /// </summary>
         [HttpGet("list")]
         [AppAuthorize("system:role:list")]
         public async Task<SqlSugarPagedList<SysRoleDto>> GetSysRoleList([FromQuery] SysRoleDto dto)
         {
+
+            dto.TenantId = SecurityUtils.GetTenantId(); //增加所属组织
+
             return await _sysRoleService.GetPagedRoleListAsync(dto);
         }
 
