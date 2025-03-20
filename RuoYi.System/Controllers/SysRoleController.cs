@@ -44,7 +44,6 @@ namespace RuoYi.System.Controllers
         {
 
             dto.TenantId = SecurityUtils.GetTenantId(); //增加所属组织
-
             return await _sysRoleService.GetPagedRoleListAsync(dto);
         }
 
