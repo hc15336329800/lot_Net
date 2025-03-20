@@ -64,7 +64,10 @@ public class SysMenuService : BaseService<SysMenu, SysMenuDto>, ITransient
         }
         else if(userType == "COMPANY_ADMIN") //公司管理员3
         {
-         }
+            menu.UserId = userId;
+            menuList = await _sysMenuRepository.SelectMenuListByUserIdAsync(menu);
+
+        }
         else // 普通用户4
         {
             menu.UserId = userId;

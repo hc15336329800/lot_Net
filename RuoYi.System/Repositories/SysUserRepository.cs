@@ -44,11 +44,16 @@ namespace RuoYi.System.Repositories
             var queryable = this.UserDtoQueryable(dto);
 
 
-            // 如果集团则：
+            // 如果集团管理员则：
             LoginUser User = SecurityUtils.GetLoginUser(); 
             if(User.UserType == "GROUP_ADMIN")
             {
                 queryable = GetUnallocatedUsersQueryForGroupAdmin(dto);
+            }
+             else if(User.UserType == "COMPANY_ADMIN") // 如果公司管理员则：
+            {
+                queryable = GetUnallocatedUsersQueryForGroupAdmin(dto);
+
             }
 
 

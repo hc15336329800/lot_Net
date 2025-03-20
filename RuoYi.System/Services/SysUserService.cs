@@ -311,24 +311,50 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
 
         bool succees = _sysUserRepository.Insert(user);
 
-        //SysTenantDto tt =   new SysTenantDto();
-        //tt.TenantId = 5;
-        //tt.DeptName = "测试";
-        //bool succees = _sysTenantRepository.Insert(tt);
-
-        // 这里不知道userID
-
-        // 新增用户部门关联
-        InsertUserDept(user);
-        // 新增用户岗位关联   ×
-        InsertUserPost(user);
-        // 新增用户与角色管理  ×
-        InsertUserRole(user);
-        // 新增用户与组织关联组（目前限制一下 不让前端？ 不要限制  只是在登录的时候让用户选择用户，）
-        InsertUserTenant(user); // 传入用户ID
 
 
+        string userType = SecurityUtils.GetUserType(); // 如：SUPER_ADMIN、GROUP_ADMIN、COMPANY_ADMIN、GROUP_USER、COMPANY_USER
+        if(userType == "SUPER_ADMIN") //超级管理员1
+        {
+            // 新增用户部门关联
+            InsertUserDept(user);
+            // 新增用户岗位关联   ×
+            InsertUserPost(user);
+            // 新增用户与角色管理  ×
+            InsertUserRole(user);
+            // 新增用户与组织关联组（目前限制一下 不让前端？ 不要限制  只是在登录的时候让用户选择用户，）
+            InsertUserTenant(user); // 传入用户ID
 
+        }
+        else if(userType == "GROUP_ADMIN") //集团管理员2   已验证
+        {
+            // 新增用户部门关联
+            //InsertUserDept(user);
+            // 新增用户岗位关联   ×
+            //InsertUserPost(user);
+            // 新增用户与角色管理  ×
+            InsertUserRole(user);
+            // 新增用户与组织关联组（目前限制一下 不让前端？ 不要限制  只是在登录的时候让用户选择用户，）
+            InsertUserTenant(user); // 传入用户ID
+
+        }
+        else if(userType == "COMPANY_ADMIN") //公司管理员3
+        {
+            // 新增用户部门关联
+            InsertUserDept(user);
+            // 新增用户岗位关联   ×
+            InsertUserPost(user);
+            // 新增用户与角色管理  ×
+            // InsertUserRole(user);
+            // 新增用户与组织关联组（目前限制一下 不让前端？ 不要限制  只是在登录的时候让用户选择用户，）
+            InsertUserTenant(user); // 传入用户ID
+
+        }
+        else // 普通用户4
+        {
+        }
+
+ 
         return succees;
     }
 
@@ -453,23 +479,58 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
     /// <param name="tenantId">所属组织</param>
     public void InsertUserTenant(SysUserDto user)
     {
-        var userId = user.UserId;
+        // 原始
+        //var userId = user.UserId;
 
-        var tenantIds = user.TenantIds; //数组
+        //var tenantIds = user.TenantIds; //数组
+        //var tenantId = user.TenantId;
+
+        //if(tenantIds.IsNotEmpty())
+        //{
+        //    // 新增用户与组织管理
+        //    List<SysUserTenant> list = new List<SysUserTenant>();
+        //    foreach(long roleId in tenantIds)
+        //    {
+        //        SysUserTenant ur = new SysUserTenant();
+        //        ur.UserId = userId;
+        //        ur.TId = roleId;
+        //        ur.TenantId = tenantId;
+        //        list.Add(ur);
+        //    }
+        //    _sysUserTenantRepository.Insert(list);
+        //}
+
+
+        // 优化
+        var userId = user.UserId;
+        var tenantIds = user.TenantIds; // 数组
         var tenantId = user.TenantId;
 
-        if(tenantIds.IsNotEmpty())
+        List<SysUserTenant> list = new List<SysUserTenant>();
+
+        // 如果 TenantIds 数组不为空，使用数组中的每个值
+        if(tenantIds != null && tenantIds.Any())
         {
-            // 新增用户与组织管理
-            List<SysUserTenant> list = new List<SysUserTenant>();
-            foreach(long roleId in tenantIds)
+            list = tenantIds.Select(tid => new SysUserTenant
             {
-                SysUserTenant ur = new SysUserTenant();
-                ur.UserId = userId;
-                ur.TId = roleId;
-                ur.TenantId = tenantId;
-                list.Add(ur);
-            }
+                UserId = userId,
+                TId = tid,
+                TenantId = tenantId
+            }).ToList();
+        }
+        // 如果 TenantIds 为空，但 TenantId 有效，则使用 TenantId
+        else if(tenantId > 0)
+        {
+            list.Add(new SysUserTenant
+            {
+                UserId = userId,
+                TId = tenantId,
+                TenantId = tenantId
+            });
+        }
+
+        if(list.Any())
+        {
             _sysUserTenantRepository.Insert(list);
         }
     }

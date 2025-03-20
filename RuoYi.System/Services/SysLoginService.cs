@@ -69,7 +69,7 @@ public class SysLoginService : ITransient
         // 记录登录成功
         await _sysLogininforService.AddAsync(username,Constants.LOGIN_SUCCESS,MessageConstants.User_Login_Success);
 
-
+        //重要：创建Permissions权限 
         var loginUser = CreateLoginUser(userDto); // userDto 转化为loginUser
 
 
@@ -86,7 +86,7 @@ public class SysLoginService : ITransient
 
        
 
-        //组织id
+        //组织id, 前端页面带过来的。
         // 修改逻辑：登录后默认使用集合组织的1号组织，可切换
         loginUser.TenantId = tenantid; //组织id  需要判断下
         loginUser.User.TenantId = tenantid; //组织id  需要判断下
@@ -115,6 +115,8 @@ public class SysLoginService : ITransient
         }
         else if(loginUser.UserType == "COMPANY_ADMIN") //公司管理员3
         {
+            return await _tokenService.CreateToken(loginUser);
+
         }
         else // 普通用户4
         {
@@ -223,6 +225,11 @@ public class SysLoginService : ITransient
         }
     }
 
+    /// <summary>
+    /// 重要：创建Permissions权限，也就是查看操作页面是否有权限。
+    /// </summary>
+    /// <param name="user"></param>
+    /// <returns></returns>
     private LoginUser CreateLoginUser(SysUserDto user)
     {
         var permissions = _sysPermissionService.GetMenuPermission(user);

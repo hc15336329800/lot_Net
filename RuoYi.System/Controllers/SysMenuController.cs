@@ -45,7 +45,7 @@ namespace RuoYi.System.Controllers
         }
 
         /// <summary>
-        /// 获取菜单下拉树列表
+        /// 获取组织所属的全部菜单下拉树列表
         /// </summary>
         [HttpGet("treeselect")]
         public async Task<AjaxResult> Treeselect([FromQuery] SysMenuDto dto)

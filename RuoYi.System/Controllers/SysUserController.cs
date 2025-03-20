@@ -52,6 +52,8 @@ namespace RuoYi.System.Controllers
         public async Task<SqlSugarPagedList<SysUser>> GetUserList([FromQuery] SysUserDto dto)
         {
             long tid = SecurityUtils.GetTenantId();// tid
+
+            // 
             dto.TenantId = tid;
             return await _sysUserService.GetPagedUserListAsync(dto);
         }
@@ -67,7 +69,7 @@ namespace RuoYi.System.Controllers
         //普通用户（GROUP_USER 和 COMPANY_USER）：返回空组织树。
 
         /// <summary>
-        /// 获取 用户信息表 详细信息
+        /// 【重要】获取 用户信息表 详细信息
         /// </summary>
         [HttpGet("")] //新增用户前
         [HttpGet("{userId}")] // 修改查询指定用户
@@ -156,6 +158,40 @@ namespace RuoYi.System.Controllers
              }
             else if(userType == "COMPANY_ADMIN") //公司管理员3
             {
+                //todo: tid应该是前端传递过来的id？？
+                long tid = SecurityUtils.GetTenantId();
+                // 获取组织全部专属菜单
+                var tenantdto = new SysTenantDto();
+                tenantdto.TenantId = 0;// tid;   这里统一使用系统组织
+                var tenanttree = await _sysTenantService.GetDeptTreeListAsync(tenantdto); //所有tid=0？ 的菜单集合
+
+
+                tenanttree = FilterTenantTreeByUserType(tid,tenanttree,userType);  // 根据用户类型筛选组织树
+
+                //用户类型下拉框, 集团固定
+                //List<ElSelect> elSelect = TenantUtils.GetElSelectByTenant(userType);
+                List<ElSelect> elSelect = new List<ElSelect>
+                    {
+                        //new ElSelect { Value = "GROUP_ADMIN", Label = "集团管理员" },
+                        new ElSelect { Value = "COMPANY_ADMIN", Label = "公司员工" }
+                    };
+
+                ajax.Add("tenantIds",tenanttree);  // 组织树结构
+                ajax.Add("userTypes",elSelect);   //  用户类型下拉框
+
+
+                // 用户信息 by  id
+                if(userId > 0)
+                {
+                    // form表单中的实际数值
+                    var user = await _sysUserService.GetDtoAsync(userId);
+                    List<long> ls = _sysUserTenantService.GetTenantIdsListByUserId(userId);// 用户组织子集
+                    user.TenantIds = ls;// 组织组
+
+                    ajax.Add(AjaxResult.DATA_TAG,user);
+
+                }
+
             }
             else // 普通用户4
             {
@@ -186,8 +222,6 @@ namespace RuoYi.System.Controllers
                     return tenantTree;
 
                 case "GROUP_ADMIN":
-                   
-
 
                     // 更新
                     var groupNode = FindNodeWithDirectChildrenById(tenantTree,tid);
@@ -202,25 +236,36 @@ namespace RuoYi.System.Controllers
                         return new List<TreeSelectTenant>();
                     }
 
-
-                   
-
                 case "COMPANY_ADMIN":
 
-                    // 集团管理员：只返回指定 tid 下属的一层节点（公司列表）  24-12-18 验证通过 √
-                    var groupNode1 = FindNodeById(tenantTree,tid);
-                    if(groupNode1 != null && groupNode1.Children != null)
+                    //// 集团管理员：只返回指定 tid 下属的一层节点（公司列表）  24-12-18 验证通过 √
+                    //var groupNode1 = FindNodeById(tenantTree,tid);
+                    //if(groupNode1 != null && groupNode1.Children != null)
+                    //{
+                    //    // 返回子节点列表
+                    //    return groupNode1.Children.Select(child => new TreeSelectTenant
+                    //    {
+                    //        Id = child.Id,
+                    //        Label = child.Label
+                    //    }).ToList();
+                    //}
+                    //else
+                    //{
+                    //    // 如果未找到或没有子节点，返回空列表
+                    //    return new List<TreeSelectTenant>();
+                    //}
+
+
+                    // 更新
+                    var groupNode1 = FindNodeWithDirectChildrenById(tenantTree,tid);
+
+                    if(groupNode1 != null)
                     {
-                        // 返回子节点列表
-                        return groupNode1.Children.Select(child => new TreeSelectTenant
-                        {
-                            Id = child.Id,
-                            Label = child.Label
-                        }).ToList();
+                        // 直接返回 groupNode 本身
+                        return new List<TreeSelectTenant> { groupNode1 };
                     }
                     else
                     {
-                        // 如果未找到或没有子节点，返回空列表
                         return new List<TreeSelectTenant>();
                     }
 
