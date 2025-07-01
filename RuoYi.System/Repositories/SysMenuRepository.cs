@@ -42,6 +42,7 @@ public class SysMenuRepository : BaseRepository<SysMenu, SysMenuDto>
             .LeftJoin<SysRoleMenu>((m, rm) => m.MenuId == rm.MenuId)
             .LeftJoin<SysUserRole>((m, rm, ur) => rm.RoleId == ur.RoleId)
             .LeftJoin<SysRole>((m, rm, ur, r) => rm.RoleId == r.RoleId)
+             
             .WhereIF(!string.IsNullOrEmpty(dto.Status), (m, rm, ur, r) => m.Status == dto.Status)
             .WhereIF(!string.IsNullOrEmpty(dto.MenuName), (m, rm, ur, r) => m.MenuName!.Contains(dto.MenuName!))
             .WhereIF(!string.IsNullOrEmpty(dto.Visible), (m, rm, ur, r) => m.Visible == dto.Visible)
@@ -87,9 +88,11 @@ public class SysMenuRepository : BaseRepository<SysMenu, SysMenuDto>
         return dtos;
     }
 
+
+    // 获取用户菜单
     public async Task<List<SysMenu>> SelectMenuListByUserIdAsync(SysMenuDto dto)
     {
-        var dtos = await this.GetDtoListAsync(dto);
+        var dtos = await this.GetListAsync(dto);
         return dtos.Adapt<List<SysMenu>>();
     }
 

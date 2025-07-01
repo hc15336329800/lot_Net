@@ -33,6 +33,24 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
         _sysRoleRepository = sysRoleRepository;
     }
 
+
+
+
+    /// <summary>
+    /// 精确返回公司层组织节点（tenant_id = 当前租户ID 的组织）。
+    /// </summary>
+    /// <param name="tenantId"></param>
+    /// <returns></returns>
+    public async Task<SysTenantDto> GetByTenantIdAsync(long tenantId)
+    {
+        var entity = await _sysTenantRepository.FirstOrDefaultAsync(e => e.TenantId == tenantId);
+        return entity?.Adapt<SysTenantDto>();
+    }
+
+
+
+
+
     /// <summary>
     /// 查询 组织表 详情
     /// </summary>

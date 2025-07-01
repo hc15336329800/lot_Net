@@ -80,6 +80,9 @@ namespace RuoYi.System.Controllers
 
             if(userType == "SUPER_ADMIN") //超级管理员1
             {
+
+                //todo: 集团管理员+集团普通用户+。。。
+
                 await _sysUserService.CheckUserDataScope(userId);
                 var roles = await _sysRoleService.GetRoleListAsync(new SysRoleDto()); //角色列表
                 var posts = await _sysPostService.GetListAsync(new SysPostDto()); // 岗位列表
@@ -125,23 +128,39 @@ namespace RuoYi.System.Controllers
                 long tid = SecurityUtils.GetTenantId();   //系统在用户登录时会把租户 ID 写入 LoginUser（通常保存在 token/session 中）。因此在控制器或服务中需要获取当前租户 ID
 
 
-                // 只构造当前公司组织节点
-                var tenantTree = new List<TreeSelectTenant>
+                //// 可选：查询公司名称（如果需要展示公司名称，可调用服务获取名称）
+                //var tenant = await _sysTenantService.GetDtoAsync(tid);
+
+                //// 只构造当前公司组织节点
+                //var tenantTree = new List<TreeSelectTenant>
+                //{
+                //    new TreeSelectTenant
+                //    {
+                //        Id = tid,
+                //         Label = tenant?.DeptName ?? "未知组织" // 若 DeptName 为空，则回退至占位符
+
+                //    }
+                //};
+
+
+                // 构建完整组织树：取集团及下属公司
+                var tenantDto = new SysTenantDto
                 {
-                    new TreeSelectTenant
-                    {
-                        Id = tid,
-                        Label = "当前公司" // 可改为实际公司名称（可通过 SysTenantService 查询名称）
-                    }
+                    TenantId = 0 // 查询所有组织数据，用 FilterTenantTreeByUserType 做筛选
                 };
+
+                var fullTenantTree = await _sysTenantService.GetDeptTreeListAsync(tenantDto);
+
+                // 筛选只保留集团及下属公司（根据 tid 和用户类型）
+                var tenantTree = FilterTenantTreeByUserType(tid,fullTenantTree,userType);
 
 
 
                 //下拉框,
                 List<ElSelect> elSelect = new List<ElSelect>
                     {
-                        //new ElSelect { Value = "GROUP_ADMIN", Label = "集团管理员" },
-                        new ElSelect { Value = "COMPANY_ADMIN", Label = "公司管理员" }
+                         new ElSelect { Value = "COMPANY_ADMIN", Label = "公司管理员" }
+                        //new ElSelect { Value = "COMPANY_USER", Label = "公司普通用户" }
                     };
 
                 ajax.Add("tenantIds",tenantTree);  // 组织树结构
@@ -162,25 +181,36 @@ namespace RuoYi.System.Controllers
              }
             else if(userType == "COMPANY_ADMIN") //公司管理员3
             {
-                //todo: tid应该是前端传递过来的id？？
+ 
                 long tid = SecurityUtils.GetTenantId();
-                // 获取组织全部专属菜单
-                var tenantdto = new SysTenantDto();
-                tenantdto.TenantId =  tid;   // 
-                var tenanttree = await _sysTenantService.GetDeptTreeListAsync(tenantdto); //所有tid=0？ 的菜单集合
 
+                // 可选：查询公司名称（如果需要展示公司名称，可调用服务获取名称）
+                var tenant = await _sysTenantService.GetDtoAsync(tid);
 
-                tenanttree = FilterTenantTreeByUserType(tid,tenanttree,userType);  // 根据用户类型筛选组织树
+                // 只构造当前公司组织节点
+                var tenantTree = new List<TreeSelectTenant>
+                {
+                    new TreeSelectTenant
+                    {
+                        Id = tid,
+                         Label = tenant?.DeptName ?? "未知组织" // 若 DeptName 为空，则回退至占位符
 
-                //用户类型下拉框, 集团固定
-                //List<ElSelect> elSelect = TenantUtils.GetElSelectByTenant(userType);
+                    }
+                };
+
+                //// 获取组织全部专属菜单
+                //var tenantdto = new SysTenantDto();
+                //tenantdto.TenantId =  tid;   // 
+                //var tenanttree = await _sysTenantService.GetDeptTreeListAsync(tenantdto); //所有tid=0？ 的菜单集合
+                //tenanttree = FilterTenantTreeByUserType(tid,tenanttree,userType);  // 根据用户类型筛选组织树
+
+                // 用户类型下拉框，仅公司普通用户
                 List<ElSelect> elSelect = new List<ElSelect>
                     {
-                        //new ElSelect { Value = "GROUP_ADMIN", Label = "集团管理员" },
-                        new ElSelect { Value = "COMPANY_ADMIN", Label = "公司管理员" }
+                         new ElSelect { Value = "COMPANY_USER", Label = "公司普通用户" }
                     };
 
-                ajax.Add("tenantIds",tenanttree);  // 组织树结构
+                ajax.Add("tenantIds",tenantTree);  // 组织树结构
                 ajax.Add("userTypes",elSelect);   //  用户类型下拉框
 
 

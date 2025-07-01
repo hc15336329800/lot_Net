@@ -51,25 +51,30 @@ public class SysMenuService : BaseService<SysMenu, SysMenuDto>, ITransient
 
         if(userType == "SUPER_ADMIN") //超级管理员1
         {
+            menu.Type = 1;
             menuList = await _sysMenuRepository.SelectMenuListAsync(menu);
         }
         else if(userType == "GROUP_ADMIN") //集团管理员2   已验证
         {
             //
             // 禁止删除：menu.Type = 2; 此处改造的，根据type回传固定菜单
-
+            menu.Type = 1;
             menu.UserId = userId;
             menuList = await _sysMenuRepository.SelectMenuListByUserIdAsync(menu);
 
         }
         else if(userType == "COMPANY_ADMIN") //公司管理员3
         {
+            // 禁止删除：menu.Type = 2; 此处改造的，根据type回传固定菜单
+
+            menu.Type = 4;
             menu.UserId = userId;
             menuList = await _sysMenuRepository.SelectMenuListByUserIdAsync(menu);
 
         }
         else // 普通用户4
         {
+            menu.Type = 4;
             menu.UserId = userId;
             menuList = await _sysMenuRepository.SelectMenuListByUserIdAsync(menu);
         }
