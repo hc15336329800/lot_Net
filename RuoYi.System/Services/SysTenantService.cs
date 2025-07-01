@@ -76,7 +76,7 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
 
     #region TreeSelectTenant
     /// <summary>
-    /// 查询部门树结构信息
+    /// 查询树结构信息
     /// </summary>
     public async Task<List<TreeSelectTenant>> GetDeptTreeListAsync(SysTenantDto dto)
     {

@@ -169,7 +169,7 @@ namespace RuoYi.System.Controllers
                 long tid = SecurityUtils.GetTenantId();
                 // 获取组织全部专属菜单
                 var tenantdto = new SysTenantDto();
-                tenantdto.TenantId = 0;// tid;   这里统一使用系统组织
+                tenantdto.TenantId =  tid;   // 
                 var tenanttree = await _sysTenantService.GetDeptTreeListAsync(tenantdto); //所有tid=0？ 的菜单集合
 
 
