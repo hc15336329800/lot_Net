@@ -11,6 +11,7 @@ namespace RuoYi.System.Controllers
     /// </summary>
     [ApiDescriptionSettings("System")]
     [Route("system/config")]
+    [AllowAnonymous]
     public class SysConfigController : ControllerBase
     {
         private readonly ILogger<SysConfigController> _logger;
@@ -27,7 +28,7 @@ namespace RuoYi.System.Controllers
         /// 查询参数配置表列表
         /// </summary>
         [HttpGet("list")]
-        [AppAuthorize("system:config:list")]
+        //[AppAuthorize("system:config:list")]
         public async Task<SqlSugarPagedList<SysConfigDto>> GetSysConfigList([FromQuery] SysConfigDto dto)
         {
            return await _sysConfigService.GetDtoPagedListAsync(dto);

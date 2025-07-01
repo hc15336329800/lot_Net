@@ -102,7 +102,9 @@ namespace RuoYi.Admin
         }
 
         /// <summary>
-        /// 获取路由信息
+        /// 获取路由信息    
+        /// 【重要】/getRouters 方法根据登录用户的 userType 来给路由的 Component 字段添加前缀，从而让前端在 src/views 不同文件夹下加载对应的页面
+        /// 
         /// </summary>
         [HttpGet("/getRouters")]
         public AjaxResult GetRouters()
