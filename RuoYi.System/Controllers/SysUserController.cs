@@ -57,21 +57,20 @@ namespace RuoYi.System.Controllers
             dto.TenantId = tid;
             return await _sysUserService.GetPagedUserListAsync(dto);
         }
+ 
 
 
+       //    当前的需求是根据用户类型对组织树进行筛选并返回：
 
+       //超级管理员（SUPER_ADMIN）：返回所有层级的组织树。
+       //集团管理员（GROUP_ADMIN）：只返回两层组织节点（集团 + 下属公司）。
+       //公司管理员（COMPANY_ADMIN）：只返回公司层级节点。
+       //普通用户（GROUP_USER 和 COMPANY_USER）：返回空组织树。
 
-        //    当前的需求是根据用户类型对组织树进行筛选并返回：
-
-        //超级管理员（SUPER_ADMIN）：返回所有层级的组织树。
-        //集团管理员（GROUP_ADMIN）：只返回两层组织节点（集团 + 下属公司）。
-        //公司管理员（COMPANY_ADMIN）：只返回公司层级节点。
-        //普通用户（GROUP_USER 和 COMPANY_USER）：返回空组织树。
-
-        /// <summary>
-        /// 【重要】获取 用户信息表 详细信息
-        /// </summary>
-        [HttpGet("")] //新增用户前
+       /// <summary>
+       /// 【重要】获取 用户信息表 详细信息
+       /// </summary>
+       [HttpGet("")] //新增用户前
         [HttpGet("{userId}")] // 修改查询指定用户
         [AppAuthorize("system:user:query")]
         public async Task<AjaxResult> GetInfo(long userId)
@@ -123,31 +122,29 @@ namespace RuoYi.System.Controllers
             {
 
 
-               // long tid = SecurityUtils.GetTenantId();   //系统在用户登录时会把租户 ID 写入 LoginUser（通常保存在 token/session 中）。因此在控制器或服务中需要获取当前租户 ID
+                long tid = SecurityUtils.GetTenantId();   //系统在用户登录时会把租户 ID 写入 LoginUser（通常保存在 token/session 中）。因此在控制器或服务中需要获取当前租户 ID
 
 
-                // 前端未传递 tid, 根据当前用户关联的组织获取
-                long currentUserId = SecurityUtils.GetUserId();
-                List<long> tidList = _sysUserTenantService.GetTenantIdsListByUserId(currentUserId);
-                long tid = tidList.FirstOrDefault();
+                // 只构造当前公司组织节点
+                var tenantTree = new List<TreeSelectTenant>
+                {
+                    new TreeSelectTenant
+                    {
+                        Id = tid,
+                        Label = "当前公司" // 可改为实际公司名称（可通过 SysTenantService 查询名称）
+                    }
+                };
 
 
-                // 获取组织全部专属菜单
-                var tenantdto = new SysTenantDto();
-                tenantdto.TenantId = tid;   //这里统一使用系统组织
-                var tenanttree = await _sysTenantService.GetDeptTreeListAsync(tenantdto); // 组织树结构
 
-                tenanttree = FilterTenantTreeByUserType(tid,tenanttree,userType);  // 根据用户类型筛选组织树
-
-                //用户类型下拉框, 集团固定
-                //List<ElSelect> elSelect = TenantUtils.GetElSelectByTenant(userType);
+                //下拉框,
                 List<ElSelect> elSelect = new List<ElSelect>
                     {
                         //new ElSelect { Value = "GROUP_ADMIN", Label = "集团管理员" },
                         new ElSelect { Value = "COMPANY_ADMIN", Label = "公司管理员" }
                     };
 
-                ajax.Add("tenantIds",tenanttree);  // 组织树结构
+                ajax.Add("tenantIds",tenantTree);  // 组织树结构
                 ajax.Add("userTypes",elSelect);   //  用户类型下拉框
 
 
@@ -180,7 +177,7 @@ namespace RuoYi.System.Controllers
                 List<ElSelect> elSelect = new List<ElSelect>
                     {
                         //new ElSelect { Value = "GROUP_ADMIN", Label = "集团管理员" },
-                        new ElSelect { Value = "COMPANY_ADMIN", Label = "公司员工" }
+                        new ElSelect { Value = "COMPANY_ADMIN", Label = "公司管理员" }
                     };
 
                 ajax.Add("tenantIds",tenanttree);  // 组织树结构
@@ -462,7 +459,12 @@ namespace RuoYi.System.Controllers
 
             if(user.TenantId == 0 || user.TenantId == null)
             {
-                user.TenantId = SecurityUtils.GetTenantId(); //增加所属组织
+                // 前端未传递 tid, 根据当前用户关联的组织获取
+                long currentUserId = SecurityUtils.GetUserId();
+                List<long> tidList = _sysUserTenantService.GetTenantIdsListByUserId(currentUserId);
+                long tid = tidList.FirstOrDefault();
+
+                user.TenantId = tid; //增加所属组织
             }
             var data = _sysUserService.InsertUser(user);
             return AjaxResult.Success(data);

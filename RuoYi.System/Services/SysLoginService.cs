@@ -2,6 +2,7 @@
 using Lazy.Captcha.Core;
 using RuoYi.Common.Constants;
 using RuoYi.Common.Enums;
+using RuoYi.Common.Utils;
 using RuoYi.Data.Enums;
 using RuoYi.Data.Models;
 using RuoYi.Framework.Cache;
@@ -23,12 +24,15 @@ public class SysLoginService : ITransient
     private readonly SysPermissionService _sysPermissionService;
     private readonly ISqlSugarClient _sqlSugarClient; // 强行注入 SqlSugarClient 实例 
 
+    private readonly SysTenantService _sysTenantService;
+    private readonly SysUserTenantService _sysUserTenantService;
+
 
     public SysLoginService(ISqlSugarClient sqlSugarClient,ILogger<SysLoginService> logger,ICaptcha captcha,
         ICache cache,TokenService tokenService,
         SysUserService sysUserService,SysConfigService sysConfigService,
         SysLogininforService sysLogininforService,SysPasswordService sysPasswordService,
-        SysPermissionService sysPermissionService)
+        SysPermissionService sysPermissionService ,SysTenantService sysTenantService,SysUserTenantService sysUserTenantService)
     {
         _logger = logger;
         _captcha = captcha;
@@ -40,6 +44,9 @@ public class SysLoginService : ITransient
         _sysPasswordService = sysPasswordService;
         _sysPermissionService = sysPermissionService;
         _sqlSugarClient = sqlSugarClient; // 注入 SqlSugarClient 实例
+        _sysTenantService = sysTenantService;
+        _sysUserTenantService = sysUserTenantService;
+
 
     }
 
@@ -84,12 +91,15 @@ public class SysLoginService : ITransient
         loginUser.UserType = ust.UserType;
         loginUser.User.UserType = ust.UserType;
 
-       
 
-        //组织id, 前端页面带过来的。
-        // 修改逻辑：登录后默认使用集合组织的1号组织，可切换
-        loginUser.TenantId = tenantid; //组织id  需要判断下
-        loginUser.User.TenantId = tenantid; //组织id  需要判断下
+
+        // 前端未传递 tid, 根据当前用户关联的组织获取
+        //long currentUserId = SecurityUtils.GetUserId();
+        List<long> tidList = _sysUserTenantService.GetTenantIdsListByUserId(userDto.UserId);
+        long tid = tidList.FirstOrDefault();
+ 
+        loginUser.TenantId = tid; //组织id  需要判断下
+        loginUser.User.TenantId = tid; //组织id  需要判断下
 
         // 子部门子集写入  新增：
         long[] septstr = GetChildrenDeptByIdAsync(userDto.DeptId ?? 0);

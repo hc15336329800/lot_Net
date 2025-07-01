@@ -68,6 +68,7 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
     /// <summary>
     /// 查询 用户信息表 详情
     /// </summary>
+    [DataAdmin] //过滤租户 测试
     public async Task<SysUserDto> GetDtoAsync(long? id)
     {
         var dto = new SysUserDto { UserId = id ?? 0 };
@@ -157,7 +158,8 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
     /// <summary>
     /// 根据条件分页查询已分配用户角色列表
     /// </summary>
-    [DataScope(DeptAlias = "d",UserAlias = "u")]
+    //[DataScope(DeptAlias = "d",UserAlias = "u")]
+    [DataAdmin]
     public virtual async Task<SqlSugarPagedList<SysUserDto>> GetPagedAllocatedListAsync(SysUserDto dto)
     {
         dto.IsAllocated = true;
@@ -303,7 +305,7 @@ public class SysUserService : BaseService<SysUser,SysUserDto>, ITransient
         // 新增用户信息
         user.Password = SecurityUtils.EncryptPassword(user.Password!);
         user.DelFlag = DelFlag.No;
-        user.TenantId = SecurityUtils.GetTenantId(); // 当前用户的组织
+        //user.TenantId = SecurityUtils.GetTenantId(); // 当前用户的组织
 
         // 当前用户的类型
         // todo: 等待前端传过来

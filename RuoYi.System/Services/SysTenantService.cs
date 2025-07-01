@@ -9,7 +9,7 @@ using RuoYi.System.Repositories;
 namespace RuoYi.System.Services;
 
 /// <summary>
-///  租户表 Service
+///  组织表 Service
 ///  author ruoyi
 ///  date   2023-09-04 17:49:57
 /// </summary>
@@ -34,7 +34,7 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
     }
 
     /// <summary>
-    /// 查询 部门表 详情
+    /// 查询 组织表 详情
     /// </summary>
     public async Task<SysTenant> GetAsync(long id)
     {
@@ -53,10 +53,10 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
     }
 
     /// <summary>
-    /// 根据角色ID查询部门树信息
+    /// 根据角色ID查询组织树信息
     /// </summary>
     /// <param name="roleId">角色ID</param>
-    /// <returns>选中部门列表</returns>
+    /// <returns>选中组织列表</returns>
     public async Task<List<long>> GetDeptListByRoleIdAsync(long roleId)
     {
         SysRole role = _sysRoleRepository.GetRoleById(roleId);
@@ -65,10 +65,10 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
     }
 
     /// <summary>
-    /// 根据ID查询所有子部门（正常状态）数量
+    /// 根据ID查询所有子组织（正常状态）数量
     /// </summary>
-    /// <param name="deptId">部门ID</param>
-    /// <returns>子部门数</returns>
+    /// <param name="deptId">组织ID</param>
+    /// <returns>子组织数</returns>
     public async Task<int> CountNormalChildrenDeptByIdAsync(long deptId)
     {
         return await _sysTenantRepository.CountNormalChildrenDeptByIdAsync(deptId);
@@ -152,7 +152,7 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
     /// <summary>
     /// 是否存在子节点
     /// </summary>
-    /// <param name="deptId">部门ID</param>
+    /// <param name="deptId">组织ID</param>
     /// <returns></returns>
     public async Task<bool> HasChildByDeptIdAsync(long deptId)
     {
@@ -160,9 +160,9 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
     }
 
     /// <summary>
-    /// 查询部门是否存在用户
+    /// 查询组织是否存在用户
     /// </summary>
-    /// <param name="deptId">部门ID</param>
+    /// <param name="deptId">组织ID</param>
     /// <returns></returns>
     public async Task<bool> CheckDeptExistUserAsync(long deptId)
     {
@@ -177,7 +177,7 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
     #endregion
 
     /// <summary>
-    /// 校验部门名称是否唯一
+    /// 校验组织名称是否唯一
     /// </summary>
     public async Task<bool> CheckDeptNameUniqueAsync(SysTenantDto dept)
     {
@@ -190,9 +190,9 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
     }
 
     /// <summary>
-    /// 校验部门是否有数据权限
+    /// 校验组织是否有数据权限
     /// </summary>
-    /// <param name="deptId">部门id</param>
+    /// <param name="deptId">组织id</param>
     public async Task CheckDeptDataScopeAsync(long deptId)
     {
         if(!SecurityUtils.IsAdmin())
@@ -201,13 +201,13 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
             List<SysTenant> depts = await _sysTenantRepository.GetDeptListAsync(dto);
             if(depts.IsEmpty())
             {
-                throw new ServiceException("没有权限访问部门数据！");
+                throw new ServiceException("没有权限访问组织数据！");
             }
         }
     }
 
     /// <summary>
-    /// 新增保存部门信息
+    /// 新增保存组织信息
     /// </summary>
     public async Task<bool> InsertDeptAsync(SysTenantDto dept)
     {
@@ -215,7 +215,7 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
         // 如果父节点不为正常状态,则不允许新增子节点
         if(!UserConstants.DEPT_NORMAL.Equals(info.Status))
         {
-            throw new ServiceException("部门停用，不允许新增");
+            throw new ServiceException("组织停用，不允许新增");
         }
         dept.Ancestors = info.Ancestors + "," + dept.ParentId;
         dept.DelFlag = DelFlag.No;
@@ -223,7 +223,7 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
     }
 
     /// <summary>
-    /// 修改保存部门信息
+    /// 修改保存组织信息
     /// </summary>
     public async Task<int> UpdateDeptAsync(SysTenantDto dept)
     {
@@ -240,7 +240,7 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
         if(UserConstants.DEPT_NORMAL.Equals(dept.Status) && StringUtils.IsNotEmpty(dept.Ancestors)
                 && !StringUtils.Equals("0",dept.Ancestors))
         {
-            // 如果该部门是启用状态，则启用该部门的所有上级部门
+            // 如果该组织是启用状态，则启用该组织的所有上级组织
             await UpdateParentDeptStatusNormalAsync(dept);
         }
         return result;
@@ -249,7 +249,7 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
     /// <summary>
     /// 修改子元素关系
     /// </summary>
-    /// <param name="deptId">被修改的部门ID</param>
+    /// <param name="deptId">被修改的组织ID</param>
     /// <param name="newAncestors">新的父ID集合</param>
     /// <param name="oldAncestors">旧的父ID集合</param>
     public async Task UpdateDeptChildrenAsync(long deptId,string newAncestors,string oldAncestors)
@@ -266,9 +266,9 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
     }
 
     /// <summary>
-    /// 修改该部门的父级部门状态
+    /// 修改该组织的父级组织状态
     /// </summary>
-    /// <param name="dept">当前部门</param>
+    /// <param name="dept">当前组织</param>
     private async Task UpdateParentDeptStatusNormalAsync(SysTenantDto dept)
     {
         string ancestors = dept.Ancestors!;
@@ -277,7 +277,7 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
     }
 
     /// <summary>
-    /// 删除部门管理信息
+    /// 删除组织管理信息
     /// </summary>
     public async Task<int> DeleteDeptByIdAsync(long deptId)
     {
@@ -326,14 +326,14 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
             // 构造返回格式，label = dept_name，value = id
             return tenantData.Select(item => new
             {
-                label = item.DeptName, // 部门名称
-                value = item.Id        // 部门 ID
+                label = item.DeptName, // 组织名称
+                value = item.Id        // 组织 ID
             }).ToArray();
         }
 
         catch(Exception ex)
         {
-            throw new Exception("获取部门信息失败",ex); // 抛出更具体的异常
+            throw new Exception("获取组织信息失败",ex); // 抛出更具体的异常
         }
     }
 
@@ -425,14 +425,14 @@ public class SysTenantService : BaseService<SysTenant,SysTenantDto>, ITransient
             // 构造返回格式，label = dept_name，value = id
             return tenantData.Select(item => new
             {
-                label = item.DeptName, // 部门名称
-                value = item.Id        // 部门 ID
+                label = item.DeptName, // 组织名称
+                value = item.Id        // 组织 ID
             }).ToArray();
         }
 
         catch(Exception ex)
         {
-            throw new Exception("获取部门信息失败",ex); // 抛出更具体的异常
+            throw new Exception("获取组织信息失败",ex); // 抛出更具体的异常
         }
     }
 
