@@ -122,15 +122,22 @@ namespace RuoYi.System.Controllers
             else if(userType == "GROUP_ADMIN") //集团管理员2   已验证
             {
 
-                //todo: tid应该是前端传递过来的id？？
-                long tid =  SecurityUtils.GetTenantId();
+
+               // long tid = SecurityUtils.GetTenantId();   //系统在用户登录时会把租户 ID 写入 LoginUser（通常保存在 token/session 中）。因此在控制器或服务中需要获取当前租户 ID
+
+
+                // 前端未传递 tid, 根据当前用户关联的组织获取
+                long currentUserId = SecurityUtils.GetUserId();
+                List<long> tidList = _sysUserTenantService.GetTenantIdsListByUserId(currentUserId);
+                long tid = tidList.FirstOrDefault();
+
 
                 // 获取组织全部专属菜单
                 var tenantdto = new SysTenantDto();
-                tenantdto.TenantId = 0;// tid;   这里统一使用系统组织
-                var tenanttree = await _sysTenantService.GetDeptTreeListAsync(tenantdto); //所有tid=0？ 的菜单集合
-                
-                 tenanttree = FilterTenantTreeByUserType(tid,tenanttree,userType);  // 根据用户类型筛选组织树
+                tenantdto.TenantId = tid;   //这里统一使用系统组织
+                var tenanttree = await _sysTenantService.GetDeptTreeListAsync(tenantdto); // 组织树结构
+
+                tenanttree = FilterTenantTreeByUserType(tid,tenanttree,userType);  // 根据用户类型筛选组织树
 
                 //用户类型下拉框, 集团固定
                 //List<ElSelect> elSelect = TenantUtils.GetElSelectByTenant(userType);
