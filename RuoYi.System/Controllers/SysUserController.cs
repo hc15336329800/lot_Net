@@ -70,7 +70,7 @@ namespace RuoYi.System.Controllers
        /// <summary>
        /// 【重要】获取 用户信息表 详细信息
        /// </summary>
-       [HttpGet("")] //新增用户前
+       [HttpGet("")] // 新增用户 前 
         [HttpGet("{userId}")] // 修改查询指定用户
         [AppAuthorize("system:user:query")]
         public async Task<AjaxResult> GetInfo(long userId)
@@ -159,8 +159,8 @@ namespace RuoYi.System.Controllers
                 //下拉框,
                 List<ElSelect> elSelect = new List<ElSelect>
                     {
-                         new ElSelect { Value = "COMPANY_ADMIN", Label = "公司管理员" }
-                        //new ElSelect { Value = "COMPANY_USER", Label = "公司普通用户" }
+                         new ElSelect { Value = "COMPANY_ADMIN", Label = "公司管理员" },
+                        //new ElSelect { Value = "COMPANY_USER", Label = "公司普通用户" }  
                     };
 
                 ajax.Add("tenantIds",tenantTree);  // 组织树结构
@@ -466,7 +466,7 @@ namespace RuoYi.System.Controllers
 
 
         /// <summary>
-        /// 新增用户
+        /// 新增用户   添加用户
         /// </summary>
         [HttpPost("")]
         [AppAuthorize("system:user:add")]

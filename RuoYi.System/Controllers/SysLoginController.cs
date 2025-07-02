@@ -142,6 +142,14 @@ namespace RuoYi.Admin
                 var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
                 return AjaxResult.Success(treeMenusGROUP_ADMIN);
             }
+            else if(userType == "GROUP_USER") //集团员工
+            {
+ 
+                List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
+                AddPrefixToComponent(menusGROUP_ADMIN,"sys_user/");   
+                var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
+                return AjaxResult.Success(treeMenusGROUP_ADMIN);
+            }
             else if(userType == "COMPANY_ADMIN") //公司管理员3
             {
                 // 传入 3 表示公司管理员菜单
@@ -149,6 +157,15 @@ namespace RuoYi.Admin
 
                 List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
                 AddPrefixToComponent(menusGROUP_ADMIN,"sys_manage_company/");  // 动态确定前缀，sys_manage_company
+                var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
+                return AjaxResult.Success(treeMenusGROUP_ADMIN);
+            }
+            else if(userType == "COMPANY_USER") //公司员工
+            {
+ 
+
+                List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
+                AddPrefixToComponent(menusGROUP_ADMIN,"sys_user/");  
                 var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
                 return AjaxResult.Success(treeMenusGROUP_ADMIN);
             }
