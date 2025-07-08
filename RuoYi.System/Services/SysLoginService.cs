@@ -51,7 +51,7 @@ public class SysLoginService : ITransient
     }
 
     /// <summary>
-    /// 登录验证
+    /// 登录验证  登录
     /// </summary>
     /// <param name="username">用户名</param>
     /// <param name="password">密码</param>
@@ -90,6 +90,7 @@ public class SysLoginService : ITransient
         var ust = await _sysUserService.GetDtoByUsernameAsync(username); // 查询用户
         loginUser.UserType = ust.UserType;
         loginUser.User.UserType = ust.UserType;
+ 
 
 
 

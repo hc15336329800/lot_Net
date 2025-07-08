@@ -125,6 +125,10 @@ namespace RuoYi.Common.Interceptors
                     sqlString.Append($" tenant_id = {user.TenantId} ");
                     break;
 
+                case "COMPANY_USER": // 公司普通员工    查询按create_by字段？
+                    sqlString.Append($" create_by = {user.UserId} ");
+                    break;
+
                 default:
                     throw new ArgumentException("未知的数据范围类型");
             }
