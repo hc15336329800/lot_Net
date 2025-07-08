@@ -92,7 +92,7 @@ namespace RuoYi.Zk.AC.Model.Dto
         /// <summary>
         /// 软删除标记 (0:未删除, 1:已删除)
         /// </summary>
-        public string IsDeleted { get; set; }
+        public string DelFlag { get; set; }
 
         /// <summary>
         /// 创建人

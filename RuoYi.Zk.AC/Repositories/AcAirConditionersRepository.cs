@@ -55,7 +55,7 @@ namespace RuoYi.Zk.AC.Repositories
             ISugarQueryable < AcAirConditioners > qs = Repo.AsQueryable()
 
                 // 强制过滤
-                 .Where((d) => d.IsDeleted == "0")
+                 .Where((d) => d.DelFlag == "0")
                 //动态条件过滤
                 .WhereIF(dto.Id > 0,(t) => t.Id == dto.Id)
                 .WhereIF(!string.IsNullOrEmpty(dto.Params.DataScopeSql),dto.Params.DataScopeSql);
@@ -89,8 +89,6 @@ namespace RuoYi.Zk.AC.Repositories
 
             // 查询实体类，并映射到 DTO
             ISugarQueryable<AcAirConditionersDto> qs = Repo.AsQueryable()
-                // 基础过滤条件：软删除标记
-                .Where(d => d.IsDeleted == "0")
                 // 动态条件过滤
                 .WhereIF(dto.Id > 0,d => d.Id == dto.Id)
                 // 拼接 DataScopeSql（如果存在）
@@ -113,7 +111,7 @@ namespace RuoYi.Zk.AC.Repositories
                     Address = d.Address,
                     Latitude = d.Latitude,
                     Longitude = d.Longitude,
-                    IsDeleted = d.IsDeleted,
+                    DelFlag = d.DelFlag,
                     CreateBy = d.CreateBy,
                     CreateTime = d.CreateTime,
                     UpdateBy = d.UpdateBy,

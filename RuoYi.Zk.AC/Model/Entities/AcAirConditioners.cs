@@ -71,8 +71,8 @@ namespace RuoYi.Zk.AC.Model.Entities
 
 
         /** 软删除标记 */
-        [SugarColumn(ColumnName = "is_deleted", ColumnDescription = "软删除标记")]
-        public string IsDeleted { get; set; }
+        [SugarColumn(ColumnName = "del_flag", ColumnDescription = "软删除标记")]
+        public string DelFlag { get; set; }
 
 
         /** 空调ID */

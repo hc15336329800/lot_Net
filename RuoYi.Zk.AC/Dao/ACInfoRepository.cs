@@ -33,7 +33,7 @@ namespace RuoYi.Zk.AC.Dao
         public async Task<List<AcAirConditioners>> GetAllAirConditionersAsync( )
         {
             return await Repo.AsQueryable()
-                             .Where(ac => ac.IsDeleted == "0") // 软删除过滤
+                             .Where(ac => ac.DelFlag == "0") // 软删除过滤
                              .ToListAsync();
         }
 
@@ -54,7 +54,7 @@ namespace RuoYi.Zk.AC.Dao
                        //.WhereIF(dto.AgentId > 0, ac => ac.AgentId == dto.AgentId)     // 如果 AgentId 大于 0，则按代理商ID过滤
                        .WhereIF(dto.Status != null,ac => ac.Status == dto.Status)    // 如果 Status 不为空，则按空调状态过滤
                        .WhereIF(!string.IsNullOrEmpty(dto.Model),ac => ac.Model.Contains(dto.Model!))  // 如果 Model 不为空，则按空调型号进行模糊查询
-                       .Where(ac => ac.IsDeleted == "0");                               // 软删除过滤，仅查询未删除的记录
+                       .Where(ac => ac.DelFlag == "0");                               // 软删除过滤，仅查询未删除的记录
         }
 
         /// <summary>
@@ -277,7 +277,7 @@ namespace RuoYi.Zk.AC.Dao
             //long tid = SecurityUtils.GetTid() ?? dto.TenantId;
 
             ISugarQueryable<AcAirConditioners> query = _sqlSugarClient.Queryable<AcAirConditioners>()
-                .Where(ac => ac.IsDeleted == "0")
+                .Where(ac => ac.DelFlag == "0")
                 .Where(ac => ac.TenantId == dto.TenantId); // 筛选指定 TenantId
             // 调用分页查询方法并返回结果
             return await query.ToPagedListAsync(dto.PageNum,dto.PageSize);
@@ -338,7 +338,7 @@ namespace RuoYi.Zk.AC.Dao
 
             // 查询代理所管理的多个公司下的空调数据
             ISugarQueryable<AcAirConditioners> query = _sqlSugarClient.Queryable<AcAirConditioners>()
-                .Where(t => t.IsDeleted == "0");
+                .Where(t => t.DelFlag == "0");
 
 
             // 调用分页查询方法并返回结果

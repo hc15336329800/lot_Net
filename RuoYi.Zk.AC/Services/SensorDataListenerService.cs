@@ -11,6 +11,10 @@ using Microsoft.Extensions.Configuration;   // 读取配置用
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
+
+
+
+//小车的服务类
 namespace RuoYi.Zk.AC.Services
 {
     /// <summary>
