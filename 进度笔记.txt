@@ -88,8 +88,16 @@ sass分层新的重构    整改：
 
 
 
- 2025-07-02 ：
+2025-07-02 ：
 
 - 需要解决：如何区分集团还是公司！    用户=组织tid    .用户范围=组织tid+子集
 - 发现一件事情：集团管理员 和  集团普通用户  以及其他的  可以实现互转  ，也就是说sys_manage_group文件夹可以是管理员也可以是普通用户（不给分配用户管理即可）
-- 下拉框：   new ElSelect { Value = "COMPANY_ADMIN", Label 
+- 下拉框：   new ElSelect { Value = "COMPANY_ADMIN", Label = "公司管理员" },  new ElSelect { Value = "COMPANY_USER", Label = "公司普通用户" }   不能这样   各管各个不允许串通，创建对应的管理账户有管理账户去处理具体用户。
+
+- 目前路由文件夹逻辑：
+- views/sys_manage  : 超级管理员页面
+- views/sys_manage_group  : 集团管理员页面
+- views/sys_manage_company  : 公司管理员页面
+- views/sys_user ： 集团用户、公司用户、的公共页面
+
+- 明后需要解决：修复空调模块，实验读取的数据范围

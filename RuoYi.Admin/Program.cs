@@ -1,4 +1,6 @@
 using AspectCore.Extensions.DependencyInjection;
+using RuoYi.Zk.AC.Services;           // ← 新增
+
 
 internal class Program
 {
@@ -15,6 +17,10 @@ internal class Program
 
         // 用AspectCore替换默认的IOC容器, 用于AOP拦截, 如 事务拦截器: TransactionalAttribute 
         builder.Host.UseServiceProviderFactory(new DynamicProxyServiceProviderFactory());
+
+
+        // ← 在这里注册后台服务   新增的tcp业务
+        builder.Services.AddHostedService<SensorDataListenerService>();
 
         builder.Build().Run();
     }

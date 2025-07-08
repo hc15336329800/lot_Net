@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 
 //    整个流程是这样的:
-//1. 标注了[DataScope] 的虚方法 被 DataScopeAttribute 拦截
+//1. 标注了[DataAdmin] 的虚方法 被 DataScopeAttribute 拦截
 //2. DataScopeAttribute 中的 DataScopeFilter 方法 拼接sql 放到 dto中的DataScopeSql字段中
 //3. 虚方法调用 仓储的 Querable方法, Querable方法中 最后一个 WhereIF把 拦截器生成的sql(DataScopeSql) 拼接到整个查询sql中
 
