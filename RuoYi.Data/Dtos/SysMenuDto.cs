@@ -4,8 +4,12 @@ namespace RuoYi.Data.Dtos
 {
     public class SysMenuDto : BaseDto
     {
+
+        //是否是管理员
+        public string IsAdmin { get; set; }
+
         /** 改造：类型 */
-         public int Type { get; set; }
+        public int Type { get; set; }
 
         /** 菜单ID */
         public long MenuId { get; set; }

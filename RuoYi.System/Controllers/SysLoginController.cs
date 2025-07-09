@@ -138,6 +138,10 @@ namespace RuoYi.Admin
 
 
                 List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
+
+
+
+
                 AddPrefixToComponent(menusGROUP_ADMIN,"sys_manage_group/");  // 动态确定前缀，sys_manage_group
                 var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
                 return AjaxResult.Success(treeMenusGROUP_ADMIN);
@@ -146,7 +150,10 @@ namespace RuoYi.Admin
             {
  
                 List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
-                AddPrefixToComponent(menusGROUP_ADMIN,"sys_user/");   
+
+
+
+                AddPrefixToComponent(menusGROUP_ADMIN,"sys_user_group/");   
                 var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
                 return AjaxResult.Success(treeMenusGROUP_ADMIN);
             }
@@ -156,6 +163,9 @@ namespace RuoYi.Admin
                 //menus = _sysMenuService.SelectMenuTreeByType(3);
 
                 List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
+
+
+
                 AddPrefixToComponent(menusGROUP_ADMIN,"sys_manage_company/");  // 动态确定前缀，sys_manage_company
                 var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
                 return AjaxResult.Success(treeMenusGROUP_ADMIN);
@@ -165,19 +175,32 @@ namespace RuoYi.Admin
  
 
                 List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
-                AddPrefixToComponent(menusGROUP_ADMIN,"sys_user/");  
+
+
+
+                AddPrefixToComponent(menusGROUP_ADMIN,"sys_user_company/");  
                 var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
                 return AjaxResult.Success(treeMenusGROUP_ADMIN);
             }
             else // 普通用户4
             {
                 // 对于普通用户，使用原有的用户 ID 查询方法
-                menus = _sysMenuService.SelectMenuTreeByUserId(userId);
+                //menus = _sysMenuService.SelectMenuTreeByUserId(userId);
+
+
+                List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
+
+
+
+                AddPrefixToComponent(menusGROUP_ADMIN,"sys_user/");
+                var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
+                return AjaxResult.Success(treeMenusGROUP_ADMIN);
             }
 
             var treeMenus = _sysMenuService.BuildMenus(menus);
             return AjaxResult.Success(treeMenus);
         }
+
 
 
 

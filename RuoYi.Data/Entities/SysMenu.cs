@@ -6,6 +6,12 @@ namespace RuoYi.Data.Entities
     public class SysMenu : UserBaseEntity
     {
 
+
+        /** 改造：类型 */
+        [SugarColumn(ColumnName = "is_admin",ColumnDescription = "是否是管理员")]
+        public string IsAdmin { get; set; }
+
+
         /** 改造：类型 */
         [SugarColumn(ColumnName = "type",ColumnDescription = "类型")]
         public int Type { get; set; }

@@ -98,6 +98,13 @@ sass分层新的重构    整改：
 - views/sys_manage  : 超级管理员页面
 - views/sys_manage_group  : 集团管理员页面
 - views/sys_manage_company  : 公司管理员页面
-- views/sys_user ： 集团用户、公司用户、的公共页面
 
-- 明后需要解决：修复空调模块，实验读取的数据范围
+- views/sys_user_group ： 集团用户
+- views/sys_user_company ：公司用户、
+- views/sys_user ： 普通用户、
+- CommonPage ：用户的公共页面
+
+ 
+2025-07-08 ：、
+- 增加tcp透传小车的动画绘制
+- 目前测试公司用户读取空调，列表展现正常
