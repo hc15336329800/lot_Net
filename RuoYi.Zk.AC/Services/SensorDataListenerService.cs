@@ -25,6 +25,10 @@ namespace RuoYi.Zk.AC.Services
         private readonly ILogger<SensorDataListenerService> _logger;
         private readonly int _port;
 
+        private readonly int _railCount = 4; // 轨道数量
+        private readonly int _posCount = 5;  //每条轨道的位置点
+
+
 
         /// <summary>
         /// 全局存储：sensorId → 最新的轨道号（1–3） -- 负责 “轨道号” 信息
@@ -86,7 +90,7 @@ namespace RuoYi.Zk.AC.Services
         /// </summary>
         /// <summary>
         /// 处理单个 TCP 客户端：先注册（2 字节 Hex），再定位（2 字节 Hex TTNN）
-        /// 版本： 小车和导轨bu 绑定版本
+        /// 版本： 小车和导轨不绑定版本
         /// </summary>
         private async Task HandleClientAsync(TcpClient client,CancellationToken token)
         {
@@ -136,7 +140,7 @@ namespace RuoYi.Zk.AC.Services
                         byte nn = leftover[idx + 1];
                         idx += 2;
 
-                        if(tt >= 1 && tt <= 3 && nn >= 1 && nn <= 5)
+                        if(tt >= 1 && tt <= _railCount && nn >= 1 && nn <= _posCount)
                         {
                             // 1) 更新定位点字典
                             SensorPositions.AddOrUpdate(sensorId,nn,(_,__) => nn);
@@ -164,7 +168,7 @@ namespace RuoYi.Zk.AC.Services
 
 
         /// <summary>
-        /// 处理单个 TCP 客户端：先注册，再解析定位包
+        /// 处理单个 TCP 客户端：先注册，再解析定位包  -- 备用
         /// 版本： 小车和导轨绑定版本
         /// </summary>
         private async Task HandleClientAsyncV1(TcpClient client,CancellationToken token)

@@ -71,9 +71,13 @@ namespace RuoYi.Zk.AC.Controllers
             {
                 var id = kvp.Key;             // 4位ID,如 "0001"
                 var posIndex = kvp.Value;           // 1..5
-                // 如果没上报过rail，则默认1
+                                                    // 如果没上报过rail，则默认1
+
+
+                //设置轨道
                 railDict.TryGetValue(id,out int rail);
-                rail = Math.Clamp(rail,1,3);
+                    const int maxRails = 4;                     
+                 rail = Math.Clamp(rail,1,maxRails);
 
                 //// 计算偏移百分比   
                 //const int carsPerRail = 5;
