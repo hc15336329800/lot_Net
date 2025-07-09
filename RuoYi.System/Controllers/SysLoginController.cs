@@ -132,19 +132,6 @@ namespace RuoYi.Admin
             }
             else if(userType == "GROUP_ADMIN") //集团管理员2   已验证
             {
-                //// 禁止删除：此语句为固定菜单，根据type字段筛选！！
-                //// 这里传入 int 类型的菜单类型，例如 2 表示集团管理员菜单
-                //// 改造：根据菜单 type 查询菜单树（不基于用户 ID，仅根据 type 字段）
-                //// menus = _sysMenuService.SelectMenuTreeByType(2);
-
-
-                //List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
-
-
-                //AddPrefixToComponent(menusGROUP_ADMIN,"sys_manage_group/");  // 动态确定前缀，sys_manage_group
-                //var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
-                //return AjaxResult.Success(treeMenusGROUP_ADMIN);
-
 
 
                 //  todo:  完善逻辑
@@ -166,42 +153,79 @@ namespace RuoYi.Admin
             }
             else if(userType == "GROUP_USER") //集团员工
             {
- 
+
+                //List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
+                //AddPrefixToComponent(menusGROUP_ADMIN,"sys_user_group/");   
+                //var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
+                //return AjaxResult.Success(treeMenusGROUP_ADMIN);
+
+
+                //  todo:  完善逻辑
+                // 拿到该用户的菜单树
                 List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
 
+                // 动态前缀：Type==1 用 sys_manage_group/，Type==0 用 CommonPage/
+                AddPrefixToComponent(
+                    menusGROUP_ADMIN,
+                    userPrefix: "sys_manage_group/",
+                    commonPrefix: "CommonPage/"
+                );
 
-
-                AddPrefixToComponent(menusGROUP_ADMIN,"sys_user_group/");   
                 var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
                 return AjaxResult.Success(treeMenusGROUP_ADMIN);
+
+
             }
             else if(userType == "COMPANY_ADMIN") //公司管理员3
             {
                 // 传入 3 表示公司管理员菜单
                 //menus = _sysMenuService.SelectMenuTreeByType(3);
 
-                string userType11 = SecurityUtils.GetUserType();
+                //string userType11 = SecurityUtils.GetUserType();
+                //List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
+                //AddPrefixToComponent(menusGROUP_ADMIN,"sys_manage_company/");  // 动态确定前缀，sys_manage_company
+                //var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
+                //return AjaxResult.Success(treeMenusGROUP_ADMIN);
 
-
-
+                //  todo:  完善逻辑
+                // 拿到该用户的菜单树
                 List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
 
+                // 动态前缀：Type==1 用 sys_manage_group/，Type==0 用 CommonPage/
+                AddPrefixToComponent(
+                    menusGROUP_ADMIN,
+                    userPrefix: "sys_manage_group/",
+                    commonPrefix: "CommonPage/"
+                );
 
-
-                AddPrefixToComponent(menusGROUP_ADMIN,"sys_manage_company/");  // 动态确定前缀，sys_manage_company
                 var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
                 return AjaxResult.Success(treeMenusGROUP_ADMIN);
+
+
             }
             else if(userType == "COMPANY_USER") //公司员工
             {
- 
 
+
+                //List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
+                //AddPrefixToComponent(menusGROUP_ADMIN,"sys_user_company/");  
+                //var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
+                //return AjaxResult.Success(treeMenusGROUP_ADMIN);
+
+                //  todo:  完善逻辑
+                // 拿到该用户的菜单树
                 List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
 
+                // 动态前缀：Type==1 用 sys_manage_group/，Type==0 用 CommonPage/
+                AddPrefixToComponent(
+                    menusGROUP_ADMIN,
+                    userPrefix: "sys_manage_group/",
+                    commonPrefix: "CommonPage/"
+                );
 
-
-                AddPrefixToComponent(menusGROUP_ADMIN,"sys_user_company/");  
                 var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
+
+
                 return AjaxResult.Success(treeMenusGROUP_ADMIN);
             }
             else // 普通用户4
@@ -209,12 +233,23 @@ namespace RuoYi.Admin
                 // 对于普通用户，使用原有的用户 ID 查询方法
                 //menus = _sysMenuService.SelectMenuTreeByUserId(userId);
 
+                //List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
+                //AddPrefixToComponent(menusGROUP_ADMIN,"sys_user/");
+                //var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
+                //return AjaxResult.Success(treeMenusGROUP_ADMIN);
 
+
+                //  todo:  完善逻辑
+                // 拿到该用户的菜单树
                 List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
 
+                // 动态前缀：Type==1 用 sys_manage_group/，Type==0 用 CommonPage/
+                AddPrefixToComponent(
+                    menusGROUP_ADMIN,
+                    userPrefix: "sys_manage_group/",
+                    commonPrefix: "CommonPage/"
+                );
 
-
-                AddPrefixToComponent(menusGROUP_ADMIN,"sys_user/");
                 var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
                 return AjaxResult.Success(treeMenusGROUP_ADMIN);
             }

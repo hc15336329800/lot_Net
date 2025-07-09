@@ -25,8 +25,17 @@ namespace RuoYi.Zk.AC.Services
         private readonly ILogger<SensorDataListenerService> _logger;
         private readonly int _port;
 
+
         /// <summary>
-        /// 全局存储：sensorId → 最新的定位点（1–5）
+        /// 全局存储：sensorId → 最新的轨道号（1–3） -- 负责 “轨道号” 信息
+        /// </summary>
+        public static readonly ConcurrentDictionary<string,int> SensorRails
+            = new ConcurrentDictionary<string,int>();
+
+
+
+        /// <summary>
+        /// 全局存储：sensorId → 最新的定位点（1–5）  --- 负责 “定位点” 信息
         /// </summary>
         public static readonly ConcurrentDictionary<string,int> SensorPositions
             = new ConcurrentDictionary<string,int>();
@@ -71,10 +80,94 @@ namespace RuoYi.Zk.AC.Services
             }
         }
 
+
+
+
+        /// </summary>
         /// <summary>
-        /// 处理单个 TCP 客户端：先注册，再解析定位包
+        /// 处理单个 TCP 客户端：先注册（2 字节 Hex），再定位（2 字节 Hex TTNN）
+        /// 版本： 小车和导轨bu 绑定版本
         /// </summary>
         private async Task HandleClientAsync(TcpClient client,CancellationToken token)
+        {
+            var remote = client.Client.RemoteEndPoint;
+            var clientKey = remote.ToString();
+            _logger.LogInformation("TCP client connected: {Remote}",remote);
+
+            bool registered = false;
+            string sensorId = null;
+
+            using(client)
+            using(var stream = client.GetStream())
+            {
+                var buf = new byte[1024];
+                int read;
+                var leftover = new List<byte>();
+
+                while(!token.IsCancellationRequested
+                       && (read = await stream.ReadAsync(buf,0,buf.Length,token)) > 0)
+                {
+                    // 1) 累积新读到的数据
+                    leftover.AddRange(buf.Take(read));
+                    // 2) 丢弃所有 CR(0x0D)/LF(0x0A)
+                    leftover.RemoveAll(b => b == 0x0D || b == 0x0A);
+
+                    int idx = 0;
+
+                    // —— 1) 注册包 (2 bytes Hex) —— 
+                    // 客户端发送两字节, 如 0x00 0x01 → sensorId = "0001"
+                    if(!registered && leftover.Count - idx >= 2)
+                    {
+                        byte b1 = leftover[idx];
+                        byte b2 = leftover[idx + 1];
+                        sensorId = $"{b1:X2}{b2:X2}";  // 四位大写 Hex
+                        registered = true;
+                        _connectionMap[clientKey] = sensorId;
+                        _logger.LogInformation("Sensor registered: {SensorId} for {ClientKey}",
+                                               sensorId,clientKey);
+                        idx += 2;
+                    }
+
+                    // —— 2) 定位包 (2 bytes TTNN) —— 
+                    // 格式 TTNN: 首字节轨道号 1–3，次字节位置号 1–5
+                    while(registered && leftover.Count - idx >= 2)
+                    {
+                        byte tt = leftover[idx];
+                        byte nn = leftover[idx + 1];
+                        idx += 2;
+
+                        if(tt >= 1 && tt <= 3 && nn >= 1 && nn <= 5)
+                        {
+                            // 1) 更新定位点字典
+                            SensorPositions.AddOrUpdate(sensorId,nn,(_,__) => nn);
+                            // 2) 更新轨道号字典
+                            SensorRails.AddOrUpdate(sensorId,tt,(_,__) => tt);
+                            _logger.LogInformation("Sensor {SensorId} (rail {Rail}) → position {PosIndex}",
+                                                   sensorId,tt,nn);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Invalid position bytes for {SensorId}: TT=0x{TT:X2}, NN=0x{NN:X2}",
+                                               sensorId,tt,nn);
+                        }
+                    }
+
+                    // 3) 删除已消费的字节
+                    if(idx > 0)
+                        leftover.RemoveRange(0,idx);
+                }
+            }
+
+            _logger.LogInformation("TCP client disconnected: {Remote}",remote);
+        }
+
+
+
+        /// <summary>
+        /// 处理单个 TCP 客户端：先注册，再解析定位包
+        /// 版本： 小车和导轨绑定版本
+        /// </summary>
+        private async Task HandleClientAsyncV1(TcpClient client,CancellationToken token)
         {
             var remote = client.Client.RemoteEndPoint;
             var clientKey = remote.ToString();

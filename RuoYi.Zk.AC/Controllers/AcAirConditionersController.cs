@@ -13,6 +13,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
 using RuoYi.Zk.AC.Model.Entities;
 using RuoYi.Zk.AC.Model.Dto;
+ 
 
 namespace RuoYi.Zk.AC.Controllers
 {
@@ -25,6 +26,10 @@ namespace RuoYi.Zk.AC.Controllers
     {
         private readonly ILogger<AcAirConditionersController> _logger;
         private readonly AcAirConditionersService _acAirConditionersService;
+
+ 
+
+
 
         public AcAirConditionersController(ILogger<AcAirConditionersController> logger,
             AcAirConditionersService acAirConditionersService)
@@ -51,10 +56,56 @@ namespace RuoYi.Zk.AC.Controllers
 
 
         /// <summary>
-        /// 获取实时小车位置（基于 SensorDataListenerService 中最新上报的数据）
+        /// 获取所有已注册并上报过位置的小车状态
+        /// “小车与导轨不绑定”版本
         /// </summary>
         [HttpGet("sensorCars")]
         public Task<AjaxResult> GetSensorCars( )
+        {
+            // 拿到两个全局字典
+            var posDict = SensorDataListenerService.SensorPositions;
+            var railDict = SensorDataListenerService.SensorRails;
+
+            // 扁平化每辆车
+            var list = posDict.Select(kvp =>
+            {
+                var id = kvp.Key;             // 4位ID,如 "0001"
+                var posIndex = kvp.Value;           // 1..5
+                // 如果没上报过rail，则默认1
+                railDict.TryGetValue(id,out int rail);
+                rail = Math.Clamp(rail,1,3);
+
+                //// 计算偏移百分比   
+                //const int carsPerRail = 5;
+                //double offset = (posIndex - 1) / (double)(carsPerRail - 1) * 100;
+
+                //// 计算 y 坐标（10,50,90）
+                //const double minY = 10, maxY = 90;
+                //double stepY = (maxY - minY) / (3 - 1);
+                //double y = minY + (rail - 1) * stepY;
+
+                return new
+                {
+                    id,
+                    name = $"小车 {id}",
+                    rail,
+                    posIndex,
+                    //offset,  //扔给前端计算
+                    //y
+                };
+            })
+            .ToList();
+
+            return Task.FromResult(AjaxResult.Success(list));
+        }
+
+
+        /// <summary>
+        /// 获取实时小车位置（基于 SensorDataListenerService 中最新上报的数据）
+        /// 版本： 小策绑定导轨
+        /// </summary>
+        [HttpGet("sensorCarsV2")]
+        public Task<AjaxResult> GetSensorCarsV2( )
         {
             const int railCount = 3;
             const int carsPerRail = 5;
