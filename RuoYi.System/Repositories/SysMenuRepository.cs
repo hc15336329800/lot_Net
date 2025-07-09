@@ -21,7 +21,7 @@ public class SysMenuRepository : BaseRepository<SysMenu, SysMenuDto>
         var queryable = Repo.AsQueryable()
 
             .WhereIF(dto.Type > 0,m => m.Type == dto.Type) //判断它是否大于 0
-                        .WhereIF(!string.IsNullOrEmpty(dto.IsAdmin),(m) => m.IsAdmin == dto.IsAdmin)  //是否是管理员 
+                        //.WhereIF(!string.IsNullOrEmpty(dto.IsAdmin),(m) => m.IsAdmin == dto.IsAdmin)  //是否是管理员 
 
             .WhereIF(!string.IsNullOrEmpty(dto.Status), (m) => m.Status == dto.Status)
             .WhereIF(!string.IsNullOrEmpty(dto.MenuName), (m) => m.MenuName!.Contains(dto.MenuName!))
@@ -123,7 +123,7 @@ public class SysMenuRepository : BaseRepository<SysMenu, SysMenuDto>
     }
 
     /// <summary>
-    /// 查询菜单
+    /// 查询菜单  管理
     /// </summary>
     public List<SysMenu> SelectMenuTreeAll()
     {

@@ -39,7 +39,7 @@ public class SysMenuService : BaseService<SysMenu, SysMenuDto>, ITransient
     }
 
     /// <summary>
-    /// 查询系统菜单列表
+    /// 查询系统菜单列表（根据固定Type）
     /// </summary>
     public async Task<List<SysMenu>> SelectMenuListAsync(SysMenuDto menu, long userId)
     {
@@ -51,14 +51,14 @@ public class SysMenuService : BaseService<SysMenu, SysMenuDto>, ITransient
 
         if(userType == "SUPER_ADMIN") //超级管理员1
         {
-            menu.Type = 1;
+            //menu.Type = 1;
             menuList = await _sysMenuRepository.SelectMenuListAsync(menu);
         }
         else if(userType == "GROUP_ADMIN") //集团管理员2   已验证
         {
             //
             // 禁止删除：menu.Type = 2; 此处改造的，根据type回传固定菜单
-            menu.Type = 1;
+            //menu.Type = 1;
             menu.UserId = userId;
             menuList = await _sysMenuRepository.SelectMenuListByUserIdAsync(menu);
 
@@ -67,14 +67,14 @@ public class SysMenuService : BaseService<SysMenu, SysMenuDto>, ITransient
         {
             // 禁止删除：menu.Type = 2; 此处改造的，根据type回传固定菜单
 
-            menu.Type = 4;
+            //menu.Type = 4;
             menu.UserId = userId;
             menuList = await _sysMenuRepository.SelectMenuListByUserIdAsync(menu);
 
         }
         else // 普通用户4
         {
-            menu.Type = 4;
+            //menu.Type = 4;
             menu.UserId = userId;
             menuList = await _sysMenuRepository.SelectMenuListByUserIdAsync(menu);
         }
@@ -166,6 +166,7 @@ public class SysMenuService : BaseService<SysMenu, SysMenuDto>, ITransient
     public List<long> SelectMenuListByRoleId(long roleId)
     {
         SysRole role = _sysRoleRepository.GetRoleById(roleId);
+        //菜单树选择项是否关联显示 MenuCheckStrictly
         return _sysMenuRepository.SelectMenuListByRoleId(roleId, role.MenuCheckStrictly);
     }
 
