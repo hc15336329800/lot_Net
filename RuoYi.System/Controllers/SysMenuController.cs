@@ -62,7 +62,7 @@ namespace RuoYi.System.Controllers
 
         /// <summary>
         /// 获取当前用户角色下的全部菜单下拉树列表（含父子嵌套）
-        /// 验证无误 2025-07-09   
+        /// 验证无误 2025-07-09  组织使用正常
         /// </summary>
         [HttpGet("CurrentTreeselect")]
         public async Task<AjaxResult> CurrentTreeselect([FromQuery] SysMenuDto dto)

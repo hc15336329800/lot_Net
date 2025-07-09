@@ -1,6 +1,7 @@
 ﻿using RuoYi.Common.Utils;
 using RuoYi.Data.Enums;
 using RuoYi.Data.Models;
+using RuoYi.Framework.SpecificationDocument;
 using RuoYi.System.Services;
 
 namespace RuoYi.Admin
@@ -131,20 +132,37 @@ namespace RuoYi.Admin
             }
             else if(userType == "GROUP_ADMIN") //集团管理员2   已验证
             {
-                // 禁止删除：此语句为固定菜单，根据type字段筛选！！
-                // 这里传入 int 类型的菜单类型，例如 2 表示集团管理员菜单
-                // 改造：根据菜单 type 查询菜单树（不基于用户 ID，仅根据 type 字段）
-                // menus = _sysMenuService.SelectMenuTreeByType(2);
+                //// 禁止删除：此语句为固定菜单，根据type字段筛选！！
+                //// 这里传入 int 类型的菜单类型，例如 2 表示集团管理员菜单
+                //// 改造：根据菜单 type 查询菜单树（不基于用户 ID，仅根据 type 字段）
+                //// menus = _sysMenuService.SelectMenuTreeByType(2);
 
 
+                //List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
+
+
+                //AddPrefixToComponent(menusGROUP_ADMIN,"sys_manage_group/");  // 动态确定前缀，sys_manage_group
+                //var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
+                //return AjaxResult.Success(treeMenusGROUP_ADMIN);
+
+
+
+                //  todo:  完善逻辑
+                // 拿到该用户的菜单树
                 List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
 
+                // 动态前缀：Type==1 用 sys_manage_group/，Type==0 用 CommonPage/
+                AddPrefixToComponent(
+                    menusGROUP_ADMIN,
+                    userPrefix: "sys_manage_group/",
+                    commonPrefix: "CommonPage/"
+                );
 
-
-
-                AddPrefixToComponent(menusGROUP_ADMIN,"sys_manage_group/");  // 动态确定前缀，sys_manage_group
                 var treeMenusGROUP_ADMIN = _sysMenuService.BuildMenus(menusGROUP_ADMIN);
                 return AjaxResult.Success(treeMenusGROUP_ADMIN);
+
+
+
             }
             else if(userType == "GROUP_USER") //集团员工
             {
@@ -161,6 +179,10 @@ namespace RuoYi.Admin
             {
                 // 传入 3 表示公司管理员菜单
                 //menus = _sysMenuService.SelectMenuTreeByType(3);
+
+                string userType11 = SecurityUtils.GetUserType();
+
+
 
                 List<SysMenu> menusGROUP_ADMIN = _sysMenuService.SelectMenuTreeByUserId(userId);
 
@@ -202,10 +224,43 @@ namespace RuoYi.Admin
         }
 
 
+         
+
+        // 1. 在 Controller 或 BaseController 中，新增重载：
+        //    userPrefix = 现有的 sys_user_company/
+        //    commonPrefix = CommonPage/
+        private void AddPrefixToComponent(List<SysMenu> menus,string userPrefix,string commonPrefix)
+        {
+            if(menus == null || !menus.Any()) return;
+
+            foreach(var menu in menus)
+            {
+                if(!string.IsNullOrEmpty(menu.Component))
+                {
+                    // Type == 0：加 CommonPage/ 前缀
+                    if(menu.Type == 0 && !menu.Component.StartsWith(commonPrefix))
+                    {
+                        menu.Component = commonPrefix + menu.Component;
+                    }
+                    // Type == 1：保持“公司员工”的前缀
+                    else if(menu.Type == 1 && !menu.Component.StartsWith(userPrefix))
+                    {
+                        menu.Component = userPrefix + menu.Component;
+                    }
+                }
+
+                if(menu.Children != null && menu.Children.Any())
+                {
+                    AddPrefixToComponent(menu.Children,userPrefix,commonPrefix);
+                }
+            }
+        }
+
+
 
 
         /// <summary>
-        /// 递归遍历整个菜单树，然后对每个菜单项的 Component（组件路径） 字段进行修改，添加前缀 "sys_manage/
+        /// 递归遍历整个菜单树，然后对每个菜单项的 Component（组件路径） 字段进行修改，添加前缀 "sys_manage/   
         /// </summary>
         /// <param name="menus"></param>
         /// <param name="prefix"></param>

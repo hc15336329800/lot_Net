@@ -59,7 +59,7 @@ public class SysMenuRepository : BaseRepository<SysMenu, SysMenuDto>
                 CreateTime = m.CreateTime,
                 UpdateBy = m.UpdateBy,
                 UpdateTime = m.UpdateTime,
-
+                Type = m.Type, //后加
                 MenuId = m.MenuId,
                 ParentId = m.ParentId,
                 MenuName = m.MenuName,
