@@ -66,8 +66,8 @@ public class TokenService : ITransient
     {
         var token = Guid.NewGuid().ToString();
         loginUser.Token = token;
-        await SetUserAgent(loginUser); //原来同步
- 
+        //await SetUserAgent(loginUser); // 用于地理位置的网络调用  ，在令牌生成过程中会有一次网络请求，导致大约 1 秒的延迟。
+
         RefreshToken(loginUser);
 
         // 生成 token
