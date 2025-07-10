@@ -155,24 +155,26 @@ namespace RuoYi.Zk.AC.Services
 
                             idx += 2;
 
-                            // 3) 注册成功后立即启动定时器：0s 后触发，间隔 3s
-                            modbusTimer = new Timer(_ =>
-                            {
-                                try
-                                {
-                                    // 直接同步 Write，不 await，阻塞仅限 Timer 线程
-                                    stream.Write(modbusRequest,0,modbusRequest.Length);
-                                    _logger.LogDebug("已发送 Modbus 请求给传感器 {SensorId}",sensorId);
-                                    //_logger.LogDebug("Sent Modbus request to {SensorId}",sensorId);
-                                }
-                                catch(Exception ex)
-                                {
-                                    // 写入失败（如连接断开、缓冲区满），立即停止定时器
-                                    _logger.LogError(ex,"向传感器 {SensorId} 发送 Modbus 请求失败，销毁定时器",sensorId);
-                                    //_logger.LogError(ex,"Modbus send failed for {SensorId}, disposing timer",sensorId);
-                                    modbusTimer?.Dispose();
-                                }
-                            },null,TimeSpan.Zero,TimeSpan.FromSeconds(3));
+                            // 3) 注册成功后立即启动定时器：0s 后触发，间隔 3s   。暂时注销
+                            //modbusTimer = new Timer(_ =>
+                            //{
+                            //    try
+                            //    {
+                            //        // 直接同步 Write，不 await，阻塞仅限 Timer 线程
+                            //        stream.Write(modbusRequest,0,modbusRequest.Length);
+                            //        _logger.LogDebug("已发送 Modbus 请求给传感器 {SensorId}",sensorId);
+                            //        //_logger.LogDebug("Sent Modbus request to {SensorId}",sensorId);
+                            //    }
+                            //    catch(Exception ex)
+                            //    {
+                            //        // 写入失败（如连接断开、缓冲区满），立即停止定时器
+                            //        _logger.LogError(ex,"向传感器 {SensorId} 发送 Modbus 请求失败，销毁定时器",sensorId);
+                            //        //_logger.LogError(ex,"Modbus send failed for {SensorId}, disposing timer",sensorId);
+                            //        modbusTimer?.Dispose();
+                            //    }
+                            //},null,TimeSpan.Zero,TimeSpan.FromSeconds(3));
+
+
                         }
 
                         // —— Modbus 响应解析（7 字节一帧）——

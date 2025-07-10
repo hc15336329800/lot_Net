@@ -134,8 +134,8 @@ namespace RuoYi.System.Controllers
         /// 新增 菜单权限表
         /// </summary>
         [HttpPost("")]
-        [AppAuthorize("system:menu:add")]
-        [TypeFilter(typeof(RuoYi.Framework.DataValidation.DataValidationFilter))]
+        //[AppAuthorize("system:menu:add")]
+        //[TypeFilter(typeof(RuoYi.Framework.DataValidation.DataValidationFilter))]
         [RuoYi.System.Log(Title = "菜单管理", BusinessType = BusinessType.INSERT)]
         public async Task<AjaxResult> Add([FromBody] SysMenuDto menu)
         {
@@ -156,8 +156,8 @@ namespace RuoYi.System.Controllers
         /// 修改 菜单权限表
         /// </summary>
         [HttpPut("")]
-        [AppAuthorize("system:menu:edit")]
-        [TypeFilter(typeof(RuoYi.Framework.DataValidation.DataValidationFilter))]
+        //[AppAuthorize("system:menu:edit")]
+        //[TypeFilter(typeof(RuoYi.Framework.DataValidation.DataValidationFilter))]
         [RuoYi.System.Log(Title = "菜单管理", BusinessType = BusinessType.UPDATE)]
         public async Task<AjaxResult> Edit([FromBody] SysMenuDto menu)
         {
