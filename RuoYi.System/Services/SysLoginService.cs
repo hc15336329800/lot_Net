@@ -1,4 +1,5 @@
-﻿using System.Security.Cryptography;
+﻿using System.Diagnostics;
+using System.Security.Cryptography;
 using Lazy.Captcha.Core;
 using RuoYi.Common.Constants;
 using RuoYi.Common.Enums;
@@ -7,6 +8,7 @@ using RuoYi.Data.Enums;
 using RuoYi.Data.Models;
 using RuoYi.Framework.Cache;
 using RuoYi.Framework.Exceptions;
+using RuoYi.System.Slave.Services;
 using SqlSugar;
 
 namespace RuoYi.System.Services;
@@ -50,8 +52,264 @@ public class SysLoginService : ITransient
 
     }
 
+
+
+    //==================================================================   登录 ======================================================================================
+
+
+
+
+    // 登录接口测试
+    public async Task<string> LoginAsync(string username,string password,string code,string uuid,long tenantId,string userType)
+    {
+        var sw = Stopwatch.StartNew();
+        long lastElapsed = 0;
+
+        // 辅助本地函数：记录某一步耗时
+        void LogStep(string stepName)
+        {
+            var now = sw.ElapsedMilliseconds;
+            var delta = now - lastElapsed;
+            _logger.LogInformation("LoginAsync 步骤[{Step}] 耗时 {Delta} ms",stepName,delta);
+            lastElapsed = now;
+        }
+
+        try
+        {
+            // =============================================== 验证 & 日志 ===============================================
+
+            // 验证码校验
+            ValidateCaptcha(username,code,uuid);
+            LogStep("验证码校验");
+
+            // 登录前置校验
+            LoginPreCheck(username,password);
+            LogStep("登录前置校验");
+
+
+            // 查询用户信息，映射到 userDto 【此查询耗时700ms】
+            var userDto = await _sysUserService.GetDtoByUsernameAsync(username);
+            LogStep("查询用户信息");
+
+            // 账户密码验证
+            CheckLoginUser(username,password,userDto);
+            LogStep("账户密码验证");
+
+
+            // 异步记录登录成功（fire-and-forget，不阻塞主流程）
+            _ = Task.Run(async ( ) =>
+            {
+                try
+                {
+                    await _sysLogininforService.AddAsync(
+                        username,
+                        Constants.LOGIN_SUCCESS,
+                        MessageConstants.User_Login_Success);
+                }
+                catch(Exception ex)
+                {
+                    _logger.LogError(ex,"异步记录登录成功日志时出错");
+                }
+            });
+
+
+            // ================================================= 权限 & 缓存 =================================================
+
+            // 创建 LoginUser 对象并加载权限
+            var loginUser = CreateLoginUser(userDto);
+            LogStep("创建 LoginUser 对象并加载权限");
+
+            // 更新用户最后登录信息（IP、时间等）
+            await RecordLoginInfoAsync(userDto.UserId);
+            LogStep("更新用户最后登录信息");
+
+            // 重用 userDto.UserType
+            loginUser.UserType = userDto.UserType;
+            loginUser.User.UserType = userDto.UserType;
+
+            // 如果前端未传 tenantId，则根据用户关联租户取第一个
+            var tidList = _sysUserTenantService.GetTenantIdsListByUserId(userDto.UserId);
+            long actualTenantId = tidList.FirstOrDefault();
+            loginUser.TenantId = actualTenantId;
+            loginUser.User.TenantId = actualTenantId;
+            LogStep("获组织tid第一个");
+
+            // ========================================= 部门、租户子集 =========================================
+
+            // 部门子集
+            var deptChildIds = GetChildrenDeptById(userDto.DeptId ?? 0);
+            loginUser.DeptChildId = deptChildIds;
+            loginUser.User.DeptChildId = deptChildIds;
+            LogStep("部门子集");
+
+            // 租户子集
+            long[] tenantChildIds;
+            switch(loginUser.UserType)
+            {
+                case "SUPER_ADMIN":
+                    // 超级管理员：可访问所有租户
+                    tenantChildIds = GetChildrenTenantById(userDto.TenantId);
+                    LogStep("租户子集-超级管理员");
+                    break;
+
+                case "GROUP_ADMIN":
+                    // 集团管理员：直属子租户
+                    tenantChildIds = GetChildrenTenantByIdAdminGroup(userDto.TenantId);
+                    loginUser.TenantChildId = tenantChildIds;
+                    loginUser.User.TenantChildId = tenantChildIds;
+                    LogStep("租户子集-集团管理员");
+                    return await _tokenService.CreateToken(loginUser);
+
+                case "COMPANY_ADMIN":
+                    // 公司管理员：只需生成 Token
+                    LogStep("租户子集-公司管理员");
+
+                    return await _tokenService.CreateToken(loginUser);
+
+                default:
+                    // 普通用户：同超级管理员处理
+                    tenantChildIds = GetChildrenTenantById(userDto.TenantId);
+                    LogStep("租户子集-普通用户");
+                    break;
+            }
+
+            loginUser.TenantChildId = tenantChildIds;
+            loginUser.User.TenantChildId = tenantChildIds;
+
+            // TODO: 缺少角色信息的加载
+
+            Task<String>  token =   _tokenService.CreateToken(loginUser);
+            LogStep("创建令牌，返回Token");
+
+
+            // 生成并返回 Token
+            return await token;
+
+        }
+        finally
+        {
+            sw.Stop();
+            _logger.LogInformation(
+                "LoginAsync 总耗时 {Total} ms",
+                sw.ElapsedMilliseconds);
+        }
+
+
+
+    }
+
+
+
+
+
+
+
+    // 登录接--暂时没用到，备用误删
+    public async Task<string> LoginAsyncV2(string username,string password,string code,string uuid,long tenantId,string userType)
+    {
+
+        // =============================================== 验证 & 日志 ===============================================
+
+        // 验证码校验
+        ValidateCaptcha(username,code,uuid);
+
+        // 登录前置校验
+        LoginPreCheck(username,password);
+
+        // 查询用户信息，映射到 userDto
+        var userDto = await _sysUserService.GetDtoByUsernameAsync(username);
+
+        // 账户密码验证
+        CheckLoginUser(username,password,userDto);
+
+        // 异步记录登录成功（fire-and-forget，不阻塞主流程）
+        _ = Task.Run(async ( ) =>
+        {
+            try
+            {
+                await _sysLogininforService.AddAsync(
+                    username,
+                    Constants.LOGIN_SUCCESS,
+                    MessageConstants.User_Login_Success);
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex,"异步记录登录成功日志时出错");
+            }
+        });
+
+
+        // ================================================= 权限 & 缓存 =================================================
+
+        // 创建 LoginUser 对象并加载权限
+        var loginUser = CreateLoginUser(userDto);
+
+        // 更新用户最后登录信息（IP、时间等）
+        await RecordLoginInfoAsync(userDto.UserId);
+
+        // 重用 userDto.UserType
+        loginUser.UserType = userDto.UserType;
+        loginUser.User.UserType = userDto.UserType;
+
+        // 如果前端未传 tenantId，则根据用户关联租户取第一个
+        var tidList = _sysUserTenantService.GetTenantIdsListByUserId(userDto.UserId);
+        long actualTenantId = tidList.FirstOrDefault();
+        loginUser.TenantId = actualTenantId;
+        loginUser.User.TenantId = actualTenantId;
+
+        // ========================================= 部门、租户子集 =========================================
+
+        // 部门子集
+        var deptChildIds = GetChildrenDeptById(userDto.DeptId ?? 0);
+        loginUser.DeptChildId = deptChildIds;
+        loginUser.User.DeptChildId = deptChildIds;
+
+        // 租户子集
+        long[] tenantChildIds;
+        switch(loginUser.UserType)
+        {
+            case "SUPER_ADMIN":
+                // 超级管理员：可访问所有租户
+                tenantChildIds = GetChildrenTenantById(userDto.TenantId);
+                break;
+
+            case "GROUP_ADMIN":
+                // 集团管理员：直属子租户
+                tenantChildIds = GetChildrenTenantByIdAdminGroup(userDto.TenantId);
+                loginUser.TenantChildId = tenantChildIds;
+                loginUser.User.TenantChildId = tenantChildIds;
+                return await _tokenService.CreateToken(loginUser);
+
+            case "COMPANY_ADMIN":
+                // 公司管理员：只需生成 Token
+                return await _tokenService.CreateToken(loginUser);
+
+            default:
+                // 普通用户：同超级管理员处理
+                tenantChildIds = GetChildrenTenantById(userDto.TenantId);
+                break;
+        }
+
+        loginUser.TenantChildId = tenantChildIds;
+        loginUser.User.TenantChildId = tenantChildIds;
+
+        // TODO: 缺少角色信息的加载
+
+        // 生成并返回 Token
+        return await _tokenService.CreateToken(loginUser);
+
+
+
+
+    }
+
+
+
+
+
+
     /// <summary>
-    /// 登录验证  登录
+    /// 登录验证--暂时没用到，备用误删
     /// </summary>
     /// <param name="username">用户名</param>
     /// <param name="password">密码</param>
@@ -60,8 +318,11 @@ public class SysLoginService : ITransient
     /// <param name="tenantid">登录时下拉框的组织id</param>
     /// <param name="userType">登录的类型  后台还是业务</param>
     /// <returns>结果</returns>
-    public async Task<string> LoginAsync(string username,string password,string code,string uuid,long tenantid,string usertype)
+    public async Task<string> LoginAsyncV1(string username,string password,string code,string uuid,long tenantid,string usertype)
     {
+
+        // =============================================== 验证 & 日志 ===============================================
+
         // 验证码校验
         ValidateCaptcha(username,code,uuid);
         // 登录前置校验
@@ -73,7 +334,7 @@ public class SysLoginService : ITransient
         // 账户密码验证
         CheckLoginUser(username,password,userDto);
 
-        // 记录登录成功
+
         //await _sysLogininforService.AddAsync(username,Constants.LOGIN_SUCCESS,MessageConstants.User_Login_Success);
         // 记录登录成功（fire-and-forget，不阻塞）
         _ = Task.Run(async ( ) =>
@@ -88,22 +349,21 @@ public class SysLoginService : ITransient
              }
          });
 
+
+        // ================================================= 权限 & 缓存 =================================================
+
+
         //重要：创建Permissions权限 
         var loginUser = CreateLoginUser(userDto); // userDto 转化为loginUser
-
-
-        //************************  User用户信息，写入缓存 ***************************************
 
 
         // 更新用户信息的最后登录手机和ip
         await RecordLoginInfoAsync(userDto.UserId);
 
-        // 用户类型
-        // 优化：直接复用第一次查询的 userDto
+
+        // 用户类型：直接复用第一次查询的 userDto
         loginUser.UserType = userDto.UserType;
         loginUser.User.UserType = userDto.UserType;
-
-
 
 
         // 前端未传递 tid, 根据当前用户关联的组织获取
@@ -113,6 +373,10 @@ public class SysLoginService : ITransient
 
         loginUser.TenantId = tid; //组织id  需要判断下
         loginUser.User.TenantId = tid; //组织id  需要判断下
+
+
+        // =========================================  权限、部门、租户子集 =========================================
+
 
         // 子部门子集写入  新增：
         long[] septstr = GetChildrenDeptById(userDto.DeptId ?? 0);
@@ -155,6 +419,13 @@ public class SysLoginService : ITransient
         return await _tokenService.CreateToken(loginUser);
 
     }
+
+
+
+
+    //========================================================================================================================================================
+
+
 
     private void CheckLoginUser(string username,string password,SysUserDto user)
     {

@@ -173,7 +173,7 @@ namespace RuoYi.System.Repositories
         }
 
         /// <summary>
-        /// 查询用户列表 sql, 返回 SysUserDto
+        /// 查询用户列表 sql, 返回 SysUserDto   【 此查询耗时700ms】
         /// 注意新写法：
         /// -直接使用了 SqlSugar 的 Context.Queryable<SysUser> 构建查询 ， 手写了 Where 条件，完全没有调用 Queryable(dto) 或 DtoQueryable(dto)
         /// -没有走你在仓储中集中定义的公共过滤逻辑（如租户过滤、用户类型过滤、IsAllocated 等复杂逻辑）
@@ -206,6 +206,9 @@ namespace RuoYi.System.Repositories
 
             return userDto!;
         }
+
+ 
+
 
         /// <summary>
         /// 更新头像
