@@ -62,8 +62,8 @@ namespace RuoYi.Zk.AC.Services
             IConfiguration configuration)
         {
             _logger = logger;
-            // 从配置里读取端口，默认 5001
-            _port = configuration.GetValue<int>("SensorListener:Port",5003);
+            //  
+            _port = configuration.GetValue<int>("SensorListener:Port",19000);
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)

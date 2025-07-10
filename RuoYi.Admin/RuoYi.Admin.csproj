@@ -23,6 +23,8 @@
 	  <ProjectReference Include="..\RuoYi.Quartz\RuoYi.Quartz.csproj" />
 	  <ProjectReference Include="..\RuoYi.System\RuoYi.System.csproj" />
 	  <ProjectReference Include="..\RuoYi.Zk.AC\RuoYi.Zk.AC.csproj" />
+	    <PackageReference Include="Serilog.AspNetCore" Version="6.*" />
+  <PackageReference Include="Serilog.Sinks.File" Version="5.*" />
 	</ItemGroup>
 
 </Project>
