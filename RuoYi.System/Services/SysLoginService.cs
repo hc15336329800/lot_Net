@@ -32,7 +32,7 @@ public class SysLoginService : ITransient
         ICache cache,TokenService tokenService,
         SysUserService sysUserService,SysConfigService sysConfigService,
         SysLogininforService sysLogininforService,SysPasswordService sysPasswordService,
-        SysPermissionService sysPermissionService ,SysTenantService sysTenantService,SysUserTenantService sysUserTenantService)
+        SysPermissionService sysPermissionService,SysTenantService sysTenantService,SysUserTenantService sysUserTenantService)
     {
         _logger = logger;
         _captcha = captcha;
@@ -74,23 +74,35 @@ public class SysLoginService : ITransient
         CheckLoginUser(username,password,userDto);
 
         // 记录登录成功
-        await _sysLogininforService.AddAsync(username,Constants.LOGIN_SUCCESS,MessageConstants.User_Login_Success);
+        //await _sysLogininforService.AddAsync(username,Constants.LOGIN_SUCCESS,MessageConstants.User_Login_Success);
+        // 记录登录成功（fire-and-forget，不阻塞）
+        _ = Task.Run(async ( ) =>
+         {
+             try
+             {
+                 await _sysLogininforService.AddAsync(username,Constants.LOGIN_SUCCESS,MessageConstants.User_Login_Success);
+             }
+             catch(Exception ex)
+             {
+                 _logger.LogError(ex,"异步记录登录成功日志时出错");
+             }
+         });
 
         //重要：创建Permissions权限 
         var loginUser = CreateLoginUser(userDto); // userDto 转化为loginUser
 
 
         //************************  User用户信息，写入缓存 ***************************************
- 
+
 
         // 更新用户信息的最后登录手机和ip
         await RecordLoginInfoAsync(userDto.UserId);
 
         // 用户类型
-        var ust = await _sysUserService.GetDtoByUsernameAsync(username); // 查询用户
-        loginUser.UserType = ust.UserType;
-        loginUser.User.UserType = ust.UserType;
- 
+        // 优化：直接复用第一次查询的 userDto
+        loginUser.UserType = userDto.UserType;
+        loginUser.User.UserType = userDto.UserType;
+
 
 
 
@@ -98,18 +110,18 @@ public class SysLoginService : ITransient
         //long currentUserId = SecurityUtils.GetUserId();
         List<long> tidList = _sysUserTenantService.GetTenantIdsListByUserId(userDto.UserId);
         long tid = tidList.FirstOrDefault();
- 
+
         loginUser.TenantId = tid; //组织id  需要判断下
         loginUser.User.TenantId = tid; //组织id  需要判断下
 
         // 子部门子集写入  新增：
-        long[] septstr = GetChildrenDeptByIdAsync(userDto.DeptId ?? 0);
+        long[] septstr = GetChildrenDeptById(userDto.DeptId ?? 0);
         loginUser.DeptChildId = septstr;
         loginUser.User.DeptChildId = septstr;
 
- 
+
         // 将组织子集写入  新增：
-        long[] tidstr = new long[5]; 
+        long[] tidstr = new long[5];
 
         // 登录类型判断  备用
         if(loginUser.UserType == "SUPER_ADMIN") //超级管理员1
@@ -141,7 +153,7 @@ public class SysLoginService : ITransient
 
         // 将用户信息生成token,并将token和用户信息存radis缓存。
         return await _tokenService.CreateToken(loginUser);
- 
+
     }
 
     private void CheckLoginUser(string username,string password,SysUserDto user)
@@ -181,10 +193,17 @@ public class SysLoginService : ITransient
             var isValidCaptcha = _captcha.Validate(uuid,code,true,true);
             if(!isValidCaptcha)
             {
-                Task.Factory.StartNew(async ( ) =>
-                {
-                    await _sysLogininforService.AddAsync(username,Constants.LOGIN_FAIL,MessageConstants.Captcha_Invalid);
-                });
+                _ = Task.Run(async ( ) =>
+                            {
+                                try
+                                {
+                                    await _sysLogininforService.AddAsync(username,Constants.LOGIN_FAIL,MessageConstants.Captcha_Invalid);
+                                }
+                                catch(Exception ex)
+                                {
+                                    _logger.LogError(ex,"异步记录验证码校验失败日志出错");
+                                }
+                            });
                 throw new ServiceException(MessageConstants.Captcha_Invalid);
             }
         }
@@ -200,38 +219,66 @@ public class SysLoginService : ITransient
         // 用户名或密码为空 错误
         if(string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
         {
-            Task.Factory.StartNew(async ( ) =>
-            {
-                await _sysLogininforService.AddAsync(username,Constants.LOGIN_FAIL,MessageConstants.Required);
-            });
+            _ = Task.Run(async ( ) =>
+         {
+             try
+             {
+                 await _sysLogininforService.AddAsync(username,Constants.LOGIN_FAIL,MessageConstants.Required);
+             }
+             catch(Exception ex)
+             {
+                 _logger.LogError(ex,"异步记录登录校验失败日志（Required）出错");
+             }
+         });
             throw new ServiceException(MessageConstants.Required);
         }
         // 密码如果不在指定范围内 错误
         if(password.Length < UserConstants.PASSWORD_MIN_LENGTH || password.Length > UserConstants.PASSWORD_MAX_LENGTH)
         {
-            Task.Factory.StartNew(async ( ) =>
-            {
-                await _sysLogininforService.AddAsync(username,Constants.LOGIN_FAIL,MessageConstants.User_Passwrod_Not_Match);
-            });
+            _ = Task.Run(async ( ) =>
+          {
+              try
+              {
+                  await _sysLogininforService.AddAsync(username,Constants.LOGIN_FAIL,MessageConstants.User_Passwrod_Not_Match);
+              }
+              catch(Exception ex)
+              {
+                  _logger.LogError(ex,"异步记录登录校验失败日志（Password Length）出错");
+              }
+          });
             throw new ServiceException(MessageConstants.User_Passwrod_Not_Match);
         }
         // 用户名不在指定范围内 错误
         if(username.Length < UserConstants.USERNAME_MIN_LENGTH || username.Length > UserConstants.USERNAME_MAX_LENGTH)
         {
-            Task.Factory.StartNew(async ( ) =>
-            {
-                await _sysLogininforService.AddAsync(username,Constants.LOGIN_FAIL,MessageConstants.User_Passwrod_Not_Match);
-            });
+            _ = Task.Run(async ( ) =>
+                    {
+                        try
+                        {
+                            await _sysLogininforService.AddAsync(username,Constants.LOGIN_FAIL,MessageConstants.User_Passwrod_Not_Match);
+                        }
+                        catch(Exception ex)
+                        {
+                            _logger.LogError(ex,"异步记录登录校验失败日志（Username Length）出错");
+                        }
+                    });
             throw new ServiceException(MessageConstants.User_Passwrod_Not_Match);
         }
         // IP黑名单校验
         string? blackStr = _cache.GetString("sys.login.blackIPList");
         if(IpUtils.IsMatchedIp(blackStr,App.HttpContext.GetRemoteIpAddressToIPv4()))
         {
-            Task.Factory.StartNew(async ( ) =>
-            {
-                await _sysLogininforService.AddAsync(username,Constants.LOGIN_FAIL,MessageConstants.Login_Blocked);
-            });
+            _ = Task.Run(async ( ) =>
+         {
+             try
+             {
+                 await _sysLogininforService.AddAsync(username,Constants.LOGIN_FAIL,MessageConstants.Login_Blocked);
+             }
+             catch(Exception ex)
+             {
+                 _logger.LogError(ex,"异步记录登录校验失败日志（IP Blacklist）出错");
+             }
+         });
             throw new ServiceException(MessageConstants.Login_Blocked);
         }
     }
@@ -246,7 +293,7 @@ public class SysLoginService : ITransient
         var permissions = _sysPermissionService.GetMenuPermission(user);
         return new LoginUser
         {
-            UserId = user.UserId ,
+            UserId = user.UserId,
             DeptId = user.DeptId ?? 0,
             UserName = user.UserName ?? "",
             Password = user.Password ?? "",
@@ -278,7 +325,7 @@ public class SysLoginService : ITransient
     /// </summary>
     /// <param name="dept"></param>
     /// <returns></returns>
-    public long[] GetChildrenDeptByIdAsync(long deptId)
+    public long[] GetChildrenDeptById(long deptId)
     {
         // 使用 LIKE 查询，包含三种可能性以及精确匹配 ancestors 的逻辑
         string sql = @"
