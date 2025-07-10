@@ -121,6 +121,7 @@ public class SysLoginService : ITransient
 
             // 更新用户最后登录信息（IP、时间等）
             await RecordLoginInfoAsync(userDto.UserId);
+
             LogStep("更新用户最后登录信息");
 
             // 重用 userDto.UserType
@@ -158,7 +159,12 @@ public class SysLoginService : ITransient
                     loginUser.TenantChildId = tenantChildIds;
                     loginUser.User.TenantChildId = tenantChildIds;
                     LogStep("租户子集-集团管理员");
-                    return await _tokenService.CreateToken(loginUser);
+                    //return await _tokenService.CreateToken(loginUser);
+
+                    Task<String> tokenG = _tokenService.CreateToken(loginUser);
+                    LogStep("创建令牌，返回Token");
+                    return await tokenG;
+
 
                 case "COMPANY_ADMIN":
                     // 公司管理员：只需生成 Token

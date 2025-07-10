@@ -23,7 +23,7 @@ public class TokenService : ITransient
     private readonly IUserAgentParser _userAgentParser;
     private readonly ICache _cache;
 
-    public TokenService(IUserAgentParser userAgentParser, ICache cache)
+    public TokenService(IUserAgentParser userAgentParser,ICache cache)
     {
         _userAgentParser = userAgentParser;
         _cache = cache;
@@ -39,7 +39,7 @@ public class TokenService : ITransient
 
     public void DelLoginUser(string token)
     {
-        if (!string.IsNullOrEmpty(token))
+        if(!string.IsNullOrEmpty(token))
         {
             string userKey = GetTokenKey(token);
             _cache.Remove(userKey);
@@ -51,7 +51,7 @@ public class TokenService : ITransient
     /// </summary>
     public void SetLoginUser(LoginUser loginUser)
     {
-        if (loginUser != null && !string.IsNullOrEmpty(loginUser.Token))
+        if(loginUser != null && !string.IsNullOrEmpty(loginUser.Token))
         {
             RefreshToken(loginUser);
         }
@@ -66,11 +66,12 @@ public class TokenService : ITransient
     {
         var token = Guid.NewGuid().ToString();
         loginUser.Token = token;
-        await SetUserAgent(loginUser);
+        await SetUserAgent(loginUser); //原来同步
+ 
         RefreshToken(loginUser);
 
         // 生成 token
-        var accessToken = JWTEncryption.Encrypt(new Dictionary<string, object>()
+        var accessToken = JWTEncryption.Encrypt(new Dictionary<string,object>()
         {
             { Constants.LOGIN_USER_KEY, token },
             { DataConstants.USER_ID, loginUser.UserId },
@@ -88,7 +89,7 @@ public class TokenService : ITransient
     {
         long expireTime = loginUser.ExpireTime;
         long currentTime = DateTime.Now.ToUnixTimeMilliseconds();
-        if (expireTime - currentTime <= MILLIS_MINUTE_TEN)
+        if(expireTime - currentTime <= MILLIS_MINUTE_TEN)
         {
             RefreshToken(loginUser);
         }
@@ -107,7 +108,7 @@ public class TokenService : ITransient
         loginUser.ExpireTime = loginUser.LoginTime + expireTime * MILLIS_MINUTE;
         // 根据uuid将loginUser缓存
         string userKey = GetTokenKey(loginUser.Token);
-        _cache.Set<LoginUser>(userKey, loginUser, expireTime);
+        _cache.Set<LoginUser>(userKey,loginUser,expireTime);
     }
 
     /// <summary>

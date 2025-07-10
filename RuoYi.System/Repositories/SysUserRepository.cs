@@ -45,12 +45,12 @@ namespace RuoYi.System.Repositories
 
 
             // 如果集团管理员则：
-            LoginUser User = SecurityUtils.GetLoginUser(); 
+            LoginUser User = SecurityUtils.GetLoginUser();
             if(User.UserType == "GROUP_ADMIN")
             {
                 queryable = GetUnallocatedUsersQueryForGroupAdmin(dto);
             }
-             else if(User.UserType == "COMPANY_ADMIN") // 如果公司管理员则：
+            else if(User.UserType == "COMPANY_ADMIN") // 如果公司管理员则：
             {
                 queryable = GetUnallocatedUsersQueryForGroupAdmin(dto);
 
@@ -172,13 +172,60 @@ namespace RuoYi.System.Repositories
             return user.Adapt<SysUserDto>();
         }
 
+
+
+ 
+
+
         /// <summary>
-        /// 查询用户列表 sql, 返回 SysUserDto   【 此查询耗时700ms】
+        /// 查询用户列表 sql, 返回 SysUserDto   【 此查询耗时450ms】 
         /// 注意新写法：
         /// -直接使用了 SqlSugar 的 Context.Queryable<SysUser> 构建查询 ， 手写了 Where 条件，完全没有调用 Queryable(dto) 或 DtoQueryable(dto)
         /// -没有走你在仓储中集中定义的公共过滤逻辑（如租户过滤、用户类型过滤、IsAllocated 等复杂逻辑）
         /// </summary>
         public async Task<SysUserDto> GetUserDtoAsync(SysUserDto dto)
+        {
+            var queryable = base.Repo.Context.Queryable<SysUser>()
+                //.Where(u => u.TenantId == dto.TenantId)  // 加上租户过滤
+
+                .WhereIF(!string.IsNullOrEmpty(dto.DelFlag),u => u.DelFlag == dto.DelFlag)
+                .WhereIF(!string.IsNullOrEmpty(dto.UserName),u => u.UserName == dto.UserName)
+                .WhereIF(!string.IsNullOrEmpty(dto.Phonenumber),u => u.Phonenumber == dto.Phonenumber)
+                .WhereIF(!string.IsNullOrEmpty(dto.Email),u => u.Email == dto.Email)
+                .WhereIF(dto.UserId > 0,u => u.UserId == dto.UserId);
+
+            var user = await queryable.FirstAsync();
+            var userDto = user.Adapt<SysUserDto>();
+            if(userDto != null)
+                if(userDto != null)
+                {
+                    // 顺序查询：先部门
+                    var dept = await base.Repo.Context
+                        .Queryable<SysDept>()
+                        .FirstAsync(d => d.DeptId == userDto.DeptId);
+                    userDto.Dept = dept.Adapt<SysDeptDto>();
+
+                    // 再查角色
+                    var roles = await base.Repo.Context
+                        .Queryable<SysRole>()
+                        .InnerJoin<SysUserRole>((r,ur) => r.RoleId == ur.RoleId)
+                        .Where((r,ur) => ur.UserId == userDto.UserId)
+                        .Select((r,ur) => r)
+                        .ToListAsync();
+                    userDto.Roles = roles.Adapt<List<SysRoleDto>>();
+                }
+
+            return userDto!;
+        }
+
+
+        /// <summary>
+        /// 查询用户列表 sql, 返回 SysUserDto   【 此查询耗时700ms】【注意这个是备用方法  暂时不使用】
+        /// 注意新写法：
+        /// -直接使用了 SqlSugar 的 Context.Queryable<SysUser> 构建查询 ， 手写了 Where 条件，完全没有调用 Queryable(dto) 或 DtoQueryable(dto)
+        /// -没有走你在仓储中集中定义的公共过滤逻辑（如租户过滤、用户类型过滤、IsAllocated 等复杂逻辑）
+        /// </summary>
+        public async Task<SysUserDto> GetUserDtoAsyncV1(SysUserDto dto)
         {
             var queryable = base.Repo.Context.Queryable<SysUser>()
                 //.Where(u => u.TenantId == dto.TenantId)  // 加上租户过滤
@@ -207,7 +254,7 @@ namespace RuoYi.System.Repositories
             return userDto!;
         }
 
- 
+
 
 
         /// <summary>
