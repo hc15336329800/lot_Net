@@ -35,6 +35,7 @@ internal class Program
         Serilog.Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .Enrich.FromLogContext()
+            .WriteTo.Console()  // ← 新增：控制台输出
             .WriteTo.File(
                 Path.Combine(logDir,section["FileName"] ?? "ruoyi-.log"),
                 rollingInterval: Enum.Parse<RollingInterval>(section["RollingInterval"] ?? "Day")
@@ -42,12 +43,12 @@ internal class Program
             .CreateLogger();
 
         // 【修改③】启用 Serilog 扩展
-        builder.Host.UseSerilog();
+        builder.Host.UseSerilog().UseConsoleLifetime();  // ← 新增：挂载控制台生命周期;
 
 
 
         //-------------------------------------面是你原有的启动流程------------------------------------------------
- 
+
         builder.WebHost.ConfigureKestrel(serverOptions =>
         {
             // Set properties and call methods on options
