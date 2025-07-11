@@ -74,9 +74,13 @@
 
 // 旧的额
 using AspectCore.Extensions.DependencyInjection;
-using RuoYi.Zk.AC.Services;           // ← 新增
+using RuoYi.Zk.AC.Services;
 
 
+
+/// <summary>
+/// Program.cs： 程序的入口点，负责创建 WebApplication / Host，进行宿主级别的配置（例如 Kestrel 设置、使用自定义 ServiceProvider 工厂、注册后台服务等），最后调用 Run 启动应用。
+/// </summary>
 internal class Program
 {
     private static void Main(string[] args)// 应用程序的入口点，定义在 Main 方法中
@@ -105,6 +109,7 @@ internal class Program
 
 
         // ← 在这里注册后台服务   新增的tcp业务
+        //由于该服务与 HTTP 请求管道无关，而是随宿主一起启动的后台任务，因此应放在 Program.cs 中
         builder.Services.AddHostedService<SensorDataListenerService>();
 
 

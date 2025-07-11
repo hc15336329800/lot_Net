@@ -73,6 +73,15 @@ RuoYi.Admin ： 主启动及配置等
 RuoYi.Common： 主通用的一些方法（可能不是一个类可能是配着特定的文件夹才能实现功能），枚举等
 RuoYi.Data  ： 静态表，静态类
 
+
+## RuoYi.Admin中的配置文件
+
+- Program.cs：程序的入口点，负责创建 WebApplication / Host，进行宿主级别的配置（例如 Kestrel 设置、使用自定义 ServiceProvider 工厂、注册后台服务等），最后调用 Run 启动应用。
+- Startup.cs：负责应用层的配置，主要包含 ConfigureServices（在这里向依赖注入容器注册服务）以及 Configure（设置 HTTP 请求管道，包括各种中间件的顺序）
+
+
+
+
  
 ## 内置功能(同若依)
 
