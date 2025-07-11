@@ -66,21 +66,35 @@ namespace RuoYi.Zk.AC.Services
             _port = configuration.GetValue<int>("SensorListener:Port",19000);
         }
 
+
+        /// <summary>
+        /// 启动 TCP 监听器，在 _port 端口等待客户端（小车/传感器）的 TCP 连接。
+        /// 每当有新的客户端连接时，调用 AcceptTcpClientAsync( ) 异步接受连接。
+        /// 对每个新连接，开启一个独立的任务（HandleClientAsync），负责后续“收包解析”。
+        /// </summary>
+        /// <param name="stoppingToken"></param>
+        /// <returns></returns>
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            // 1. 启动 TCP 监听器
             var listener = new TcpListener(IPAddress.Any,_port);
             listener.Start();
             //_logger.LogInformation("SensorDataListenerService listening on port {Port}",_port);
             _logger.LogInformation("Sensor 数据监听服务正在监听端口 {Port}",_port);
 
 
+            // 2. 循环等待客户端连接
             while(!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
+                    // 等待并接受新TCP连接（异步阻塞）
                     var client = await listener.AcceptTcpClientAsync();
-                    // 并发处理每个连接
+                    // 3. 对每个新连接，独立启动后台任务进行信息监听与处理
                     _ = HandleClientAsync(client,stoppingToken);
+                    //_ = HandleClientAsync定时器(client,stoppingToken);
+
+
                 }
                 catch(Exception ex)
                 {
@@ -93,9 +107,123 @@ namespace RuoYi.Zk.AC.Services
 
 
 
+        //专门监听和接收 TCP 客户端发来的数据；
+        private async Task HandleClientAsync(TcpClient client,CancellationToken token)
+        {
+            var remote = client.Client.RemoteEndPoint;
+            var clientKey = remote.ToString();
+            _logger.LogInformation("TCP 客户端已连接：{Remote}",remote);
+
+            bool registered = false;
+            string sensorId = null;
+
+            try
+            {
+                using(client)
+                using(var stream = client.GetStream())
+                {
+                    var buf = new byte[1024];
+                    var leftover = new List<byte>();
+                    while(!token.IsCancellationRequested)
+                    {
+                        int bytesRead = await stream.ReadAsync(buf,0,buf.Length,token);
+                        if(bytesRead == 0) break; // 客户端断开
+
+                        leftover.AddRange(buf.AsSpan(0,bytesRead).ToArray());
+                        leftover.RemoveAll(b => b == 0x0D || b == 0x0A); // 丢弃 CR/LF
+
+                        int idx = 0;
+
+                        // 1) 先注册（2字节 sensorId）
+                        if(!registered && leftover.Count - idx >= 2)
+                        {
+                            sensorId = $"{leftover[idx]:X2}{leftover[idx + 1]:X2}";
+                            registered = true;
+                            _connectionMap[clientKey] = sensorId;
+                            _logger.LogInformation("传感器已注册：{SensorId}，连接：{ClientKey}",sensorId,clientKey);
+                            idx += 2;
+                        }
+
+                        // 2) Modbus 7字节帧 or 2字节定位帧
+                        while(registered && leftover.Count - idx >= 2)
+                        {
+                            // 优先判断是否是 7 字节 Modbus 帧
+                            if(leftover.Count - idx >= 7 &&
+                                leftover[idx] == 0x01 &&
+                                leftover[idx + 1] == 0x03 &&
+                                leftover[idx + 2] == 0x02)
+                            {
+                                var frame = leftover.Skip(idx).Take(7).ToArray();
+                                ushort crcCalc = ComputeModbusCrc(frame,0,5);
+                                ushort crcFrame = (ushort)(frame[5] | (frame[6] << 8));
+                                if(crcCalc == crcFrame)
+                                {
+                                    byte rail = frame[3];
+                                    byte posIndex = frame[4];
+                                    if(rail >= 1 && rail <= _railCount && posIndex >= 1 && posIndex <= _posCount)
+                                    {
+                                        SensorRails.AddOrUpdate(sensorId,rail,(_,__) => rail);
+                                        SensorPositions.AddOrUpdate(sensorId,posIndex,(_,__) => posIndex);
+                                        _logger.LogInformation("传感器 {SensorId} → 轨道={Rail}, 位置={PosIndex}",sensorId,rail,posIndex);
+                                    }
+                                    else
+                                    {
+                                        _logger.LogWarning("TT/NN 值超出范围：TT={Rail}, NN={PosIndex}",rail,posIndex);
+                                    }
+                                    idx += 7; // 消费完整一帧
+                                    continue;
+                                }
+                                else
+                                {
+                                    _logger.LogWarning("Modbus 帧或 CRC 校验失败，对 {SensorId} 丢弃一个字节",sensorId);
+                                    idx += 1;
+                                    continue;
+                                }
+                            }
+                            // 否则解析为 2 字节定位帧（TTNN）
+                            if(leftover.Count - idx >= 2)
+                            {
+                                byte tt = leftover[idx];
+                                byte nn = leftover[idx + 1];
+                                if(tt >= 1 && tt <= _railCount && nn >= 1 && nn <= _posCount)
+                                {
+                                    SensorRails.AddOrUpdate(sensorId,tt,(_,__) => tt);
+                                    SensorPositions.AddOrUpdate(sensorId,nn,(_,__) => nn);
+                                    _logger.LogInformation("传感器 {SensorId} (rail {Rail}) → position {PosIndex}",sensorId,tt,nn);
+                                }
+                                else
+                                {
+                                    _logger.LogWarning("定位包数据不合法：TT=0x{TT:X2}, NN=0x{NN:X2}",tt,nn);
+                                }
+                                idx += 2;
+                            }
+                        }
+                        // 移除已消费的字节，保留残余
+                        if(idx > 0) leftover.RemoveRange(0,idx);
+                    }
+                }
+            }
+            catch(IOException)
+            {
+                // 客户端断开正常
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex,"处理客户端 {SensorId} 时出现未处理的异常",sensorId);
+            }
+            finally
+            {
+                registered = false;
+                _connectionMap.TryRemove(clientKey,out _);
+                _logger.LogInformation("TCP 客户端已断开：{Remote}",remote);
+            }
+        }
+
+
+
 
         /// <summary>
-        /// 处理单个 TCP 客户端连接：
+        /// 处理单个 TCP 客户端连接：【定时器】
         /// 1. 接收两字节注册包，解析 sensorId；
         /// 2. 注册成功后使用 Timer 每 3s 向客户端发送 Modbus 读寄存器指令；
         /// 3. 持续读取并累积响应字节，按 Modbus RTU 帧格式（7 字节）解帧并 CRC 校验；
@@ -104,7 +232,7 @@ namespace RuoYi.Zk.AC.Services
         /// </summary>
         /// <param name="client">TCP 客户端</param>
         /// <param name="token">取消令牌</param>
-        private async Task HandleClientAsync(TcpClient client,CancellationToken token)
+        private async Task HandleClientAsync定时器(TcpClient client,CancellationToken token)
         {
             var remote = client.Client.RemoteEndPoint;
             var clientKey = remote.ToString();
@@ -155,24 +283,24 @@ namespace RuoYi.Zk.AC.Services
 
                             idx += 2;
 
-                            // 3) 注册成功后立即启动定时器：0s 后触发，间隔 3s   。暂时注销
-                            //modbusTimer = new Timer(_ =>
-                            //{
-                            //    try
-                            //    {
-                            //        // 直接同步 Write，不 await，阻塞仅限 Timer 线程
-                            //        stream.Write(modbusRequest,0,modbusRequest.Length);
-                            //        _logger.LogDebug("已发送 Modbus 请求给传感器 {SensorId}",sensorId);
-                            //        //_logger.LogDebug("Sent Modbus request to {SensorId}",sensorId);
-                            //    }
-                            //    catch(Exception ex)
-                            //    {
-                            //        // 写入失败（如连接断开、缓冲区满），立即停止定时器
-                            //        _logger.LogError(ex,"向传感器 {SensorId} 发送 Modbus 请求失败，销毁定时器",sensorId);
-                            //        //_logger.LogError(ex,"Modbus send failed for {SensorId}, disposing timer",sensorId);
-                            //        modbusTimer?.Dispose();
-                            //    }
-                            //},null,TimeSpan.Zero,TimeSpan.FromSeconds(3));
+                            //3) 注册成功后立即启动定时器：0s 后触发，间隔 3s   。暂时注销
+                            modbusTimer = new Timer(_ =>
+                            {
+                                try
+                                {
+                                    // 直接同步 Write，不 await，阻塞仅限 Timer 线程
+                                    stream.Write(modbusRequest,0,modbusRequest.Length);
+                                    _logger.LogDebug("已发送 Modbus 请求给传感器 {SensorId}",sensorId);
+                                    //_logger.LogDebug("Sent Modbus request to {SensorId}",sensorId);
+                                }
+                                catch(Exception ex)
+                                {
+                                    // 写入失败（如连接断开、缓冲区满），立即停止定时器
+                                    _logger.LogError(ex,"向传感器 {SensorId} 发送 Modbus 请求失败，销毁定时器",sensorId);
+                                    //_logger.LogError(ex,"Modbus send failed for {SensorId}, disposing timer",sensorId);
+                                    modbusTimer?.Dispose();
+                                }
+                            },null,TimeSpan.Zero,TimeSpan.FromSeconds(3));
 
 
                         }
@@ -252,6 +380,10 @@ namespace RuoYi.Zk.AC.Services
 
             }
         }
+
+
+
+
 
         /// <summary>
         /// 计算 Modbus RTU CRC16 校验（Poly=0xA001）
