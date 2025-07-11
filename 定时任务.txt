@@ -1,0 +1,22 @@
+账号/密码: admin/admin123
+数据库： RuoYi.Admin下的appsettings.json中的appsettings.Development设置（目前腾讯云106.52.194.56）
+新模块： 需要在RuoYi.Admin中引入依赖(新建控制器的访问 internal，而不是 public，否则404)
+新模块： 目前新模块serve等服务 ，不需要在admin中Startup中的容器添加实例！
+
+
+设置匿名：
+- 1、添加特性[AllowAnonymous]
+- 2、访问后端端口，而不是前端端口8081！ http://localhost:5000/Zk/TuoXiao/list
+
+定时任务：
+- 需要去 RuoYi.Quartz.Tasks文件下写定时调用方法，其他模块不行，应该是依赖注入需要修改。
+- 前端添加定时器时候，后端必须在RuoYi.Quartz.Tasks文件夹有必须有个类 并且添加了注释 [Task("ryTaskcs")]
+- 然后需要和 前端调用方法输入框中填入的ryTaskcs.RyNoParams1 映射一致，不然就报白名单错误！
+- 白名单设置： "JobWhiteListAssembly": "RuoYi",//白名单
+- 定时器中的任务服务，比如Task下的RyTask，都是通过反射创建的，并不是容器！！！
+- 定时器调用其他模块的东西 ，因为设计反射，有点棘手啊
+- 千万不要使用返回，不然定时器会停止！！！！！！！！！具体我也不明白
+- 如果实例是反射的 ，应该从DI容器中取。
+
+发布：
+- 发布需要设置RuoYi.Admi下Startup中AddHttpClient的ip http地址!

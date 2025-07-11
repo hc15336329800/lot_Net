@@ -26,5 +26,20 @@
         /// 字典管理 cache key
         /// </summary>
         public const string SYS_DICT_KEY = "sys_dict:";
+
+
+
+        /// <summary>
+        /// 脱硝的matt消息列表暂存
+        /// </summary>
+        public const string TX_MQTT_Message = "tx_mqtt_message:";
+
+        /// <summary>
+        /// 脱硝的大屏信息暂存
+        /// </summary>
+        public const string TX_DataView_Info = "tx_DataView_info:";
+
+
+
     }
 }

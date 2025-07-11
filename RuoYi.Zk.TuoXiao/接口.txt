@@ -1,0 +1,72 @@
+﻿
+接口：
+
+-------------------------------------------连接服务器-----------------------------------------------
+GET:http://localhost:5000/Zk/TuoXiao/connect
+
+--------------------------------------------写入数据（无反馈）----------------------------------------------
+POST:http://localhost:5000/Zk/TuoXiao/writeToDevice
+参数：
+[{
+    "name": "FanSetHz",
+    "value": "38"
+  }]
+
+
+--------------------------------------------写入数据（有反馈）----------------------------------------------
+POST:http://localhost:5000/Zk/TuoXiao/WriteToDeviceAndReadReply
+参数：
+[{
+    "name": "FanSetHz",
+    "value": "38"
+  }]
+
+
+--------------------------------------------读取数据（缓存）----------------------------------------------
+
+GET:http://localhost:5000/Zk/TuoXiao/getInfoForRadis
+
+{
+    "id": 0,
+    "code": null,
+    "status": null,
+    "tenantId": null,
+    "isDeleted": null,
+    "siloTemp1": "20.17",
+    "siloTemp2": "21.17",
+    "fanTemp": "22.17",
+    "oxygenContent": "23.17",
+    "boilerLoad": "24.17",
+    "nox": "25.17",
+    "inletPressure": "26.17",
+    "outletPressure": "27.17",
+    "weight": "28.16",
+    "electricHeatingTemp": "29.17",
+    "heaterStart": "1",
+    "heaterMode": "1",
+    "heaterTempMax": "100.00",
+    "heaterTempMin": "30.00",
+    "vibratorStart": "0",
+    "vibratorMode": "0",
+    "vibratorDuration": "0.00",
+    "vibratorInterval": "0.00",
+    "feederStart": "1",
+    "feederMode": "1",
+    "feederSetHz": "0.00",
+    "feederActualHz": "0.00",
+    "fanStart": "0",
+    "fanMode": "FanMode",
+    "fanSetHz": "38.00",
+    "fanActualHz": "0.00",
+    "createBy": null,
+    "createTime": null,
+    "updateBy": null,
+    "updateTime": null,
+    "remark": null,
+    "params": {
+        "beginTime": null,
+        "endTime": null,
+        "dataScopeSql": null
+    }
+}
+ 

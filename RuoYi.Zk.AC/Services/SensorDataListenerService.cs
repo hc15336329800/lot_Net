@@ -63,7 +63,7 @@ namespace RuoYi.Zk.AC.Services
         {
             _logger = logger;
             //  
-            _port = configuration.GetValue<int>("SensorListener:Port",19000);
+            _port = configuration.GetValue<int>("SensorListener:Port",5003);
         }
 
 
@@ -93,8 +93,8 @@ namespace RuoYi.Zk.AC.Services
                     // 3. 对每个新连接，独立启动后台任务进行信息监听与处理
 
 
-                    //_ = HandleClientAsync(client,stoppingToken);
-                    _ = HandleClientAsync定时器(client,stoppingToken);
+                    _ = HandleClientAsync(client,stoppingToken);
+                    //_ = HandleClientAsync定时器(client,stoppingToken);
 
 
                 }
@@ -109,8 +109,114 @@ namespace RuoYi.Zk.AC.Services
 
 
 
-        //专门监听和接收 TCP 客户端发来的数据；
+
+        // todo： 新增一个监听器   来处理frd发来的数据  
+        // 原来用Modbus RTU或2字节定位帧（TTNN）接收定位信息（轨道+位置），
+        // 现在需要支持接收“frd”发来的新格式数据包，数据本质仍然是“轨道+位置”，只不过解析方式变了。
+        // 解析：接收frd字符串形式的   52 46 02 00 00 80 00 09 50 07 01 02 02 03 05 01 29 4F   【0203位置】
         private async Task HandleClientAsync(TcpClient client,CancellationToken token)
+        {
+            var remote = client.Client.RemoteEndPoint;
+            var clientKey = remote.ToString();
+            _logger.LogInformation("TCP 客户端已连接：{Remote}",remote);
+
+            bool registered = false;
+            string sensorId = null;
+
+            try
+            {
+                using(client)
+                using(var stream = client.GetStream())
+                {
+                    var buf = new byte[1024];
+                    var leftover = new List<byte>();
+                    while(!token.IsCancellationRequested)
+                    {
+                        int bytesRead = await stream.ReadAsync(buf,0,buf.Length,token);
+                        if(bytesRead == 0) break; // 客户端断开
+
+                        leftover.AddRange(buf.AsSpan(0,bytesRead).ToArray());
+                        leftover.RemoveAll(b => b == 0x0D || b == 0x0A); // 丢弃 CR/LF
+
+                        int idx = 0;
+
+                        // 1) 先注册（2字节 sensorId）
+                        if(!registered && leftover.Count - idx >= 2)
+                        {
+                            sensorId = $"{leftover[idx]:X2}{leftover[idx + 1]:X2}";
+                            registered = true;
+                            _connectionMap[clientKey] = sensorId;
+                            _logger.LogInformation("传感器已注册：{SensorId}，连接：{ClientKey}",sensorId,clientKey);
+                            idx += 2;
+                        }
+
+                        // 2) 解析frd格式：每4字节一帧（轨道TT+位置NN+保留字节+保留字节）
+                        while(registered && leftover.Count - idx >= 2)
+                        {
+                            // 找到Tag TLV起始0x50
+                            int tagIdx = leftover.IndexOf(0x50,idx);
+                            if(tagIdx < 0 || leftover.Count - tagIdx < 3) break; // 没有完整Tag TLV
+
+                            int tagLen = leftover[tagIdx + 1];
+                            if(leftover.Count - tagIdx < tagLen + 2) break; // 没有完整TLV区
+
+                            int epcIdx = tagIdx + 2; // TLV内容区起始
+                            while(epcIdx < tagIdx + 2 + tagLen)
+                            {
+                                if(leftover[epcIdx] == 0x01) // EPC TLV类型
+                                {
+                                    int epcLen = leftover[epcIdx + 1];
+                                    if(epcLen >= 2 && epcIdx + 2 + epcLen <= tagIdx + 2 + tagLen)
+                                    {
+                                        byte tt = leftover[epcIdx + 2];
+                                        byte nn = leftover[epcIdx + 3];
+                                        // 只处理EPC TLV的前两个字节为轨道号和位置号！
+                                        if(tt >= 1 && tt <= _railCount && nn >= 1 && nn <= _posCount)
+                                        {
+                                            SensorRails.AddOrUpdate(sensorId,tt,(_,__) => tt);
+                                            SensorPositions.AddOrUpdate(sensorId,nn,(_,__) => nn);
+                                            _logger.LogInformation("【FRD EPC】传感器 {SensorId} → 轨道={Rail}, 位置={PosIndex}",sensorId,tt,nn);
+                                        }
+                                        else
+                                        {
+                                            _logger.LogWarning("【FRD EPC】定位包数据不合法：TT=0x{TT:X2}, NN=0x{NN:X2}",tt,nn);
+                                        }
+                                    }
+                                    break; // 只处理1次
+                                }
+                                epcIdx++;
+                            }
+                            idx = tagIdx + 2 + tagLen; // 跳过整个Tag TLV
+                        }
+
+
+                        // 移除已消费的字节，保留残余
+                        if(idx > 0) leftover.RemoveRange(0,idx);
+                    }
+                }
+            }
+            catch(IOException)
+            {
+                // 客户端断开正常
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex,"处理客户端 {SensorId} 时出现未处理的异常",sensorId);
+            }
+            finally
+            {
+                registered = false;
+                _connectionMap.TryRemove(clientKey,out _);
+                _logger.LogInformation("TCP 客户端已断开：{Remote}",remote);
+            }
+        }
+
+
+
+
+        //专门监听和接收 TCP 客户端发来的数据；
+        // 解析modbus 指令号
+        private async Task HandleClientAsyncModbus(TcpClient client,CancellationToken token)
         {
             var remote = client.Client.RemoteEndPoint;
             var clientKey = remote.ToString();
@@ -225,7 +331,7 @@ namespace RuoYi.Zk.AC.Services
 
 
         /// <summary>
-        /// 处理单个 TCP 客户端连接：【定时器】
+        /// 处理单个 TCP 客户端连接：【定时器】 潜在问题
         /// 1. 接收两字节注册包，解析 sensorId；
         /// 2. 注册成功后使用 Timer 每 3s 向客户端发送 Modbus 读寄存器指令；
         /// 3. 持续读取并累积响应字节，按 Modbus RTU 帧格式（7 字节）解帧并 CRC 校验；
