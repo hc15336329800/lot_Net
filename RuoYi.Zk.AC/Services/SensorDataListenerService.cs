@@ -91,8 +91,10 @@ namespace RuoYi.Zk.AC.Services
                     // 等待并接受新TCP连接（异步阻塞）
                     var client = await listener.AcceptTcpClientAsync();
                     // 3. 对每个新连接，独立启动后台任务进行信息监听与处理
-                    _ = HandleClientAsync(client,stoppingToken);
-                    //_ = HandleClientAsync定时器(client,stoppingToken);
+
+
+                    //_ = HandleClientAsync(client,stoppingToken);
+                    _ = HandleClientAsync定时器(client,stoppingToken);
 
 
                 }
