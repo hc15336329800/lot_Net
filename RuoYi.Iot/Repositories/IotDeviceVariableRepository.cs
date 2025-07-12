@@ -43,4 +43,15 @@ public class IotDeviceVariableRepository : BaseRepository<IotDeviceVariable,IotD
                 UpdateTime = d.UpdateTime
             });
     }
+
+    public async Task<int> UpdateCurrentValueAsync(long deviceId,long variableId,string value,DateTime timestamp)
+    {
+
+        return await base.Updateable()
+         .SetColumns(d => d.CurrentValue == value)
+         .SetColumns(d => d.LastUpdateTime == timestamp)
+         .Where(d => d.DeviceId == deviceId && d.VariableId == variableId)
+         .ExecuteCommandAsync();
+
+    }
 }

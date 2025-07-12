@@ -80,6 +80,8 @@ RuoYi.Data  ： 静态表，静态类
 - Startup.cs：负责应用层的配置，主要包含 ConfigureServices（在这里向依赖注入容器注册服务）以及 Configure（设置 HTTP 请求管道，包括各种中间件的顺序）
 
 
+-  ### 设备数据历史记录
+新的设备读数保存在`iot_device_variable_history`中，而最新值保留在`iot_device_variable.current_value`中。每次更新都会插入历史记录并更新当前值。
 
 
  
@@ -103,3 +105,6 @@ RuoYi.Data  ： 静态表，静态类
 16. 缓存监控：对系统的缓存查询，删除、清空等操作。
 17. 在线构建器：拖动表单元素生成相应的HTML代码。
 18. 连接池监视：监视当前系统数据库连接池状态，可进行分析SQL找出系统性能瓶颈。(暂无)
+
+
+

@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using RuoYi.Common.Data;
+using RuoYi.Data.Dtos.Iot;
 using RuoYi.Data.Dtos.IOT;
 using RuoYi.Data.Entities.Iot;
 using RuoYi.Framework.DependencyInjection;
@@ -16,11 +17,15 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
 {
     private readonly IotDeviceVariableRepository _repo;
     private readonly ILogger<IotDeviceVariableService> _logger;
+    private readonly IotDeviceVariableHistoryRepository _historyRepo;
 
-    public IotDeviceVariableService(ILogger<IotDeviceVariableService> logger,IotDeviceVariableRepository repo)
+
+    public IotDeviceVariableService(ILogger<IotDeviceVariableService> logger,IotDeviceVariableRepository repo,IotDeviceVariableHistoryRepository historyRepo)
     {
         _logger = logger;
         _repo = repo;
+        _historyRepo = historyRepo;
+
         BaseRepo = repo;
     }
 
@@ -33,5 +38,26 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
     {
         var dto = new IotDeviceVariableDto { Id = id };
         return await _repo.GetDtoFirstAsync(dto);
+    }
+
+    /// <summary>
+    /// 更新当前值并记录历史
+    /// </summary>
+    public async Task SaveValueAsync(long deviceId,long variableId,string variableKey,string value)
+    {
+        var timestamp = DateTime.Now;
+        await _repo.UpdateCurrentValueAsync(deviceId,variableId,value,timestamp);
+
+        var history = new IotDeviceVariableHistory
+        {
+            DeviceId = deviceId,
+            VariableId = variableId,
+            VariableKey = variableKey,
+            Value = value,
+            Timestamp = timestamp
+        };
+        await _historyRepo.InsertAsync(history);
+
+
     }
 }

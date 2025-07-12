@@ -45,6 +45,13 @@ namespace RuoYi.Iot.Controllers
         public async Task<AjaxResult> Add([FromBody] IotDeviceVariableDto dto)
         {
             var ok = await _service.InsertAsync(dto);
+
+            //新增历史记录？
+            if(ok && dto.DeviceId.HasValue && dto.VariableId.HasValue && !string.IsNullOrEmpty(dto.VariableKey) && !string.IsNullOrEmpty(dto.CurrentValue))
+            {
+                await _service.SaveValueAsync(dto.DeviceId.Value,dto.VariableId.Value,dto.VariableKey!,dto.CurrentValue!);
+            }
+
             return AjaxResult.Success(ok);
         }
 
@@ -53,6 +60,13 @@ namespace RuoYi.Iot.Controllers
         public async Task<AjaxResult> Edit([FromBody] IotDeviceVariableDto dto)
         {
             var data = await _service.UpdateAsync(dto);
+
+            //新增历史记录？
+            if(dto.DeviceId.HasValue && dto.VariableId.HasValue && !string.IsNullOrEmpty(dto.VariableKey) && !string.IsNullOrEmpty(dto.CurrentValue))
+            {
+                await _service.SaveValueAsync(dto.DeviceId.Value,dto.VariableId.Value,dto.VariableKey!,dto.CurrentValue!);
+            }
+
             return AjaxResult.Success(data);
         }
 
