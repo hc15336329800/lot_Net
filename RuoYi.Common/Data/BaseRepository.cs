@@ -641,6 +641,11 @@ public abstract class BaseRepository<TEntity, TDto> : ITransient
 
         ReflectUtils.SetPropertyValue(entity, "CreateBy", SecurityUtils.GetUsername()!);
         ReflectUtils.SetPropertyValue(entity, "CreateTime", DateTime.Now);
+        if(baseType == typeof(UserBaseEntity))
+        {
+            ReflectUtils.SetPropertyValue(entity,"UpdateBy",SecurityUtils.GetUsername()!);
+            ReflectUtils.SetPropertyValue(entity,"UpdateTime",DateTime.Now);
+        }
     }
     private void SetCreateUserInfo(IEnumerable<TEntity> entities)
     {
