@@ -62,6 +62,11 @@ namespace RuoYi.Tcp.Services
 
                 }
 
+                if(_variableService != null)
+                {
+                    varMap = await _variableService.GetVariableMapAsync(device.Id);
+                 }
+
                 // 【调试】输出变量映射表内容和数量，判断是否为空
                 if(varMap == null || varMap.Count == 0)
                 {
