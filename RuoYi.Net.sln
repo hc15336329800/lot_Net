@@ -36,6 +36,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuoYi.Zk.TuoXiao", "RuoYi.Z
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuoYi.Tcp", "RuoYi.Tcp\RuoYi.Tcp.csproj", "{97F09B4F-337B-447C-9946-ED58DABF4514}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuoYi.Tcp.Tests", "RuoYi.Tcp.Tests\RuoYi.Tcp.Tests.csproj", "{EA4720A4-0E23-4D68-AC11-E917EFAAAA62}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -90,6 +92,10 @@ Global
 		{97F09B4F-337B-447C-9946-ED58DABF4514}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{97F09B4F-337B-447C-9946-ED58DABF4514}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{97F09B4F-337B-447C-9946-ED58DABF4514}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EA4720A4-0E23-4D68-AC11-E917EFAAAA62}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EA4720A4-0E23-4D68-AC11-E917EFAAAA62}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EA4720A4-0E23-4D68-AC11-E917EFAAAA62}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EA4720A4-0E23-4D68-AC11-E917EFAAAA62}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

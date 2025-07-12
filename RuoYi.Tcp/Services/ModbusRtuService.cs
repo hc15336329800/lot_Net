@@ -37,14 +37,76 @@ namespace RuoYi.Tcp.Services
         }
 
         /// <summary>
-        /// 处理客户端连接。当前未实现服务器模式，仅记录连接并关闭它。
+        /// 处理 Modbus RTU 客户端连接，在同一个连接上持续接收并响应报文。
         /// </summary>
-        public Task HandleClientAsync(TcpClient client,IotDeviceDto device,CancellationToken token)
+        public async Task HandleClientAsync(TcpClient client,IotDeviceDto device,CancellationToken token)
         {
-            // 目前未实现服务器模式，仅记录并关闭连接
-            _logger.LogInformation("Modbus RTU handler received connection for device {Device}",device.DeviceName);
-            try { client.Dispose(); } catch { } // 尝试关闭客户端连接
-            return Task.CompletedTask;
+            // 尝试加载点位及变量映射，如果服务未注入则跳过保存功能
+            Dictionary<ushort,IotProductPointDto>? pointMap = null;
+            Dictionary<string,IotDeviceVariableDto>? varMap = null;
+            try
+            {
+                if(_pointService != null && device.ProductId.HasValue)
+                {
+                    var points = await _pointService.GetDtoListAsync(new IotProductPointDto
+                    {
+                        ProductId = device.ProductId,
+                        Status = "0",
+                        DelFlag = "0"
+                    });
+                    pointMap = points.Where(p => p.RegisterAddress.HasValue)
+                                     .ToDictionary(p => (ushort)p.RegisterAddress!.Value);
+                }
+
+                if(_variableService != null)
+                {
+                    varMap = await _variableService.GetVariableMapAsync(device.Id);
+                }
+            }
+            catch(Exception ex)
+            {
+                _logger.LogDebug(ex,"Failed to load mapping for device {Device}",device.DeviceName);
+            }
+
+            try
+            {
+                var stream = client.GetStream();
+                var buffer = new byte[8];
+                while(!token.IsCancellationRequested)
+                {
+                    if(!await ReadExactAsync(stream,buffer,buffer.Length,token)) break;
+                    if(!ValidateCrc(buffer))
+                    {
+                        _logger.LogDebug("CRC error from {Device}",device.DeviceName);
+                        continue;
+                    }
+
+                    byte func = buffer[1];
+                    if(func == 0x06 && pointMap != null && varMap != null)
+                    {
+                        ushort addr = (ushort)((buffer[2] << 8) | buffer[3]);
+                        if(pointMap.TryGetValue(addr,out var point) &&
+                           varMap.TryGetValue(point.PointKey ?? string.Empty,out var varDto) &&
+                           varDto.VariableId.HasValue)
+                        {
+                            var dataBytes = new[] { buffer[4],buffer[5] };
+                            var value = ParseValue(dataBytes,point.DataType,point.ByteOrder,point.Signed ?? false);
+                            await _variableService!.SaveValueAsync(device.Id,varDto.VariableId.Value,point.PointKey!,value);
+                        }
+                    }
+
+                    // 将请求原样回写，保持连接
+                    await stream.WriteAsync(buffer,0,buffer.Length,token);
+                }
+            }
+            catch(Exception ex)
+            {
+                _logger.LogDebug(ex,"Error processing Modbus RTU client for device {Device}",device.DeviceName);
+            }
+            finally
+            {
+                try { client.Dispose(); } catch { }
+            }
         }
 
         /// <summary>
@@ -95,6 +157,85 @@ namespace RuoYi.Tcp.Services
             if(!_connections.TryGetValue(deviceId,out var conn)) return false;
             // 调用设备连接的写入方法
             return await conn.WriteAsync(pointKey,value,token);
+        }
+
+        /// <summary>
+        /// 从网络流中精确读取指定长度的数据。
+        /// </summary>
+        private static async Task<bool> ReadExactAsync(NetworkStream stream,byte[] buffer,int length,CancellationToken token)
+        {
+            int read = 0;
+            while(read < length)
+            {
+                var r = await stream.ReadAsync(buffer,read,length - read,token);
+                if(r == 0) return false;
+                read += r;
+            }
+            return true;
+        }
+
+        /// <summary>
+        /// 解析返回的值，根据数据类型和字节顺序处理。
+        /// </summary>
+        private static string ParseValue(byte[] data,string? dataType,string? order,bool signed)
+        {
+            var buf = ApplyByteOrder(data,order);
+            if(string.Equals(dataType,"float",StringComparison.OrdinalIgnoreCase) && buf.Length >= 4)
+            {
+                if(BitConverter.IsLittleEndian) Array.Reverse(buf);
+                return BitConverter.ToSingle(buf).ToString();
+            }
+            if(buf.Length >= 2)
+            {
+                if(BitConverter.IsLittleEndian) Array.Reverse(buf);
+                return signed ? BitConverter.ToInt16(buf,0).ToString() : BitConverter.ToUInt16(buf,0).ToString();
+            }
+            return BitConverter.ToString(buf);
+        }
+
+        /// <summary>
+        /// 根据字节顺序应用字节序
+        /// </summary>
+        private static byte[] ApplyByteOrder(byte[] bytes,string? order)
+        {
+            if(string.IsNullOrEmpty(order) || order.Equals("ABCD",StringComparison.OrdinalIgnoreCase) || bytes.Length < 4)
+                return bytes;
+            return order.ToUpper() switch
+            {
+                "DCBA" => bytes.Reverse().ToArray(),
+                "BADC" => new[] { bytes[1],bytes[0],bytes[3],bytes[2] },
+                "CDAB" => new[] { bytes[2],bytes[3],bytes[0],bytes[1] },
+                _ => bytes
+            };
+        }
+
+        /// <summary>
+        /// 计算 CRC 校验码
+        /// </summary>
+        private static ushort ComputeCrc(byte[] data)
+        {
+            ushort crc = 0xFFFF;
+            foreach(var b in data)
+            {
+                crc ^= b;
+                for(int i = 0; i < 8; i++)
+                {
+                    if((crc & 1) != 0) crc = (ushort)((crc >> 1) ^ 0xA001);
+                    else crc >>= 1;
+                }
+            }
+            return crc;
+        }
+
+        /// <summary>
+        /// 验证 CRC 校验
+        /// </summary>
+        private static bool ValidateCrc(byte[] frame)
+        {
+            if(frame.Length < 3) return false;
+            ushort crcCalc = ComputeCrc(frame.AsSpan(0,frame.Length - 2).ToArray());
+            ushort crcFrame = (ushort)(frame[^2] | (frame[^1] << 8));
+            return crcCalc == crcFrame;
         }
 
 
