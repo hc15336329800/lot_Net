@@ -132,7 +132,13 @@ namespace RuoYi.Common.Utils
 
         private static LoginUser GetCurrentUser( )
         {
-            return GetLoginUser(App.HttpContext.Request);
+            // return GetLoginUser(App.HttpContext.Request);  原始
+            // 通过在访问之前检查 HTTP 上下文是否为空来进行改进SecurityUtils.GetCurrentUser，以防止在没有 HTTP 请求上下文的情况下运行代码时出现 NullReferenceExceptions
+            var httpContext = App.HttpContext;
+            if(httpContext == null)
+                return null;
+
+            return GetLoginUser(httpContext.Request);
         }
 
         #region Token
