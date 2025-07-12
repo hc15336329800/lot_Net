@@ -35,6 +35,11 @@ public class IotDeviceService : BaseService<IotDevice,IotDeviceDto>, ITransient
         return await _repo.GetDtoFirstAsync(dto);
     }
 
+    public async Task UpdateStatusAsync(long id,string status)
+    {
+        await _repo.UpdateStatusAsync(id,status);
+    }
+
     /// <summary>
     /// 根据设备信息生成自动注册包字符串
     /// </summary>

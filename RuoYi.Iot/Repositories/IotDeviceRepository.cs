@@ -54,4 +54,12 @@ public class IotDeviceRepository : BaseRepository<IotDevice,IotDeviceDto>
                 UpdateTime = d.UpdateTime
             });
     }
+
+    public async Task<int> UpdateStatusAsync(long id,string status)
+    {
+        return await base.Updateable()
+            .SetColumns(d => d.DeviceStatus == status)
+            .Where(d => d.Id == id)
+            .ExecuteCommandAsync();
+    }
 }

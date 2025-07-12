@@ -32,6 +32,8 @@ namespace RuoYi.Tcp.Services
         private readonly TcpServerOptions _options;
         private TcpListener? _listener;
         private readonly ConcurrentDictionary<long,TcpClient> _clients = new(); // 存储连接的客户端
+        private readonly IotDeviceVariableService _variableService;
+
 
 
         // 构造函数，注入所需的服务
@@ -39,6 +41,7 @@ namespace RuoYi.Tcp.Services
                           IServiceProvider serviceProvider,
                           IotDeviceService deviceService,
                           IotProductService productService,
+                            IotDeviceVariableService variableService,
                           IOptions<TcpServerOptions> options)
         {
             _logger = logger;
@@ -46,6 +49,7 @@ namespace RuoYi.Tcp.Services
             _deviceService = deviceService;
             _productService = productService;
             _options = options.Value;
+            _variableService = variableService;
         }
 
 
@@ -99,6 +103,10 @@ namespace RuoYi.Tcp.Services
                     client.Dispose();
                     return;
                 }
+
+                // 标记设备上线并写入历史
+                await _deviceService.UpdateStatusAsync(device.Id,"online");
+                await _variableService.SaveValueAsync(device.Id,0,"online","1");
 
                 // 获取设备的详细信息
                 var deviceDto = await _deviceService.GetDtoAsync(device.Id);

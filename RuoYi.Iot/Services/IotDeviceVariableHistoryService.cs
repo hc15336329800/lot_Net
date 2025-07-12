@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using RuoYi.Data.Dtos.Iot;
+using RuoYi.Data.Dtos.IOT;
 using RuoYi.Iot.Repositories;
 
 namespace RuoYi.Iot.Services
@@ -29,6 +30,14 @@ namespace RuoYi.Iot.Services
         {
             var dto = new IotDeviceVariableHistoryDto { Id = id };
             return await _repo.GetDtoFirstAsync(dto);
+        }
+
+        /// <summary>
+        /// 获取指定设备所有变量的最新值
+        /// </summary>
+        public async Task<List<IotDeviceVariableDto>> GetLatestListAsync(long deviceId)
+        {
+            return await _repo.GetDtoListAsync(new IotDeviceVariableDto { DeviceId = deviceId });
         }
     }
 }

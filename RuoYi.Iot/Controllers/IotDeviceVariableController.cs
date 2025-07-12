@@ -77,5 +77,18 @@ namespace RuoYi.Iot.Controllers
             var data = await _service.DeleteAsync(ids);
             return AjaxResult.Success(data);
         }
+
+
+        /// <summary>
+        /// 获取设备所有点位的最新数据
+        /// </summary>
+        [HttpGet("latest/{deviceId}")]
+        public async Task<AjaxResult> Latest(long deviceId)
+        {
+            var list = await _service.GetLatestListAsync(deviceId);
+            return AjaxResult.Success(list);
+        }
+
+
     }
 }

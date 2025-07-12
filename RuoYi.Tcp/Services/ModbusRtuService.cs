@@ -14,15 +14,16 @@ namespace RuoYi.Tcp.Services
 {
     /// <summary>
     /// ModbusRtu 数据协议 （默认协议） 
+    /// 该类处理 Modbus RTU 通信，它是默认协议。
     /// </summary>
     public class ModbusRtuService : BackgroundService, ITcpService
     {
-        private readonly ILogger<ModbusRtuService> _logger;
-        private readonly IotDeviceService _deviceService;
-        private readonly IotProductPointService _pointService;
-        private readonly IotDeviceVariableService _variableService;
+        private readonly ILogger<ModbusRtuService> _logger; // 用于记录服务的日志
+        private readonly IotDeviceService _deviceService;// 用于与 IoT 设备交互的服务
+        private readonly IotProductPointService _pointService;// 用于与 IoT 产品点交互的服务
+        private readonly IotDeviceVariableService _variableService;// 用于与设备变量交互的服务
 
-        private readonly ConcurrentDictionary<long,DeviceConnection> _connections = new();
+        private readonly ConcurrentDictionary<long,DeviceConnection> _connections = new();// 存储活动的设备连接
 
         public ModbusRtuService(ILogger<ModbusRtuService> logger,
             IotDeviceService deviceService,
@@ -35,55 +36,80 @@ namespace RuoYi.Tcp.Services
             _variableService = variableService;
         }
 
+        /// <summary>
+        /// 处理客户端连接。当前未实现服务器模式，仅记录连接并关闭它。
+        /// </summary>
         public Task HandleClientAsync(TcpClient client,IotDeviceDto device,CancellationToken token)
         {
             // 目前未实现服务器模式，仅记录并关闭连接
             _logger.LogInformation("Modbus RTU handler received connection for device {Device}",device.DeviceName);
-            try { client.Dispose(); } catch { }
+            try { client.Dispose(); } catch { } // 尝试关闭客户端连接
             return Task.CompletedTask;
         }
 
-
+        /// <summary>
+        /// 重写的 ExecuteAsync 方法，负责执行后台服务的异步任务。
+        /// 它定期轮询设备连接并执行相关操作。
+        /// </summary>
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            await LoadDevicesAsync(stoppingToken);
-            while(!stoppingToken.IsCancellationRequested)
+            await LoadDevicesAsync(stoppingToken); // 加载所有设备信息
+            while(!stoppingToken.IsCancellationRequested)// 如果没有取消请求，持续处理
             {
                 foreach(var conn in _connections.Values)
                 {
-                    await conn.PollAsync(stoppingToken);
+                    await conn.PollAsync(stoppingToken);// 对每个设备连接进行轮询操作
                 }
-                await Task.Delay(TimeSpan.FromSeconds(1),stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(1),stoppingToken);// 延迟1秒钟后再继续
             }
         }
 
+        /// <summary>
+        /// 加载所有设备，并为每个设备创建设备连接。
+        /// </summary>
         private async Task LoadDevicesAsync(CancellationToken token)
         {
+            // 获取所有状态正常且未删除的设备列表
+
             var devices = await _deviceService.GetDtoListAsync(new IotDeviceDto { Status = "0",DelFlag = "0" });
             foreach(var d in devices)
             {
+                // 如果设备没有 TCP 主机或端口信息，则跳过
                 if(d.TcpHost == null || d.TcpPort == null) continue;
+                // 获取该设备关联的所有产品点
                 var points = await _pointService.GetDtoListAsync(new IotProductPointDto { ProductId = d.ProductId,Status = "0",DelFlag = "0" });
+                // 获取该设备的变量映射
                 var variableMap = await _variableService.GetVariableMapAsync(d.Id);
+                // 创建设备连接并存储在 _connections 中
                 _connections[d.Id] = new DeviceConnection(d,points,variableMap,_variableService,_logger);
             }
         }
 
+
+        /// <summary>
+        /// 向指定设备的指定点写入数据。
+        /// </summary>
         public async Task<bool> WriteAsync(long deviceId,string pointKey,string value,CancellationToken token = default)
         {
+            // 查找设备连接
             if(!_connections.TryGetValue(deviceId,out var conn)) return false;
+            // 调用设备连接的写入方法
             return await conn.WriteAsync(pointKey,value,token);
         }
 
+
+        /// <summary>
+        /// 设备连接类，负责与设备建立连接并进行数据读写。
+        /// </summary>
         private class DeviceConnection
         {
-            private readonly IotDeviceDto _device;
-            private readonly List<IotProductPointDto> _points;
-            private readonly Dictionary<string,IotDeviceVariableDto> _variableMap;
-            private readonly IotDeviceVariableService _variableService;
-            private readonly ILogger _logger;
-            private TcpClient? _client;
-            private NetworkStream? _stream;
+            private readonly IotDeviceDto _device;// 设备信息
+            private readonly List<IotProductPointDto> _points;// 设备的产品点列表
+            private readonly Dictionary<string,IotDeviceVariableDto> _variableMap;// 设备变量映射
+            private readonly IotDeviceVariableService _variableService;// 变量服务
+            private readonly ILogger _logger;// 日志记录器
+            private TcpClient? _client;// TCP 客户端
+            private NetworkStream? _stream;// 网络流
 
             public DeviceConnection(IotDeviceDto device,List<IotProductPointDto> points,Dictionary<string,IotDeviceVariableDto> variableMap,IotDeviceVariableService variableService,ILogger logger)
             {
@@ -94,99 +120,123 @@ namespace RuoYi.Tcp.Services
                 _logger = logger;
             }
 
+            /// <summary>
+            /// 对设备进行轮询操作，定期读取设备数据。
+            /// </summary>
             public async Task PollAsync(CancellationToken token)
             {
                 try
                 {
-                    await EnsureConnectedAsync(token);
-                    foreach(var p in _points)
+                    await EnsureConnectedAsync(token); // 确保连接已建立
+                    foreach(var p in _points)// 遍历设备点
                     {
                         if(p.FunctionCode == null || p.RegisterAddress == null) continue;
-                        var req = BuildReadFrame(p);
+                        var req = BuildReadFrame(p);// 构建读取请求帧
                         if(req == null) continue;
-                        await _stream!.WriteAsync(req,0,req.Length,token);
-                        var byteCount = (p.DataLength ?? 1) * 2;
+                        await _stream!.WriteAsync(req,0,req.Length,token);// 发送请求帧
+                        var byteCount = (p.DataLength ?? 1) * 2;// 数据字节数
                         var buffer = new byte[5 + byteCount];
                         if(!await ReadExactAsync(_stream!,buffer,buffer.Length,token))
                         {
-                            Close();
+                            Close();// 读取失败时关闭连接
                             return;
                         }
-                        if(!ValidateCrc(buffer))
+                        if(!ValidateCrc(buffer))// 验证 CRC 校验
                         {
                             _logger.LogDebug("CRC error from {Device}",_device.DeviceName);
                             continue;
                         }
-                        var dataBytes = buffer.Skip(3).Take(byteCount).ToArray();
-                        var value = ParseValue(dataBytes,p.DataType,p.ByteOrder,p.Signed ?? false);
-                        if(_variableMap.TryGetValue(p.PointKey ?? string.Empty,out var varDto) && varDto.VariableId.HasValue)
+                        var dataBytes = buffer.Skip(3).Take(byteCount).ToArray();// 提取数据
+                        var value = ParseValue(dataBytes,p.DataType,p.ByteOrder,p.Signed ?? false); // 解析数据值
+                        if(_variableMap.TryGetValue(p.PointKey ?? string.Empty,out var varDto) && varDto.VariableId.HasValue)  
                         {
+                            // 保存数据值
                             await _variableService.SaveValueAsync(_device.Id,varDto.VariableId.Value,p.PointKey!,value);
                         }
                     }
                 }
                 catch(Exception ex)
                 {
-                    _logger.LogDebug(ex,"Poll device {Device} failed",_device.DeviceName);
-                    Close();
+                    _logger.LogDebug(ex,"Poll device {Device} failed",_device.DeviceName); ; // 记录异常
+                    Close();// 关闭连接
                 }
             }
 
+
+            /// <summary>
+            /// 向指定点写入数据值。
+            /// </summary>
             public async Task<bool> WriteAsync(string pointKey,string value,CancellationToken token)
             {
-                var p = _points.FirstOrDefault(pp => pp.PointKey == pointKey);
+                var p = _points.FirstOrDefault(pp => pp.PointKey == pointKey);// 查找指定点
                 if(p == null) return false;
                 try
                 {
-                    await EnsureConnectedAsync(token);
-                    var frame = BuildWriteFrame(p,value);
+                    await EnsureConnectedAsync(token);// 确保连接已建立
+                    var frame = BuildWriteFrame(p,value); // 构建写入请求帧
                     if(frame == null) return false;
-                    await _stream!.WriteAsync(frame,0,frame.Length,token);
+                    await _stream!.WriteAsync(frame,0,frame.Length,token);// 发送写入帧
                     var resp = new byte[frame.Length];
                     if(!await ReadExactAsync(_stream!,resp,resp.Length,token)) return false;
-                    return ValidateCrc(resp);
+                    return ValidateCrc(resp); // 验证写入响应的 CRC 校验
                 }
                 catch(Exception ex)
                 {
                     _logger.LogDebug(ex,"Write device {Device} failed",_device.DeviceName);
-                    Close();
+                    Close(); // 关闭连接
                     return false;
                 }
             }
 
+
+            /// <summary>
+            /// 确保与设备建立连接，如果没有连接则重新建立连接。
+            /// </summary>
             private async Task EnsureConnectedAsync(CancellationToken token)
             {
-                if(_client != null && _client.Connected) return;
-                Close();
-                _client = new TcpClient();
-                await _client.ConnectAsync(_device.TcpHost!,_device.TcpPort!.Value,token);
-                _stream = _client.GetStream();
+                if(_client != null && _client.Connected) return;// 如果已连接则返回
+                Close();// 关闭旧连接
+                _client = new TcpClient();// 创建新连接
+                await _client.ConnectAsync(_device.TcpHost!,_device.TcpPort!.Value,token); // 连接设备
+                _stream = _client.GetStream();// 获取网络流
             }
 
+            /// <summary>
+            /// 关闭设备连接并清理资源。
+            /// </summary>
             private void Close( )
             {
-                try { _stream?.Dispose(); } catch { }
-                try { _client?.Close(); } catch { }
+                try { _stream?.Dispose(); } catch { }// 释放流资源
+                try { _client?.Close(); } catch { }// 关闭客户端连接
                 _stream = null;
                 _client = null;
             }
 
+
+            /// <summary>
+            /// 从网络流中精确读取指定长度的数据。
+            /// </summary>
             private static async Task<bool> ReadExactAsync(NetworkStream stream,byte[] buffer,int length,CancellationToken token)
             {
                 int read = 0;
                 while(read < length)
                 {
                     var r = await stream.ReadAsync(buffer,read,length - read,token);
-                    if(r == 0) return false;
+                    if(r == 0) return false; // 如果读取失败，则返回 false
                     read += r;
                 }
                 return true;
             }
 
+
+
+            /// <summary>
+            /// 构建读取数据请求帧。
+            /// </summary>
             private static byte[]? BuildReadFrame(IotProductPointDto point)
             {
                 if(point.SlaveAddress == null || point.FunctionCode == null || point.RegisterAddress == null) return null;
-                ushort qty = (ushort)(point.DataLength ?? 1);
+                ushort qty = (ushort)(point.DataLength ?? 1);// 读取数据长度
                 byte slave = (byte)point.SlaveAddress.Value;
                 byte func = (byte)point.FunctionCode.Value;
                 byte hiAddr = (byte)(point.RegisterAddress.Value >> 8);
@@ -194,12 +244,17 @@ namespace RuoYi.Tcp.Services
                 byte hiQty = (byte)(qty >> 8);
                 byte loQty = (byte)(qty & 0xFF);
                 var list = new List<byte> { slave,func,hiAddr,loAddr,hiQty,loQty };
-                ushort crc = ComputeCrc(list.ToArray());
+                ushort crc = ComputeCrc(list.ToArray());// 计算 CRC 校验码
                 list.Add((byte)(crc & 0xFF));
                 list.Add((byte)(crc >> 8));
-                return list.ToArray();
+                return list.ToArray(); // 返回请求帧
             }
 
+
+
+            /// <summary>
+            /// 构建写入数据请求帧。
+            /// </summary>
             private static byte[]? BuildWriteFrame(IotProductPointDto point,string value)
             {
                 if(point.SlaveAddress == null || point.FunctionCode == null || point.RegisterAddress == null) return null;
@@ -230,6 +285,11 @@ namespace RuoYi.Tcp.Services
                 return frame.ToArray();
             }
 
+
+
+            /// <summary>
+            /// 构建数据字节，支持简单的 UInt16/Int16/Float32 转换。
+            /// </summary>
             private static byte[] BuildDataBytes(string value,IotProductPointDto point)
             {
                 // only simple UInt16/Int16/Float32 conversions handled
@@ -250,6 +310,11 @@ namespace RuoYi.Tcp.Services
                 }
             }
 
+
+
+            /// <summary>
+            /// 解析返回的值，根据数据类型和字节顺序处理。
+            /// </summary>
             private static string ParseValue(byte[] data,string? dataType,string? order,bool signed)
             {
                 var buf = ApplyByteOrder(data,order);
@@ -266,6 +331,10 @@ namespace RuoYi.Tcp.Services
                 return BitConverter.ToString(buf);
             }
 
+
+            /// <summary>
+            /// 根据字节顺序应用字节序
+            /// </summary>
             private static byte[] ApplyByteOrder(byte[] bytes,string? order)
             {
                 if(string.IsNullOrEmpty(order) || order.Equals("ABCD",StringComparison.OrdinalIgnoreCase) || bytes.Length < 4)
@@ -279,6 +348,10 @@ namespace RuoYi.Tcp.Services
                 };
             }
 
+
+            /// <summary>
+            /// 计算 CRC 校验码
+            /// </summary>
             private static ushort ComputeCrc(byte[] data)
             {
                 ushort crc = 0xFFFF;
@@ -294,12 +367,15 @@ namespace RuoYi.Tcp.Services
                 return crc;
             }
 
+            /// <summary>
+            /// 验证 CRC 校验
+            /// </summary>
             private static bool ValidateCrc(byte[] frame)
             {
                 if(frame.Length < 3) return false;
                 ushort crcCalc = ComputeCrc(frame.AsSpan(0,frame.Length - 2).ToArray());
                 ushort crcFrame = (ushort)(frame[^2] | (frame[^1] << 8));
-                return crcCalc == crcFrame;
+                return crcCalc == crcFrame;// 验证 CRC 校验码是否匹配
             }
         }
     }
