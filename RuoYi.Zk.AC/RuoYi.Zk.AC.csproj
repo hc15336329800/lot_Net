@@ -11,6 +11,7 @@
     <ProjectReference Include="..\RuoYi.Data\RuoYi.Data.csproj" />
     <ProjectReference Include="..\RuoYi.Framework\RuoYi.Framework.csproj" />
     <ProjectReference Include="..\RuoYi.System\RuoYi.System.csproj" />
+    <ProjectReference Include="..\RuoYi.Tcp\RuoYi.Tcp.csproj" />
   </ItemGroup>
 
 </Project>

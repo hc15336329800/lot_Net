@@ -110,7 +110,9 @@ internal class Program
 
         // ← 在这里注册后台服务   新增的tcp业务
         //由于该服务与 HTTP 请求管道无关，而是随宿主一起启动的后台任务，因此应放在 Program.cs 中
-        builder.Services.AddHostedService<SensorDataListenerService>();
+        //builder.Services.AddHostedService<SensorDataListenerService>();
+
+        //整改： TCP 服务在 RuoYi.Tcp 模块的 Startup 中注册
 
 
         // 构建应用程序，准备启动

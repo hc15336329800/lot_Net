@@ -16,7 +16,6 @@
     <Folder Include="Dao\" />
     <Folder Include="Model\" />
     <Folder Include="Repositories\" />
-    <Folder Include="Services\" />
   </ItemGroup>
 
 </Project>

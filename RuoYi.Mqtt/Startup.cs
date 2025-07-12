@@ -4,6 +4,11 @@ using RuoYi.Mqtt.Services;
 
 namespace RuoYi.Mqtt
 {
+    // MQTT 服务虽然没有在 Program.cs 中显式注册，但它已经通过框架的 AppStartup 机制自动集成到应用启动流程。
+    // 框架在 AddApp() 中执行 AddStartups() 扫描,AddStartups() 会遍历所有继承 AppStartup 的类并执行其 ConfigureServices 方法
+
+
+
     [AppStartup(500)] // 设置模块启动顺序，确保在 Admin 启动后加载
     public sealed class Startup : AppStartup
     {

@@ -13,7 +13,8 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
 using RuoYi.Zk.AC.Model.Entities;
 using RuoYi.Zk.AC.Model.Dto;
- 
+using RuoYi.Tcp.Services;
+
 
 namespace RuoYi.Zk.AC.Controllers
 {
@@ -26,16 +27,19 @@ namespace RuoYi.Zk.AC.Controllers
     {
         private readonly ILogger<AcAirConditionersController> _logger;
         private readonly AcAirConditionersService _acAirConditionersService;
+        private readonly ITcpService _tcpService; //tcp服务
 
- 
+
 
 
 
         public AcAirConditionersController(ILogger<AcAirConditionersController> logger,
-            AcAirConditionersService acAirConditionersService)
+            AcAirConditionersService acAirConditionersService,
+            ITcpService tcpService)
         {
             _logger = logger;
             _acAirConditionersService = acAirConditionersService;
+            _tcpService = tcpService;
         }
 
 
@@ -57,14 +61,17 @@ namespace RuoYi.Zk.AC.Controllers
 
         /// <summary>
         /// 获取所有已注册并上报过位置的小车状态
-        /// “小车与导轨不绑定”版本
+        /// 版本： “小车与导轨不绑定”
         /// </summary>
         [HttpGet("sensorCars")]
         public Task<AjaxResult> GetSensorCars( )
         {
             // 拿到两个全局字典
-            var posDict = SensorDataListenerService.SensorPositions;
-            var railDict = SensorDataListenerService.SensorRails;
+            //var posDict = SensorDataListenerService.SensorPositions;
+            //var railDict = SensorDataListenerService.SensorRails;
+
+            var posDict = _tcpService.SensorPositions;
+            var railDict = _tcpService.SensorRails;
 
             // 扁平化每辆车
             var list = posDict.Select(kvp =>
@@ -105,7 +112,7 @@ namespace RuoYi.Zk.AC.Controllers
 
 
         /// <summary>
-        /// 获取实时小车位置（基于 SensorDataListenerService 中最新上报的数据）
+        /// 获取实时小车位置（基于 TCP 服务中最新上报的数据）
         /// 版本： 小策绑定导轨
         /// </summary>
         [HttpGet("sensorCarsV2")]
@@ -130,8 +137,9 @@ namespace RuoYi.Zk.AC.Controllers
                     var sensorId = $"rail{i + 1}-car{j + 1}";
 
                     // 取最新上报的定位点索引，默认 1
-                    SensorDataListenerService.SensorPositions
-                        .TryGetValue(sensorId,out int posIndex);
+                    _tcpService.SensorPositions.TryGetValue(sensorId,out int posIndex);
+
+
                     posIndex = Math.Clamp(posIndex,1,carsPerRail);
 
                     // 把 1–5 的定位点映射到 0–100 百分比
@@ -157,55 +165,7 @@ namespace RuoYi.Zk.AC.Controllers
         }
 
         // ============================================ 实时小车接口（基于传感器上报） ============================================
-
-        /// <summary>
-        /// 获取实时小车位置（基于 SensorDataListenerService 中最新上报的数据）
-        /// </summary>
-        [HttpGet("sensorCars01")]
-        public Task<AjaxResult> GetSensorCars01( )
-        {
-            const int railCount = 3;
-            const int carsPerRail = 5;
-            const double minY = 10;
-            const double maxY = 90;
-            // 计算三条轨道在 y 轴上的等分位置
-            var stepY = (maxY - minY) / Math.Max(railCount - 1,1);
-
-            var rails = new List<object>();
-            for(int i = 0; i < railCount; i++)
-            {
-                double y = minY + stepY * i;
-                var cars = new List<object>();
-                for(int j = 0; j < carsPerRail; j++)
-                {
-                    // 对应的 sensorId，与后台 TCP 服务注册包映射保持一致
-                    var sensorId = $"rail{i + 1}-car{j + 1}";
-                    // 从后台服务获取最新的定位点索引，未上报则默认为 1
-                    SensorDataListenerService.SensorPositions.TryGetValue(sensorId,out int posIndex);
-                    posIndex = Math.Clamp(posIndex,1,carsPerRail);
-                    // 将 1–5 的定位点线性映射到 0–100 的偏移百分比
-                    double offset = (posIndex - 1) / (double)(carsPerRail - 1) * 100;
-
-                    cars.Add(new
-                    {
-                        id = sensorId,
-                        name = $"小车 {i + 1}-{j + 1}",
-                        offset
-                    });
-                }
-                rails.Add(new
-                {
-                    id = $"rail{i + 1}",
-                    y,
-                    cars
-                });
-            }
-
-            // 直接返回，不走服务层
-            return Task.FromResult(AjaxResult.Success(rails));
-        }
-
-
+ 
 
         //============================================模拟小车============================================
 
