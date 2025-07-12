@@ -17,9 +17,9 @@ namespace RuoYi.Tcp
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<TcpListenerService>();
-            services.AddSingleton<ITcpService>(sp => sp.GetRequiredService<TcpListenerService>());
-            services.AddHostedService(sp => sp.GetRequiredService<TcpListenerService>());
+            services.AddSingleton<ModbusTcpService>();
+            services.AddSingleton<ITcpService>(sp => sp.GetRequiredService<ModbusTcpService>());
+            services.AddHostedService(sp => sp.GetRequiredService<ModbusTcpService>());
 
             services.AddSingleton<ModbusTcpService>();
             services.AddHostedService(sp => sp.GetRequiredService<ModbusTcpService>());

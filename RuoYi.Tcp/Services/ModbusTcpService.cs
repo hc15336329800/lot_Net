@@ -15,7 +15,7 @@ namespace RuoYi.Tcp.Services
     /// <summary>
     /// Background service polling Modbus TCP devices and persisting variable values.
     /// </summary>
-    public class ModbusTcpService : BackgroundService
+    public class ModbusTcpService : BackgroundService, ITcpService
     {
         private readonly ILogger<ModbusTcpService> _logger;
         private readonly IotDeviceService _deviceService;
