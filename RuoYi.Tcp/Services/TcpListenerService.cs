@@ -7,15 +7,14 @@ using Microsoft.Extensions.Configuration;
 using RuoYi.Iot.Services;
 using System.Text;
 using RuoYi.Iot.Controllers;
-using System.Text;
 using System.Text.Json;
-using RuoYi.Iot.Services;
 using RuoYi.Data.Dtos.IOT;
+using RuoYi.Framework.Utils;
 
 namespace RuoYi.Tcp.Services
 {
     /// <summary>
-    /// 后台 TCP 服务，负责监听传感器数据并更新位置映射。
+    /// 后台 TCP 服务，负责监听传感器数据并更新位置映射。当前服务特定于传感器协议！
     /// </summary>
     public class TcpListenerService : BackgroundService, ITcpService
     {
@@ -190,23 +189,9 @@ namespace RuoYi.Tcp.Services
             }
         }
 
-        private static ushort ComputeModbusCrc(byte[] data,int offset,int length)
-        {
-            ushort crc = 0xFFFF;
-            for(int i = 0; i < length; i++)
-            {
-                crc ^= data[offset + i];
-                for(int bit = 0; bit < 8; bit++)
-                {
-                    bool lsb = (crc & 0x0001) != 0;
-                    crc >>= 1;
-                    if(lsb) crc ^= 0xA001;
-                }
-            }
-            return crc;
-        }
+ 
 
-
+        // Modbus方式 - 备用勿删  
         private async Task HandleClientAsyncModbus(TcpClient client,CancellationToken token)
         {
             var remote = client.Client.RemoteEndPoint;
@@ -250,7 +235,7 @@ namespace RuoYi.Tcp.Services
                                 leftover[idx + 2] == 0x02)
                             {
                                 var frame = leftover.Skip(idx).Take(7).ToArray();
-                                ushort crcCalc = ComputeModbusCrc(frame,0,5);
+                                ushort crcCalc = Crc16Utils.ComputeModbus(frame,0,5);
                                 ushort crcFrame = (ushort)(frame[5] | (frame[6] << 8));
                                 if(crcCalc == crcFrame)
                                 {
