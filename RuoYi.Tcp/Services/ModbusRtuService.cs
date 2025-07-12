@@ -35,6 +35,15 @@ namespace RuoYi.Tcp.Services
             _variableService = variableService;
         }
 
+        public Task HandleClientAsync(TcpClient client,IotDeviceDto device,CancellationToken token)
+        {
+            // 目前未实现服务器模式，仅记录并关闭连接
+            _logger.LogInformation("Modbus RTU handler received connection for device {Device}",device.DeviceName);
+            try { client.Dispose(); } catch { }
+            return Task.CompletedTask;
+        }
+
+
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             await LoadDevicesAsync(stoppingToken);

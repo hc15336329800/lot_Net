@@ -1,11 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Concurrent;
+using System.Net;
+using System.Net.Sockets;
 using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
+using RuoYi.Data.Entities.Iot;
+using RuoYi.Data.Dtos.IOT;
+using RuoYi.Iot.Services;
+using RuoYi.Tcp.Configs;
 
+// 这个类的主要职责是监听和分发 TCP 连接请求，
 
-// 这个类的主要职责是监听以及分发调用！
 
 // todo:  主要实现tcp的通讯连接管理， 根据首次握手时收到的注册包则去设备表查询（auto_reg_packet=注册包）然后根据结果再去查询产品表（设备的product_id=产品id），
 // 然后在产品表查询其接入协议access_protocol类型 （1 表示 TCP，2 表示 MQTT，3 表示 HTTPS）
@@ -13,7 +20,132 @@ using System.Threading.Tasks;
 // 当access_protocol =1  和 data_protocol =2 时候去调用ModbusTcpService，
 namespace RuoYi.Tcp.Services
 {
-    public class TcpService
+    /// <summary>
+    /// TCP 监听服务，根据注册包分发到具体协议处理器。
+    /// </summary>
+    public class TcpService : BackgroundService
     {
+        private readonly ILogger<TcpService> _logger;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly IotDeviceService _deviceService;
+        private readonly IotProductService _productService;
+        private readonly TcpServerOptions _options;
+        private TcpListener? _listener;
+        private readonly ConcurrentDictionary<long,TcpClient> _clients = new(); // 存储连接的客户端
+
+
+        // 构造函数，注入所需的服务
+        public TcpService(ILogger<TcpService> logger,
+                          IServiceProvider serviceProvider,
+                          IotDeviceService deviceService,
+                          IotProductService productService,
+                          IOptions<TcpServerOptions> options)
+        {
+            _logger = logger;
+            _serviceProvider = serviceProvider;
+            _deviceService = deviceService;
+            _productService = productService;
+            _options = options.Value;
+        }
+
+
+        // 重写 ExecuteAsync 方法，执行后台服务的异步任务
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            _listener = new TcpListener(IPAddress.Any,_options.Port);
+            _listener.Start();
+            _logger.LogInformation("TCP listener started on port {Port}",_options.Port);
+
+            while(!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    var client = await _listener.AcceptTcpClientAsync(stoppingToken);
+                    _ = HandleClientAsync(client,stoppingToken);
+                }
+                catch(OperationCanceledException)
+                {
+                    break;
+                }
+                catch(Exception ex)
+                {
+                    _logger.LogError(ex,"Error accepting TCP client");
+                }
+            }
+        }
+
+        // 异步处理客户端连接
+        private async Task HandleClientAsync(TcpClient client,CancellationToken token)
+        {
+            IotDevice? device = null;
+            try
+            {
+                // 获取客户端的网络流
+                var stream = client.GetStream();
+                var buffer = new byte[256];
+                var length = await stream.ReadAsync(buffer,0,buffer.Length,token);
+                var reg = Encoding.UTF8.GetString(buffer,0,length).Trim();// 读取并解析注册包
+                if(string.IsNullOrEmpty(reg))  // 如果注册包为空，则关闭连接
+                {
+                    client.Dispose();
+                    return;
+                }
+
+                // 根据注册包查询设备
+                device = await _deviceService.BaseRepo.Repo.FirstOrDefaultAsync(d => d.AutoRegPacket == reg);
+                if(device == null)
+                {
+                    _logger.LogWarning("Unknown registration packet: {Packet}",reg);// 记录未知注册包警告
+                    client.Dispose();
+                    return;
+                }
+
+                // 获取设备的详细信息
+                var deviceDto = await _deviceService.GetDtoAsync(device.Id);
+                var productId = device.ProductId;
+                var product = await _productService.GetDtoAsync(productId);
+                _clients[device.Id] = client;// 将设备 ID 和客户端关联起来
+
+                ITcpService? handler = null;
+                // 根据产品的接入协议和数据协议选择处理器
+                if(product.AccessProtocol == "1" && product.DataProtocol == "1")
+                {
+                    // 如果接入协议是 TCP 且数据协议是 ModbusRTU，则使用 ModbusRtuService 处理
+                    handler = _serviceProvider.GetService<ModbusRtuService>();
+                }
+
+                // 调用相应协议的处理器来处理客户端请求
+                if(handler != null)
+                {
+                    await handler.HandleClientAsync(client,deviceDto,token);
+                }
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex,"Error handling tcp client");// 记录处理客户端时的异常
+            }
+            finally
+            {
+                // 清理工作：移除客户端并关闭连接\
+                if(device != null)
+                {
+                    _clients.TryRemove(device.Id,out _);
+                }
+                try { client.Dispose(); } catch { } // 安全关闭客户端连接
+            }
+        }
+
+
+        // 重写 Dispose 方法，停止监听器并清理资源
+        public override void Dispose( )
+        {
+            base.Dispose();
+            try { _listener?.Stop(); } catch { }// 停止 TCP 监听器
+            foreach(var c in _clients.Values)
+            {
+                try { c.Dispose(); } catch { }// 安全关闭所有客户端连接
+            }
+            _clients.Clear();// 清空客户端列表
+        }
     }
 }
