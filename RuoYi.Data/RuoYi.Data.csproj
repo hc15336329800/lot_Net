@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="新文件夹\" />
+    <Folder Include="共享模型\" />
   </ItemGroup>
 
 </Project>
