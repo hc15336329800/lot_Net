@@ -31,13 +31,13 @@ namespace RuoYi.Data.Entities.Iot
         [SugarColumn(ColumnName = "brand_name",ColumnDescription = "品牌名称")]
         public string BrandName { get; set; } = string.Empty;
 
-        [SugarColumn(ColumnName = "network_protocol",ColumnDescription = "联网方式")]
+        [SugarColumn(ColumnName = "network_protocol",ColumnDescription = "联网方式（，1 表示蜂窝数据2/3/4/5G，2 表示以太网，3 表示 WiFi，4 表示 NB-IoT，5 表示串口。）")]
         public string NetworkProtocol { get; set; } = string.Empty;
 
-        [SugarColumn(ColumnName = "access_protocol",ColumnDescription = "接入协议")]
+        [SugarColumn(ColumnName = "access_protocol",ColumnDescription = "接入协议（1 表示 TCP，2 表示 MQTT，3 表示 HTTPS，4 表示 LwM2M，5 表示 LoRaWan，6 表示通过网关。）")]
         public string AccessProtocol { get; set; } = string.Empty;
 
-        [SugarColumn(ColumnName = "data_protocol",ColumnDescription = "数据协议")]
+        [SugarColumn(ColumnName = "data_protocol",ColumnDescription = "数据协议（1 表示 Modbus RTU，2 表示 Modbus TCP，3 表示 DL/T645-1997，4 表示 DL/T645-2007，5 表示 DL/T698.45-2017，6 表示 JSON，7 表示数据透传，8 表示自定义 Zigbee 协议，9 表示 CJ/T188-2004。）")]
         public string DataProtocol { get; set; } = string.Empty;
 
         [SugarColumn(ColumnName = "is_shared",ColumnDescription = "是否共享")]

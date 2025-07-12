@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace RuoYi.Iot.Enums
+namespace RuoYi.Data.Enums
 {
     /// <summary>
     /// 接入协议
