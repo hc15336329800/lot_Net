@@ -60,4 +60,14 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
 
 
     }
+
+    /// <summary>
+    /// 获取指定设备的变量键映射
+    /// </summary>
+    public async Task<Dictionary<string,IotDeviceVariableDto>> GetVariableMapAsync(long deviceId)
+    {
+        var list = await _repo.GetDtoListAsync(new IotDeviceVariableDto { DeviceId = deviceId });
+        return list.Where(v => !string.IsNullOrEmpty(v.VariableKey))
+                   .ToDictionary(v => v.VariableKey!,v => v);
+    }
 }

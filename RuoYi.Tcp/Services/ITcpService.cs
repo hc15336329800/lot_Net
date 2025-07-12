@@ -14,16 +14,16 @@ namespace RuoYi.Tcp.Services
         /// <summary>
         /// 传感器对应的轨道号字典。
         /// </summary>
-        System.Collections.Concurrent.ConcurrentDictionary<string,int> SensorRails { get; }
+        global::System.Collections.Concurrent.ConcurrentDictionary<string,int> SensorRails { get; }
 
         /// <summary>
         /// 传感器对应的位置点字典。
         /// </summary>
-        System.Collections.Concurrent.ConcurrentDictionary<string,int> SensorPositions { get; }
+        global::System.Collections.Concurrent.ConcurrentDictionary<string,int> SensorPositions { get; }
 
         /// <summary>
         /// 当接收到新的定位数据时触发。参数依次为传感器ID、轨道号、定位点。
         /// </summary>
-        event System.Action<string,int,int> OnDataReceived;
+        event global::System.Action<string,int,int> OnDataReceived;
     }
 }

@@ -4,6 +4,13 @@ using System.Collections.Concurrent;
 using System.Net.Sockets;
 using System.Net;
 using Microsoft.Extensions.Configuration;
+using RuoYi.Iot.Services;
+using System.Text;
+using RuoYi.Iot.Controllers;
+using System.Text;
+using System.Text.Json;
+using RuoYi.Iot.Services;
+using RuoYi.Data.Dtos.IOT;
 
 namespace RuoYi.Tcp.Services
 {
@@ -14,21 +21,25 @@ namespace RuoYi.Tcp.Services
     {
         private readonly ILogger<TcpListenerService> _logger;
         private readonly int _port;
+        private readonly IotDeviceVariableService _deviceVariableService;
+
 
         private readonly int _railCount = 4;
         private readonly int _posCount = 5;
 
-        public ConcurrentDictionary<string,int> SensorRails { get; } = new();
-        public ConcurrentDictionary<string,int> SensorPositions { get; } = new();
+        public global::System.Collections.Concurrent.ConcurrentDictionary<string,int> SensorRails { get; } = new();
+        public global::System.Collections.Concurrent.ConcurrentDictionary<string,int> SensorPositions { get; } = new();
 
-        private readonly ConcurrentDictionary<string,string> _connectionMap = new();
+        private readonly global::System.Collections.Concurrent.ConcurrentDictionary<string,string> _connectionMap = new();
 
-        public event Action<string,int,int>? OnDataReceived;
+        public event global::System.Action<string,int,int>? OnDataReceived;
 
-        public TcpListenerService(ILogger<TcpListenerService> logger,IConfiguration configuration)
+        public TcpListenerService(ILogger<TcpListenerService> logger,IConfiguration configuration,IotDeviceVariableService deviceVariableService)
         {
             _logger = logger;
             _port = configuration.GetValue<int>("SensorListener:Port",5003);
+            _deviceVariableService = deviceVariableService;
+
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -74,6 +85,19 @@ namespace RuoYi.Tcp.Services
 
                         leftover.AddRange(buf.AsSpan(0,bytesRead).ToArray());
                         leftover.RemoveAll(b => b == 0x0D || b == 0x0A);
+
+
+                        var textPayload2 = Encoding.UTF8.GetString(buf,0,bytesRead).Trim();
+                        if(!string.IsNullOrEmpty(textPayload2))
+                        {
+                            await HandlePayloadAsync(textPayload2);
+                        }
+
+                        var textPayload = Encoding.UTF8.GetString(buf,0,bytesRead).Trim();
+                        if(!string.IsNullOrEmpty(textPayload))
+                        {
+                            await HandlePayloadAsync(textPayload);
+                        }
 
                         int idx = 0;
 
@@ -140,6 +164,29 @@ namespace RuoYi.Tcp.Services
                 registered = false;
                 _connectionMap.TryRemove(clientKey,out _);
                 _logger.LogInformation("TCP 客户端已断开：{Remote}",remote);
+            }
+        }
+
+        private async Task HandlePayloadAsync(string payload)
+        {
+            try
+            {
+                var data = JsonSerializer.Deserialize<DevicePayload>(payload);
+                if(data != null && data.DeviceId > 0 && data.Values != null)
+                {
+                    var map = await _deviceVariableService.GetVariableMapAsync(data.DeviceId);
+                    foreach(var kv in data.Values)
+                    {
+                        if(map.TryGetValue(kv.Key,out var variable) && variable.VariableId.HasValue)
+                        {
+                            await _deviceVariableService.SaveValueAsync(data.DeviceId,variable.VariableId.Value,kv.Key,kv.Value);
+                        }
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                _logger.LogDebug(ex,"Failed to parse TCP payload");
             }
         }
 
