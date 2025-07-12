@@ -54,18 +54,28 @@ namespace RuoYi.Tcp.Services
                         Status = "0",
                         DelFlag = "0"
                     });
-                    pointMap = points.Where(p => p.RegisterAddress.HasValue)
-                                     .ToDictionary(p => (ushort)p.RegisterAddress!.Value);
+                    // 只保留第一个重复的寄存器点位
+                    pointMap = points
+                        .Where(p => p.RegisterAddress.HasValue)
+                        .GroupBy(p => (ushort)p.RegisterAddress!.Value)
+                        .ToDictionary(g => g.Key,g => g.First());
+
                 }
 
-                if(_variableService != null)
+                // 【调试】输出变量映射表内容和数量，判断是否为空
+                if(varMap == null || varMap.Count == 0)
                 {
-                    varMap = await _variableService.GetVariableMapAsync(device.Id);
+                    Console.WriteLine($"【调试警告】设备 {device.DeviceName} 的变量映射 varMap 为空，请检查变量配置或GetVariableMapAsync实现！");
+                }
+                else
+                {
+                    Console.WriteLine($"【调试】设备 {device.DeviceName} 的变量映射 varMap.Count={varMap.Count}，keys=" + string.Join(",",varMap.Keys));
                 }
             }
             catch(Exception ex)
             {
                 _logger.LogDebug(ex,"Failed to load mapping for device {Device}",device.DeviceName);
+                Console.WriteLine($"【异常】加载设备映射关系失败：{device.DeviceName}，异常信息：{ex.Message}");
             }
 
             try
@@ -85,7 +95,9 @@ namespace RuoYi.Tcp.Services
                     // === 2. 校验CRC，仅处理合法包 ===
                     if(!ValidateCrc(recv))
                     {
-                        _logger.LogDebug("CRC error from {Device}",device.DeviceName);
+                        _logger.LogDebug("CRC校验失败，设备：{Device}",device.DeviceName);
+                        Console.WriteLine($"【警告】CRC校验失败，设备：{device.DeviceName}，数据：" +
+                            BitConverter.ToString(recv).Replace("-"," "));
                         continue;
                     }
 
@@ -98,9 +110,13 @@ namespace RuoYi.Tcp.Services
                         // 读保持/输入寄存器响应
                         byte byteCount = recv[2]; // 数据区长度（字节数）
                         if(recv.Length < 3 + byteCount + 2)
-                            continue; // 帧长度异常
+                             continue; // 帧长度异常
 
                         var dataBytes = recv.Skip(3).Take(byteCount).ToArray();
+
+                        // 打印当前点位映射和变量映射数量
+                        Console.WriteLine($"【调试】pointMap.Count={pointMap?.Count}, varMap.Count={varMap?.Count}");
+
 
                         // 由于一次请求可能读多个寄存器，每2字节一个寄存器
                         for(int i = 0; i < byteCount / 2; i++)
@@ -112,6 +128,10 @@ namespace RuoYi.Tcp.Services
                             if(basePoint != null)
                                 regAddr = (ushort)(basePoint.RegisterAddress!.Value + i);
 
+                            // ★ 1. 显示当前要解析的寄存器地址
+                            Console.WriteLine($"【调试】正在解析寄存器地址：{regAddr}");
+
+
                             if(pointMap.TryGetValue(regAddr,out var point) && point.PointKey != null
                                 && varMap.TryGetValue(point.PointKey,out var varDto) && varDto.VariableId.HasValue)
                             {
@@ -119,11 +139,24 @@ namespace RuoYi.Tcp.Services
                                 var singleRegBytes = dataBytes.Skip(i * 2).Take(2).ToArray();
                                 var value = ParseValue(singleRegBytes,point.DataType,point.ByteOrder,point.Signed ?? false);
 
+                                // ★ 2. 存库前打印准备写入信息
+                                Console.WriteLine($"【准备存库】设备：{device.DeviceName}，功能码：{func:X2}，寄存器地址：{regAddr}，点位：{point.PointKey}，值：{value}");
+
+
                                 // 存库
                                 await _variableService!.SaveValueAsync(device.Id,varDto.VariableId.Value,point.PointKey,value);
 
                                 // 日志记录
-                                _logger.LogDebug($"Device:{device.DeviceName} Func:{func:X2} Addr:{regAddr} Val:{value}");
+                                string msg = $"【存库成功】设备：{device.DeviceName}，功能码：{func:X2}，寄存器地址：{regAddr}，点位：{point.PointKey}，值：{value}";
+                                _logger.LogDebug(msg);
+                                Console.WriteLine(msg);
+
+
+                            }
+                            else
+                            {
+                                // ★ 3. 没查到映射时提示
+                                Console.WriteLine($"【警告】未匹配到点位或变量，寄存器地址={regAddr}");
                             }
                         }
                     }
@@ -141,7 +174,9 @@ namespace RuoYi.Tcp.Services
                             await _variableService!.SaveValueAsync(device.Id,varDto.VariableId.Value,point.PointKey,value);
 
                             // 日志记录
-                            _logger.LogDebug($"Device:{device.DeviceName} Func:{func:X2} Addr:{addr} Val:{value}");
+                            string msg = $"【写入成功】设备：{device.DeviceName}，功能码：{func:X2}，寄存器地址：{addr}，点位：{point.PointKey}，值：{value}";
+                            _logger.LogDebug(msg);
+                            Console.WriteLine(msg);
                         }
                     }
                     // 可扩展更多功能码解析
@@ -161,10 +196,14 @@ namespace RuoYi.Tcp.Services
             catch(Exception ex)
             {
                 _logger.LogDebug(ex,"Error processing Modbus RTU client for device {Device}",device.DeviceName);
+                Console.WriteLine($"【异常】处理Modbus RTU客户端异常，设备：{device.DeviceName}，异常信息：{ex.Message}");
+
             }
             finally
             {
                 try { client.Dispose(); } catch { }
+                Console.WriteLine($"【断开连接】设备：{device.DeviceName} 已断开。");
+
             }
         }
 
@@ -350,7 +389,7 @@ namespace RuoYi.Tcp.Services
                         }
                         var dataBytes = buffer.Skip(3).Take(byteCount).ToArray();// 提取数据
                         var value = ParseValue(dataBytes,p.DataType,p.ByteOrder,p.Signed ?? false); // 解析数据值
-                        if(_variableMap.TryGetValue(p.PointKey ?? string.Empty,out var varDto) && varDto.VariableId.HasValue)  
+                        if(_variableMap.TryGetValue(p.PointKey ?? string.Empty,out var varDto) && varDto.VariableId.HasValue)
                         {
                             // 保存数据值
                             await _variableService.SaveValueAsync(_device.Id,varDto.VariableId.Value,p.PointKey!,value);
