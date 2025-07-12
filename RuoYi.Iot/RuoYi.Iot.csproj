@@ -18,6 +18,7 @@
     <Folder Include="Model\" />
     <Folder Include="Repositories\" />
     <Folder Include="Services\" />
+    <Folder Include="mysql\" />
   </ItemGroup>
 
 </Project>
