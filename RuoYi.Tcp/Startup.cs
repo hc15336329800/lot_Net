@@ -20,9 +20,7 @@ namespace RuoYi.Tcp
             services.AddSingleton<ModbusTcpService>();
             services.AddSingleton<ITcpService>(sp => sp.GetRequiredService<ModbusTcpService>());
             services.AddHostedService(sp => sp.GetRequiredService<ModbusTcpService>());
-
-            services.AddSingleton<ModbusTcpService>();
-            services.AddHostedService(sp => sp.GetRequiredService<ModbusTcpService>());
+ 
         }
     }
 }

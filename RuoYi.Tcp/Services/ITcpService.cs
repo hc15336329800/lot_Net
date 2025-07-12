@@ -12,5 +12,6 @@ namespace RuoYi.Tcp.Services
     public interface ITcpService
     {
 
+
     }
 }
