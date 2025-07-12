@@ -41,7 +41,7 @@ namespace RuoYi.Tcp.Services
         /// </summary>
         public async Task HandleClientAsync(TcpClient client,IotDeviceDto device,CancellationToken token)
         {
-            // 尝试加载点位及变量映射，如果服务未注入则跳过保存功能
+            // 加载点位映射和变量映射，便于后续解析后存库
             Dictionary<ushort,IotProductPointDto>? pointMap = null;
             Dictionary<string,IotDeviceVariableDto>? varMap = null;
             try
@@ -71,32 +71,91 @@ namespace RuoYi.Tcp.Services
             try
             {
                 var stream = client.GetStream();
-                var buffer = new byte[8];
+                var buffer = new byte[256]; // 最大包长度，够用即可
+
                 while(!token.IsCancellationRequested)
                 {
-                    if(!await ReadExactAsync(stream,buffer,buffer.Length,token)) break;
-                    if(!ValidateCrc(buffer))
+                    // === 1. 读取一包（建议按8或最大帧长读取，也可以自适应读取再判断包长） ===
+                    int readLen = await stream.ReadAsync(buffer,0,buffer.Length,token);
+                    if(readLen < 5) // Modbus最短帧为5字节
+                        break;
+
+                    var recv = buffer.Take(readLen).ToArray();
+
+                    // === 2. 校验CRC，仅处理合法包 ===
+                    if(!ValidateCrc(recv))
                     {
                         _logger.LogDebug("CRC error from {Device}",device.DeviceName);
                         continue;
                     }
 
-                    byte func = buffer[1];
-                    if(func == 0x06 && pointMap != null && varMap != null)
+                    byte slaveAddr = recv[0]; // 设备地址
+                    byte func = recv[1];      // 功能码
+
+                    // === 3. 根据不同功能码处理 ===
+                    if((func == 0x03 || func == 0x04) && pointMap != null && varMap != null)
                     {
-                        ushort addr = (ushort)((buffer[2] << 8) | buffer[3]);
-                        if(pointMap.TryGetValue(addr,out var point) &&
-                           varMap.TryGetValue(point.PointKey ?? string.Empty,out var varDto) &&
-                           varDto.VariableId.HasValue)
+                        // 读保持/输入寄存器响应
+                        byte byteCount = recv[2]; // 数据区长度（字节数）
+                        if(recv.Length < 3 + byteCount + 2)
+                            continue; // 帧长度异常
+
+                        var dataBytes = recv.Skip(3).Take(byteCount).ToArray();
+
+                        // 由于一次请求可能读多个寄存器，每2字节一个寄存器
+                        for(int i = 0; i < byteCount / 2; i++)
                         {
-                            var dataBytes = new[] { buffer[4],buffer[5] };
-                            var value = ParseValue(dataBytes,point.DataType,point.ByteOrder,point.Signed ?? false);
-                            await _variableService!.SaveValueAsync(device.Id,varDto.VariableId.Value,point.PointKey!,value);
+                            ushort regAddr = 0;
+                            // 通常可以通过查询请求时的寄存器起始地址来定位真实点位，这里举例假设连续映射
+                            // 你可自定义寄存器基址，这里用i叠加
+                            var basePoint = pointMap.Values.OrderBy(p => p.RegisterAddress).FirstOrDefault();
+                            if(basePoint != null)
+                                regAddr = (ushort)(basePoint.RegisterAddress!.Value + i);
+
+                            if(pointMap.TryGetValue(regAddr,out var point) && point.PointKey != null
+                                && varMap.TryGetValue(point.PointKey,out var varDto) && varDto.VariableId.HasValue)
+                            {
+                                // 拿2字节数据
+                                var singleRegBytes = dataBytes.Skip(i * 2).Take(2).ToArray();
+                                var value = ParseValue(singleRegBytes,point.DataType,point.ByteOrder,point.Signed ?? false);
+
+                                // 存库
+                                await _variableService!.SaveValueAsync(device.Id,varDto.VariableId.Value,point.PointKey,value);
+
+                                // 日志记录
+                                _logger.LogDebug($"Device:{device.DeviceName} Func:{func:X2} Addr:{regAddr} Val:{value}");
+                            }
                         }
                     }
+                    else if(func == 0x06 && pointMap != null && varMap != null)
+                    {
+                        // 写单寄存器响应
+                        ushort addr = (ushort)((recv[2] << 8) | recv[3]);
+                        if(pointMap.TryGetValue(addr,out var point) && point.PointKey != null
+                            && varMap.TryGetValue(point.PointKey,out var varDto) && varDto.VariableId.HasValue)
+                        {
+                            var dataBytes = new[] { recv[4],recv[5] };
+                            var value = ParseValue(dataBytes,point.DataType,point.ByteOrder,point.Signed ?? false);
 
+                            // 存库
+                            await _variableService!.SaveValueAsync(device.Id,varDto.VariableId.Value,point.PointKey,value);
+
+                            // 日志记录
+                            _logger.LogDebug($"Device:{device.DeviceName} Func:{func:X2} Addr:{addr} Val:{value}");
+                        }
+                    }
+                    // 可扩展更多功能码解析
+
+                    // === 4. 回复或继续循环，保持连接 ===
+                    // 若需要回包可在此发送，如需要透传可直接Write
                     // 将请求原样回写，保持连接
-                    await stream.WriteAsync(buffer,0,buffer.Length,token);
+                    // 日志记录
+                    Console.WriteLine("time:" + DateTime.Now.TimeOfDay.ToString(@"hh\:mm\:ss\.fffffff")
+                        + " 收到Modbus包：" + BitConverter.ToString(recv).Replace("-"," "));
+
+
+                    await stream.WriteAsync(recv,0,recv.Length,token);
+
                 }
             }
             catch(Exception ex)
@@ -108,6 +167,8 @@ namespace RuoYi.Tcp.Services
                 try { client.Dispose(); } catch { }
             }
         }
+
+
 
         /// <summary>
         /// 重写的 ExecuteAsync 方法，负责执行后台服务的异步任务。
