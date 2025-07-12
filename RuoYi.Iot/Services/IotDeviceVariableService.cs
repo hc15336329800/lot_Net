@@ -70,4 +70,12 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
         return list.Where(v => !string.IsNullOrEmpty(v.VariableKey))
                    .ToDictionary(v => v.VariableKey!,v => v);
     }
+
+    /// <summary>
+    /// 获取指定设备所有变量的最新值
+    /// </summary>
+    public async Task<List<IotDeviceVariableDto>> GetLatestListAsync(long deviceId)
+    {
+        return await _repo.GetDtoListAsync(new IotDeviceVariableDto { DeviceId = deviceId });
+    }
 }

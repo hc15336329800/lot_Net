@@ -32,12 +32,6 @@ namespace RuoYi.Iot.Services
             return await _repo.GetDtoFirstAsync(dto);
         }
 
-        /// <summary>
-        /// 获取指定设备所有变量的最新值
-        /// </summary>
-        public async Task<List<IotDeviceVariableDto>> GetLatestListAsync(long deviceId)
-        {
-            return await _repo.GetDtoListAsync(new IotDeviceVariableDto { DeviceId = deviceId });
-        }
+ 
     }
 }
