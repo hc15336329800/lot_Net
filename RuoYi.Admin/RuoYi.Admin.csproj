@@ -24,6 +24,7 @@
 	  <ProjectReference Include="..\RuoYi.Mqtt\RuoYi.Mqtt.csproj" />
 	  <ProjectReference Include="..\RuoYi.Quartz\RuoYi.Quartz.csproj" />
 	  <ProjectReference Include="..\RuoYi.System\RuoYi.System.csproj" />
+	  <ProjectReference Include="..\RuoYi.Tcp\RuoYi.Tcp.csproj" />
 	  <ProjectReference Include="..\RuoYi.Zk.AC\RuoYi.Zk.AC.csproj" />
 	  <ProjectReference Include="..\RuoYi.Zk.TuoXiao\RuoYi.Zk.TuoXiao.csproj" />
 	    <PackageReference Include="Serilog.AspNetCore" Version="6.*" />
