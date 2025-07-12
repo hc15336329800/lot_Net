@@ -47,6 +47,7 @@ namespace RuoYi.Iot.Controllers
         [Log(Title = "设备",BusinessType = BusinessType.INSERT)]
         public async Task<AjaxResult> Add([FromBody] IotDeviceDto dto)
         {
+            dto.AutoRegPacket = _service.BuildAutoRegPacket(dto);
             var ok = await _service.InsertAsync(dto);
             return AjaxResult.Success(ok);
         }

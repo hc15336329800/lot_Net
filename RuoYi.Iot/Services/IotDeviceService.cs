@@ -34,4 +34,20 @@ public class IotDeviceService : BaseService<IotDevice,IotDeviceDto>, ITransient
         var dto = new IotDeviceDto { Id = id };
         return await _repo.GetDtoFirstAsync(dto);
     }
+
+    /// <summary>
+    /// 根据设备信息生成自动注册包字符串
+    /// </summary>
+    public string BuildAutoRegPacket(IotDeviceDto device)
+    {
+        ArgumentNullException.ThrowIfNull(device);
+
+        var host = device.TcpHost ?? string.Empty;
+        var port = device.TcpPort?.ToString() ?? string.Empty;
+        var pid = device.ProductId?.ToString() ?? string.Empty;
+        var dn = device.DeviceDn ?? string.Empty;
+        var key = device.CommKey ?? string.Empty;
+
+        return $"{host}:{port}?pid={pid}&dn={dn}&key={key}";
+    }
 }
