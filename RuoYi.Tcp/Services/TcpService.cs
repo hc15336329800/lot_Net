@@ -173,10 +173,7 @@ namespace RuoYi.Tcp.Services
                 if(device != null)
                 {
                     _clients.TryRemove(device.Id,out _);
-                    if(_locks.TryRemove(device.Id,out var sem))
-                    {
-                        sem.Dispose();
-                    }
+                    _locks.TryRemove(device.Id,out _); // 清理发送队列
                 }
                 try { client.Dispose(); } catch { } // 安全关闭客户端连接
             }
@@ -193,11 +190,7 @@ namespace RuoYi.Tcp.Services
                 try { c.Dispose(); } catch { }// 安全关闭所有客户端连接
             }
             _clients.Clear();// 清空客户端列表
-            foreach(var sem in _locks.Values)
-            {
-                try { sem.Dispose(); } catch { }
-            }
-            _locks.Clear();
-        }
+           _locks.Clear(); // 发送队列不再逐个释放，避免并发问题
+         }
     }
 }
