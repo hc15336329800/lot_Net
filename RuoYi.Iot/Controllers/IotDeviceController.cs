@@ -60,10 +60,10 @@ namespace RuoYi.Iot.Controllers
             ushort quantity = 0x0002;
 
             ConcurrentDictionary<byte,ushort>? lastDict = null;
-            var svcType = Type.GetType("RuoYi.Tcp.Services.ModbusRtuService, RuoYi.Tcp");
+            var svcType = Type.GetType("RuoYi.Tcp.Services.ModbusRtuService, RuoYi.Tcp"); //通过反射拿到 ModbusRtuService 这个类型的定义。
             if(svcType != null)
             {
-                dynamic? svc = HttpContext.RequestServices.GetService(svcType);
+                dynamic? svc = HttpContext.RequestServices.GetService(svcType);  //动态从容器中获取 ModbusRtuService 单例或实例对象。
                 if(svc != null)
                 {
                     try
