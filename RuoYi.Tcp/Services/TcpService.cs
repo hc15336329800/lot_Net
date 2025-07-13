@@ -10,6 +10,8 @@ using RuoYi.Data.Entities.Iot;
 using RuoYi.Data.Dtos.IOT;
 using RuoYi.Iot.Services;
 using RuoYi.Tcp.Configs;
+using System.Threading;
+
 
 // 这个类的主要职责是监听和分发 TCP 连接请求，
 
@@ -32,6 +34,8 @@ namespace RuoYi.Tcp.Services
         private readonly TcpServerOptions _options;
         private TcpListener? _listener;
         private readonly ConcurrentDictionary<long,TcpClient> _clients = new(); // 存储连接的客户端
+        private readonly ConcurrentDictionary<long,SemaphoreSlim> _locks = new(); // 每个设备的发送队列
+
         private readonly IotDeviceVariableService _variableService;
 
 
@@ -42,6 +46,8 @@ namespace RuoYi.Tcp.Services
         {
             if(_clients.TryGetValue(deviceId,out var client))
             {
+                var sem = _locks.GetOrAdd(deviceId,_ => new SemaphoreSlim(1,1));
+                await sem.WaitAsync(token);
                 try
                 {
                     var stream = client.GetStream();
@@ -53,6 +59,10 @@ namespace RuoYi.Tcp.Services
                 catch(Exception ex)
                 {
                     _logger.LogError(ex,"Send to device {Device} failed",deviceId);
+                }
+                finally
+                {
+                    sem.Release();
                 }
             }
             return null;
@@ -136,6 +146,8 @@ namespace RuoYi.Tcp.Services
                 var productId = device.ProductId;
                 var product = await _productService.GetDtoAsync(productId);
                 _clients[device.Id] = client;// 将设备 ID 和客户端关联起来
+                _locks[device.Id] = new SemaphoreSlim(1,1); // 初始化设备锁
+
 
                 ITcpService? handler = null;
                 // 根据产品的接入协议和数据协议选择处理器
@@ -161,6 +173,10 @@ namespace RuoYi.Tcp.Services
                 if(device != null)
                 {
                     _clients.TryRemove(device.Id,out _);
+                    if(_locks.TryRemove(device.Id,out var sem))
+                    {
+                        sem.Dispose();
+                    }
                 }
                 try { client.Dispose(); } catch { } // 安全关闭客户端连接
             }
@@ -177,6 +193,11 @@ namespace RuoYi.Tcp.Services
                 try { c.Dispose(); } catch { }// 安全关闭所有客户端连接
             }
             _clients.Clear();// 清空客户端列表
+            foreach(var sem in _locks.Values)
+            {
+                try { sem.Dispose(); } catch { }
+            }
+            _locks.Clear();
         }
     }
 }
