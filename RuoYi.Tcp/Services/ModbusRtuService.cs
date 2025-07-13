@@ -81,12 +81,15 @@ namespace RuoYi.Tcp.Services
                     // 改为：支持一个寄存器+从机可挂多个点位（如1:N情况）
 
                     pointMap = points
-                     .Where(p => p.RegisterAddress.HasValue && p.SlaveAddress.HasValue)
-                     .GroupBy(p => new ModbusKey((byte)p.SlaveAddress!.Value,(ushort)p.RegisterAddress!.Value))
+                     .Where(p => p.RegisterAddress.HasValue && p.SlaveAddress.HasValue) //只保留有从机地址和有寄存器地址的点位（因为这些点位才能映射到Modbus物理地址上）。
+                     .GroupBy(p => new ModbusKey((byte)p.SlaveAddress!.Value,(ushort)p.RegisterAddress!.Value)) //把所有点位，按“从机地址 + 寄存器地址”分组。
                      .ToDictionary(g => g.Key,g => g.ToList());
 
                 }
 
+
+                //作用：设备上报一个变量 "shidu"，程序解析出来要存库，只要查 varMap["shidu"] 就能拿到 IotDeviceVariableDto，里面有 VariableId 和其它字段。
+                //- 目的是不用每次存库都查表，提高性能和一致性。
                 if(_variableService != null)
                 {
                     varMap = await _variableService.GetVariableMapAsync(device.Id);
@@ -135,28 +138,28 @@ namespace RuoYi.Tcp.Services
                     byte func = recv[1];      // 功能码
 
 
-                    // === 3. 根据不同功能码处理 ===
+                    // === 3. 只做功能码 0x03/0x04 响应帧  ,注意此处是解析响应帧格式！！！ ===
                     if((func == 0x03 || func == 0x04) && pointMap != null && varMap != null)
                     {
-                        // 读保持/输入寄存器响应
-                        byte byteCount = recv[2]; // 数据区长度（字节数）
+                        // 读保持/输入寄存器
+                        ushort startAddr = (ushort)((recv[2] << 8) | recv[3]);
+                        ushort quantity = (ushort)((recv[4] << 8) | recv[5]);
+
+                        // 响应帧格式
+                        int byteCount = recv[2];
                         if(recv.Length < 3 + byteCount + 2)
                             continue; // 帧长度异常
 
-                        var dataBytes = recv.Skip(3).Take(byteCount).ToArray();
+                        var dataBytes = recv.Skip(6).Take(byteCount).ToArray();
 
                         // 打印当前点位映射和变量映射数量
                         Console.WriteLine($"【调试】pointMap.Count={pointMap?.Count}, varMap.Count={varMap?.Count}");
 
-
-                  
-
-                        // 由于一次请求可能读多个寄存器，每2字节一个寄存器
+ 
                         // 报文解析循环中查找点位
                         for(int i = 0; i < byteCount / 2; i++)
                         {
-                            ushort regAddr =  帮我补全逻辑;  // todo: 根据请求帧起始地址+偏移量i推算出?
-                            byte slaveAddr = recv[0];
+                            ushort regAddr = (ushort)(startAddr + i); // 注意需要你**记住你请求时的起始寄存器地址**
 
                             var key = new ModbusKey(slaveAddr,regAddr);
 
@@ -192,19 +195,28 @@ namespace RuoYi.Tcp.Services
  
 
                         ushort addr = (ushort)((recv[2] << 8) | recv[3]);
-                        if(pointMap.TryGetValue(addr,out var point) && point.PointKey != null
-                            && varMap.TryGetValue(point.PointKey,out var varDto) && varDto.VariableId.HasValue)
+                        byte slave = recv[0];
+                        var key = new ModbusKey(slave,addr);
+                        if(pointMap.TryGetValue(key,out var pointList))
                         {
-                            var dataBytes = new[] { recv[4],recv[5] };
-                            var value = ParseValue(dataBytes,point.DataType,point.ByteOrder,point.Signed ?? false);
+                            foreach(var point in pointList)
+                            {
+                                if(point.PointKey != null && varMap.TryGetValue(point.PointKey,out var varDto) && varDto.VariableId.HasValue)
+                                {
+                                    var dataBytes = new[] { recv[4],recv[5] };
+                                    var value = ParseValue(dataBytes,point.DataType,point.ByteOrder,point.Signed ?? false);
 
-                            // 存库
-                            await _variableService!.SaveValueAsync(device.Id,varDto.VariableId.Value,point.PointKey,value);
+                                    
+                                    // 存库
+                                    await _variableService!.SaveValueAsync(device.Id,varDto.VariableId.Value,point.PointKey,value);
 
-                            // 日志记录
-                            string msg = $"【写入成功】设备：{device.DeviceName}，功能码：{func:X2}，寄存器地址：{addr}，点位：{point.PointKey}，值：{value}";
-                            _logger.LogDebug(msg);
-                            Console.WriteLine(msg);
+                                   
+                                    // 日志记录
+                                    string msg = $"【写入成功】设备：{device.DeviceName}，功能码：{func:X2}，寄存器地址：{addr}，点位：{point.PointKey}，值：{value}";
+                                    _logger.LogDebug(msg);
+                                    Console.WriteLine(msg);
+                                }
+                            }
                         }
                     }
                     // 可扩展更多功能码解析
@@ -236,6 +248,11 @@ namespace RuoYi.Tcp.Services
         }
 
 
+
+
+
+
+        //=================================================================================================================================
 
         /// <summary>
         /// 重写的 ExecuteAsync 方法，负责执行后台服务的异步任务。

@@ -16,6 +16,8 @@ public class IotDeviceVariableRepository : BaseRepository<IotDeviceVariable,IotD
     {
         return Repo.AsQueryable()
             .WhereIF(dto.Id > 0,d => d.Id == dto.Id)
+                        .Where(d => d.Status == "0" && d.DelFlag == "0")  // 无论如何都加
+
             .WhereIF(dto.DeviceId.HasValue,d => d.DeviceId == dto.DeviceId);
     }
 
@@ -24,6 +26,8 @@ public class IotDeviceVariableRepository : BaseRepository<IotDeviceVariable,IotD
         return Repo.AsQueryable()
             .WhereIF(dto.Id > 0,d => d.Id == dto.Id)
             .WhereIF(dto.DeviceId.HasValue,d => d.DeviceId == dto.DeviceId)
+                        .Where(d => d.Status == "0" && d.DelFlag == "0")  // 无论如何都加
+
             .Select(d => new IotDeviceVariableDto
             {
                 Id = d.Id,

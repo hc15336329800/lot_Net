@@ -16,7 +16,9 @@ public class IotProductPointRepository : BaseRepository<IotProductPoint,IotProdu
     {
         return Repo.AsQueryable()
             .WhereIF(dto.Id > 0,d => d.Id == dto.Id)
-            .WhereIF(dto.ProductId.HasValue,d => d.ProductId == dto.ProductId);
+            .WhereIF(dto.ProductId.HasValue,d => d.ProductId == dto.ProductId)
+             .Where(d => d.Status == "0" && d.DelFlag == "0"); // 无论如何都加
+
     }
 
     public override ISugarQueryable<IotProductPointDto> DtoQueryable(IotProductPointDto dto)
@@ -24,6 +26,8 @@ public class IotProductPointRepository : BaseRepository<IotProductPoint,IotProdu
         return Repo.AsQueryable()
             .WhereIF(dto.Id > 0,d => d.Id == dto.Id)
             .WhereIF(dto.ProductId.HasValue,d => d.ProductId == dto.ProductId)
+            .Where(d => d.Status == "0" && d.DelFlag == "0")  // 无论如何都加
+
             .Select(d => new IotProductPointDto
             {
                 Id = d.Id,
