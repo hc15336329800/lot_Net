@@ -29,13 +29,18 @@ namespace RuoYi.Iot.Controllers
         private readonly ILogger<IotDeviceController> _logger;
         private readonly IotDeviceService _service;
         private readonly ITcpSender _tcpService;
+        private readonly IotProductPointService _pointService;
+        private readonly IotDeviceVariableService _variableService;
 
 
-        public IotDeviceController(ILogger<IotDeviceController> logger,IotDeviceService service,ITcpSender tcpService)
+        public IotDeviceController(ILogger<IotDeviceController> logger,IotDeviceService service,ITcpSender tcpService,
+      IotProductPointService pointService,IotDeviceVariableService variableService)
         {
             _logger = logger;
             _service = service;
             _tcpService = tcpService;
+            _pointService = pointService;
+            _variableService = variableService;
 
         }
 
@@ -90,8 +95,49 @@ namespace RuoYi.Iot.Controllers
                     return AjaxResult.Error("无可用连接或发送失败");
                 }
 
-                var hex = BitConverter.ToString(resp).Replace("-"," ");
-                return AjaxResult.Success(hex);
+                // 反射获取 ModbusRtuService 的 ParseValue 私有静态方法
+                var parseMethod = svcType?.GetMethod("ParseValue",global::System.Reflection.BindingFlags.NonPublic | global::System.Reflection.BindingFlags.Static);
+
+                // 获取产品点和变量映射
+                var points = device.ProductId.HasValue ?
+                    await _pointService.GetDtoListAsync(new IotProductPointDto { ProductId = device.ProductId,Status = "0",DelFlag = "0" }) :
+                    new List<IotProductPointDto>();
+
+                var pointMap = points
+                    .Where(p => p.RegisterAddress.HasValue && p.SlaveAddress.HasValue)
+                    .GroupBy(p => ((byte)p.SlaveAddress!.Value, (ushort)p.RegisterAddress!.Value))
+                    .ToDictionary(g => g.Key,g => g.ToList());
+
+                var varMap = await _variableService.GetVariableMapAsync(device.Id);
+
+                var result = new Dictionary<string,string>();
+
+                int byteCount = resp[2];
+                var dataBytes = resp.Skip(3).Take(byteCount).ToArray();
+                ushort realStart = startAddress;
+                lastDict?.TryGetValue(slave,out realStart);
+
+                for(int i = 0; i < byteCount / 2; i++)
+                {
+                    ushort addr = (ushort)(realStart + i);
+                    var key = ((byte)slave, addr);
+                    if(pointMap.TryGetValue(key,out var plist))
+                    {
+                        foreach(var p in plist)
+                        {
+                            if(p.PointKey != null && varMap.TryGetValue(p.PointKey,out var v) && v.VariableId.HasValue)
+                            {
+                                var regBytes = dataBytes.Skip(i * 2).Take(2).ToArray();
+                                var valueObj = parseMethod != null ? parseMethod.Invoke(null,new object?[] { regBytes,p.DataType,p.ByteOrder,p.Signed ?? false }) : null;
+                                var value = valueObj?.ToString() ?? BitConverter.ToString(regBytes);
+                                await _variableService.SaveValueAsync(device.Id,v.VariableId.Value,p.PointKey,value);
+                                result[p.PointKey] = value;
+                            }
+                        }
+                    }
+                }
+
+                return AjaxResult.Success(result);
             }
             catch(Exception ex)
             {
