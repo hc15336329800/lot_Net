@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using RuoYi.Data.Dtos.Iot;
 using RuoYi.Data.Dtos.IOT;
 using RuoYi.Iot.Repositories;
+using RuoYi.Data.Entities.Iot;
+
 
 namespace RuoYi.Iot.Services
 {

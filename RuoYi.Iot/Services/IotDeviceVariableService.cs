@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using RuoYi.Common.Data;
+using RuoYi.Common.Utils;
 using RuoYi.Data.Dtos.Iot;
 using RuoYi.Data.Dtos.IOT;
 using RuoYi.Data.Entities.Iot;
@@ -50,6 +51,8 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
 
         var history = new IotDeviceVariableHistory
         {
+            Id = IdGenerator.NewId(),
+
             DeviceId = deviceId,
             VariableId = variableId,
             VariableKey = variableKey,

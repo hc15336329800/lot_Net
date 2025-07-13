@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using RuoYi.Data.Entities;
 using SqlSugar;
 
-namespace RuoYi.Data.Dtos.Iot
+namespace RuoYi.Data.Entities.Iot
 {
     /// <summary>
     /// 物联网—设备变量历史表
