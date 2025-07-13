@@ -41,6 +41,9 @@ namespace RuoYi.Tcp.Services
 
         private readonly ConcurrentDictionary<long,DeviceConnection> _connections = new();// 存储活动的设备连接
 
+        // 保存最近一次发送的读请求起始寄存器地址，key 为从机地址
+        private readonly ConcurrentDictionary<byte,ushort> _lastReadStartAddrs = new();
+
         public ModbusRtuService(ILogger<ModbusRtuService> logger,
             IotDeviceService deviceService,
             IotProductPointService pointService,
@@ -141,16 +144,18 @@ namespace RuoYi.Tcp.Services
                     // === 3. 只做功能码 0x03/0x04 响应帧  ,注意此处是解析响应帧格式！！！ ===
                     if((func == 0x03 || func == 0x04) && pointMap != null && varMap != null)
                     {
-                        // 读保持/输入寄存器
-                        ushort startAddr = (ushort)((recv[2] << 8) | recv[3]);
-                        ushort quantity = (ushort)((recv[4] << 8) | recv[5]);
+                        // 根据 Modbus RTU 响应帧格式：[slave][func][byteCount][data][CRC]
+
 
                         // 响应帧格式
                         int byteCount = recv[2];
                         if(recv.Length < 3 + byteCount + 2)
                             continue; // 帧长度异常
 
-                        var dataBytes = recv.Skip(6).Take(byteCount).ToArray();
+                        var dataBytes = recv.Skip(3).Take(byteCount).ToArray();
+
+                        _lastReadStartAddrs.TryGetValue(slaveAddr,out ushort startAddr);
+
 
                         // 打印当前点位映射和变量映射数量
                         Console.WriteLine($"【调试】pointMap.Count={pointMap?.Count}, varMap.Count={varMap?.Count}");
@@ -159,7 +164,7 @@ namespace RuoYi.Tcp.Services
                         // 报文解析循环中查找点位
                         for(int i = 0; i < byteCount / 2; i++)
                         {
-                            ushort regAddr = (ushort)(startAddr + i); // 注意需要你**记住你请求时的起始寄存器地址**
+                            ushort regAddr = (ushort)(startAddr + i); // 注意点
 
                             var key = new ModbusKey(slaveAddr,regAddr);
 
@@ -288,7 +293,7 @@ namespace RuoYi.Tcp.Services
                 // 获取该设备的变量映射
                 var variableMap = await _variableService.GetVariableMapAsync(d.Id);
                 // 创建设备连接并存储在 _connections 中
-                _connections[d.Id] = new DeviceConnection(d,points,variableMap,_variableService,_logger);
+                _connections[d.Id] = new DeviceConnection(this,d,points,variableMap,_variableService,_logger);
             }
         }
 
@@ -389,6 +394,8 @@ namespace RuoYi.Tcp.Services
         /// </summary>
         private class DeviceConnection
         {
+            private readonly ModbusRtuService _service;
+
             private readonly IotDeviceDto _device;// 设备信息
             private readonly List<IotProductPointDto> _points;// 设备的产品点列表
             private readonly Dictionary<string,IotDeviceVariableDto> _variableMap;// 设备变量映射
@@ -397,8 +404,9 @@ namespace RuoYi.Tcp.Services
             private TcpClient? _client;// TCP 客户端
             private NetworkStream? _stream;// 网络流
 
-            public DeviceConnection(IotDeviceDto device,List<IotProductPointDto> points,Dictionary<string,IotDeviceVariableDto> variableMap,IotDeviceVariableService variableService,ILogger logger)
+            public DeviceConnection(ModbusRtuService service,IotDeviceDto device,List<IotProductPointDto> points,Dictionary<string,IotDeviceVariableDto> variableMap,IotDeviceVariableService variableService,ILogger logger)
             {
+                _service = service;
                 _device = device;
                 _points = points;
                 _variableMap = variableMap;
@@ -530,6 +538,8 @@ namespace RuoYi.Tcp.Services
                 byte hiQty = (byte)(qty >> 8);
                 byte loQty = (byte)(qty & 0xFF);
                 var list = new List<byte> { slave,func,hiAddr,loAddr,hiQty,loQty };
+                _service._lastReadStartAddrs[slave] = (ushort)point.RegisterAddress.Value;
+
                 ushort crc = ComputeCrc(list.ToArray());// 计算 CRC 校验码
                 list.Add((byte)(crc & 0xFF));
                 list.Add((byte)(crc >> 8));
