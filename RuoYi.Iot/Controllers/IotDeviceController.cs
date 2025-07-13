@@ -78,13 +78,23 @@ namespace RuoYi.Iot.Controllers
 
             try
             {
-                using var client = new TcpClient();
-                await client.ConnectAsync(device.TcpHost,device.TcpPort.Value);
-                var stream = client.GetStream();
-                await stream.WriteAsync(frame,0,frame.Length);
-                var buffer = new byte[256];
-                var len = await stream.ReadAsync(buffer,0,buffer.Length);
-                var resp = buffer.Take(len).ToArray();
+                var tcpSvcType = Type.GetType("RuoYi.Tcp.Services.TcpService, RuoYi.Tcp");
+                if(tcpSvcType == null)
+                {
+                    return AjaxResult.Error("TcpService not found");
+                }
+                dynamic? tcpSvc = HttpContext.RequestServices.GetService(tcpSvcType);
+                if(tcpSvc == null)
+                {
+                    return AjaxResult.Error("TcpService not registered");
+                }
+
+                byte[]? resp = await tcpSvc.SendAsync(id,frame,HttpContext.RequestAborted);
+                if(resp == null)
+                {
+                    return AjaxResult.Error("无可用连接或发送失败");
+                }
+
                 var hex = BitConverter.ToString(resp).Replace("-"," ");
                 return AjaxResult.Success(hex);
             }
