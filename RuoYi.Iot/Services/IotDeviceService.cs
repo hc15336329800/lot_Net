@@ -35,9 +35,9 @@ public class IotDeviceService : BaseService<IotDevice,IotDeviceDto>, ITransient
         return await _repo.GetDtoFirstAsync(dto);
     }
 
-    public async Task UpdateStatusAsync(long id,string status)
+    public async Task<int> UpdateStatusAsync(long id,string status)
     {
-        await _repo.UpdateStatusAsync(id,status);
+        return await _repo.UpdateStatusAsync(id,status);
     }
 
     /// <summary>

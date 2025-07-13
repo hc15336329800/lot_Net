@@ -47,20 +47,36 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
     public async Task SaveValueAsync(long deviceId,long variableId,string variableKey,string value)
     {
         var timestamp = DateTime.Now;
-        await _repo.UpdateCurrentValueAsync(deviceId,variableId,value,timestamp);
+        int affected = await _repo.UpdateCurrentValueAsync(deviceId,variableId,value,timestamp);
+        if(affected > 0)
+        {
+            Console.WriteLine($"[调试] 设备{deviceId}的变量{variableId}已更新CurrentValue为{value}，LastUpdateTime为{timestamp}");
+        }
+        else
+        {
+            Console.WriteLine($"[警告] 设备{deviceId}的变量{variableId}更新失败，可能没有找到对应记录！");
+        }
+
 
         var history = new IotDeviceVariableHistory
         {
             Id = IdGenerator.NewId(),
-
-            DeviceId = deviceId,
-            VariableId = variableId,
-            VariableKey = variableKey,
-            Value = value,
-            Timestamp = timestamp
+             
+            DeviceId = deviceId,  //设备ID
+            VariableId = variableId, //变量ID
+            VariableKey = variableKey, //变量表示
+            Value = value,               //采集值
+            Timestamp = timestamp   //采集时间
         };
-        await _historyRepo.InsertAsync(history);
-
+        bool insertOk = await _historyRepo.InsertAsync(history); //插入
+        if(insertOk)
+        {
+            Console.WriteLine($"[调试] 历史变量插入成功，ID={history.Id}");
+        }
+        else
+        {
+            Console.WriteLine($"[警告] 历史变量插入失败，ID={history.Id}");
+        }
 
     }
 

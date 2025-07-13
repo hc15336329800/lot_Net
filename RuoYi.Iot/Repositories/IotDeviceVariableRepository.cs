@@ -54,7 +54,7 @@ public class IotDeviceVariableRepository : BaseRepository<IotDeviceVariable,IotD
         return await base.Updateable()
          .SetColumns(d => d.CurrentValue == value)
          .SetColumns(d => d.LastUpdateTime == timestamp)
-         .Where(d => d.DeviceId == deviceId && d.VariableId == variableId)
+         .Where(d => d.DeviceId == deviceId && d.VariableId == variableId)  //设备+变量ID
          .ExecuteCommandAsync();
 
     }

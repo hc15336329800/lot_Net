@@ -67,19 +67,10 @@ namespace RuoYi.Tcp.Services
 
         /// <summary>
         /// 处理 Modbus RTU 客户端连接，在同一个连接上持续接收并响应报文。
+        /// TCP 服务接口，当收到信息时候动态解析存库
         /// </summary>
         public async Task HandleClientAsync(TcpClient client,IotDeviceDto device,CancellationToken token)
         {
-
-            //在HandleClientAsync开头加日志，输出调用栈（stacktrace）：备用调试 不用删除
-            //var remote = client.Client.RemoteEndPoint?.ToString() ?? "null";
-            //var msg111 = $"Accepted new TCP connection from: {remote}";
-            //Console.WriteLine(msg111);
-            //_logger.LogWarning(msg111 + Environment.NewLine + Environment.StackTrace);
-
-
-
-
 
             //最终作用（这句话的意义）
             //你后面收到Modbus报文时，报文里有寄存器地址（如01、02），
@@ -91,6 +82,11 @@ namespace RuoYi.Tcp.Services
             Dictionary<ModbusKey,List<IotProductPointDto>>? pointMap = null; // 修改类型
 
             Dictionary<string,IotDeviceVariableDto>? varMap = null; //点位key（pointKey/variableKey）→ 设备变量明细（iot_device_variable）。
+            
+            
+            
+            //------------------------------------------------------处理注册包
+            
             try
             {
                 if(_pointService != null && device.ProductId.HasValue)
@@ -134,11 +130,16 @@ namespace RuoYi.Tcp.Services
                 Console.WriteLine($"【异常】加载设备映射关系失败：{device.DeviceName}，异常信息：{ex.Message}");
             }
 
+
+            //------------------------------------------------------处理应答信息
+
             try
             {
                 var stream = client.GetStream();
                 var buffer = new byte[256]; // 最大包长度，够用即可
 
+
+                // 注册包不符合规范 ，会直接跳出（目前包字节小于5）
                 while(!token.IsCancellationRequested)
                 {
                     // === 1. 读取一包（建议按8或最大帧长读取，也可以自适应读取再判断包长） ===
@@ -197,11 +198,11 @@ namespace RuoYi.Tcp.Services
                                         var singleRegBytes = dataBytes.Skip(i * 2).Take(2).ToArray();
                                         var value = ParseValue(singleRegBytes,point.DataType,point.ByteOrder,point.Signed ?? false);
 
-                                        Console.WriteLine($"【准备存库】设备：{device.DeviceName}，从机：{slaveAddr}，寄存器：{regAddr}，点位：{point.PointKey}，值：{value}");
+                                        Console.WriteLine($"【更新当前值并记录历史】设备：{device.DeviceName}，从机：{slaveAddr}，寄存器：{regAddr}，点位：{point.PointKey}，值：{value}");
 
                                         await _variableService!.SaveValueAsync(device.Id,varDto.VariableId.Value,point.PointKey,value);
 
-                                        string msg = $"【存库成功】设备：{device.DeviceName}，从机：{slaveAddr}，寄存器：{regAddr}，点位：{point.PointKey}，值：{value}";
+                                        string msg = $"【更新当前值并记录历史】设备：{device.DeviceName}，从机：{slaveAddr}，寄存器：{regAddr}，点位：{point.PointKey}，值：{value}";
                                         _logger.LogDebug(msg);
                                         Console.WriteLine(msg);
                                     }

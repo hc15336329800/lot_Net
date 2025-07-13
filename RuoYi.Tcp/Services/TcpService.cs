@@ -119,7 +119,14 @@ namespace RuoYi.Tcp.Services
             }
         }
 
-        // 异步处理客户端连接
+
+        /// <summary>
+        /// 只有在有新客户端连接（AcceptTcpClientAsync 返回）时，才会执行一次 HandleClientAsyncc 
+        /// - 异步处理客户端连接
+        /// </summary>
+        /// <param name="client"></param>
+        /// <param name="token"></param>
+        /// <returns></returns>
         private async Task HandleClientAsync(TcpClient client,CancellationToken token)
         {
             IotDevice? device = null;
@@ -146,8 +153,13 @@ namespace RuoYi.Tcp.Services
                 }
 
                 // 标记设备上线并写入历史
-                await _deviceService.UpdateStatusAsync(device.Id,"online");
-                await _variableService.SaveValueAsync(device.Id,0,"online","1");
+                
+                int count = await _deviceService.UpdateStatusAsync(device.Id,"online1");//设备的状态
+                if(count > 0)
+                    Console.WriteLine($"[调试] 设备{device.Id}状态已更新为online！");
+                else
+                    Console.WriteLine($"[警告] 设备{device.Id}状态更新失败（未找到记录或无变更）！");
+                // await _variableService.SaveValueAsync(device.Id,0,"online","1");  //设备最新数据、设备历史数据 ？ 这里还没解析数据呢  写入啥数据？？？ 
 
                 // 获取设备的详细信息
                 var deviceDto = await _deviceService.GetDtoAsync(device.Id);
@@ -162,6 +174,8 @@ namespace RuoYi.Tcp.Services
                 if(product.AccessProtocol == "1" && product.DataProtocol == "1")
                 {
                     // 如果接入协议是 TCP 且数据协议是 ModbusRTU，则使用 ModbusRtuService 处理
+
+                    //通过依赖注入容器（IServiceProvider）动态获取 ModbusRtuService 的实例，赋值给 handler 变量。
                     handler = _serviceProvider.GetService<ModbusRtuService>();
                 }
 
