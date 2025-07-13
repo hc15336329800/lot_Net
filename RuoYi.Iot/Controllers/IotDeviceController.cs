@@ -28,11 +28,15 @@ namespace RuoYi.Iot.Controllers
     {
         private readonly ILogger<IotDeviceController> _logger;
         private readonly IotDeviceService _service;
+        private readonly ITcpSender _tcpService;
 
-        public IotDeviceController(ILogger<IotDeviceController> logger,IotDeviceService service)
+
+        public IotDeviceController(ILogger<IotDeviceController> logger,IotDeviceService service,ITcpSender tcpService)
         {
             _logger = logger;
             _service = service;
+            _tcpService = tcpService;
+
         }
 
         /// <summary>
@@ -78,18 +82,9 @@ namespace RuoYi.Iot.Controllers
 
             try
             {
-                var tcpSvcType = Type.GetType("RuoYi.Tcp.Services.TcpService, RuoYi.Tcp");
-                if(tcpSvcType == null)
-                {
-                    return AjaxResult.Error("TcpService not found");
-                }
-                dynamic? tcpSvc = HttpContext.RequestServices.GetService(tcpSvcType);
-                if(tcpSvc == null)
-                {
-                    return AjaxResult.Error("TcpService not registered");
-                }
+                byte[]? resp = await _tcpService.SendAsync(id,frame,HttpContext.RequestAborted);
 
-                byte[]? resp = await tcpSvc.SendAsync(id,frame,HttpContext.RequestAborted);
+
                 if(resp == null)
                 {
                     return AjaxResult.Error("无可用连接或发送失败");

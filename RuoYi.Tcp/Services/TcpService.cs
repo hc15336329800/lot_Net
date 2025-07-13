@@ -25,7 +25,7 @@ namespace RuoYi.Tcp.Services
     /// <summary>
     /// TCP 监听服务，根据注册包分发到具体协议处理器。
     /// </summary>
-    public class TcpService : BackgroundService
+    public class TcpService : BackgroundService, ITcpSender
     {
         private readonly ILogger<TcpService> _logger;
         private readonly IServiceProvider _serviceProvider;
@@ -35,6 +35,7 @@ namespace RuoYi.Tcp.Services
         private TcpListener? _listener;
         private readonly ConcurrentDictionary<long,TcpClient> _clients = new(); // 存储连接的客户端
         private readonly ConcurrentDictionary<long,SemaphoreSlim> _locks = new(); // 每个设备的发送队列
+ 
 
         private readonly IotDeviceVariableService _variableService;
 
@@ -42,7 +43,7 @@ namespace RuoYi.Tcp.Services
         /// <summary>
         /// 通过已建立的连接向设备发送数据并等待响应。
         /// </summary>
-        public async Task<byte[]?> SendAsync(long deviceId,byte[] data,CancellationToken token = default)
+        public async Task<byte[]?> SendAsync(long deviceId,byte[] data,CancellationToken token = default,int? expectedLength = null)
         {
             if(_clients.TryGetValue(deviceId,out var client))
             {
@@ -52,9 +53,16 @@ namespace RuoYi.Tcp.Services
                 {
                     var stream = client.GetStream();
                     await stream.WriteAsync(data,0,data.Length,token);
-                    var buffer = new byte[256];
-                    var len = await stream.ReadAsync(buffer,0,buffer.Length,token);
-                    return buffer.Take(len).ToArray();
+                    var buffer = new byte[expectedLength ?? 256];
+                    int read = 0;
+                    do
+                    {
+                        int r = await stream.ReadAsync(buffer,read,buffer.Length - read,token);
+                        if(r == 0) break;
+                        read += r;
+                    }
+                    while(read < buffer.Length && (expectedLength != null || stream.DataAvailable));
+                    return buffer.Take(read).ToArray();
                 }
                 catch(Exception ex)
                 {
@@ -190,7 +198,11 @@ namespace RuoYi.Tcp.Services
                 try { c.Dispose(); } catch { }// 安全关闭所有客户端连接
             }
             _clients.Clear();// 清空客户端列表
-           _locks.Clear(); // 发送队列不再逐个释放，避免并发问题
+            foreach(var sem in _locks.Values)
+            {
+                try { sem.Dispose(); } catch { }
+            }
+            _locks.Clear(); // 发送队列不再逐个释放，避免并发问题
          }
     }
 }

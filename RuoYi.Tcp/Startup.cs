@@ -8,6 +8,8 @@ using RuoYi.Framework;
 using RuoYi.Tcp.Services;
 using Microsoft.Extensions.Options;
 using RuoYi.Tcp.Configs;
+using RuoYi.Iot.Services;
+
 
 
 namespace RuoYi.Tcp
@@ -40,6 +42,8 @@ namespace RuoYi.Tcp
 
             // 注册 TcpService 为单例服务
             services.AddSingleton<TcpService>();
+            services.AddSingleton<ITcpSender>(sp => sp.GetRequiredService<TcpService>());
+
 
             // 将 TcpService 注册为后台服务
             // 这会启动一个长期运行的后台任务
