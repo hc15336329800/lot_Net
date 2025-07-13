@@ -42,6 +42,7 @@ namespace RuoYi.Tcp.Services
         private readonly ConcurrentDictionary<long,DeviceConnection> _connections = new();// 存储活动的设备连接
 
         // 保存最近一次发送的读请求起始寄存器地址，key 为从机地址
+        // 但你必须保证所有的包都是你自己主发的，不能直接接收设备主动推送的响应包！,直接接受的话就默认0
         private readonly ConcurrentDictionary<byte,ushort> _lastReadStartAddrs = new();
 
         public ModbusRtuService(ILogger<ModbusRtuService> logger,
@@ -253,7 +254,7 @@ namespace RuoYi.Tcp.Services
         }
 
 
-
+ 
 
 
 
@@ -527,7 +528,7 @@ namespace RuoYi.Tcp.Services
             /// <summary>
             /// 构建读取数据请求帧。
             /// </summary>
-            private static byte[]? BuildReadFrame(IotProductPointDto point)
+            private   byte[]? BuildReadFrame(IotProductPointDto point)
             {
                 if(point.SlaveAddress == null || point.FunctionCode == null || point.RegisterAddress == null) return null;
                 ushort qty = (ushort)(point.DataLength ?? 1);// 读取数据长度
