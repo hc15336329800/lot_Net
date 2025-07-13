@@ -17,13 +17,5 @@ public interface ITcpSender
     /// </returns>
     Task<byte[]?> SendAsync(long deviceId,byte[] data,CancellationToken token = default);
 
-    /// <summary>
-    /// 传感器位置表：记录传感器的物理或逻辑位置信息，键为传感器标识，值为对应位置编号。
-    /// </summary>
-    ConcurrentDictionary<string,int> SensorPositions { get; }
-
-    /// <summary>
-    /// 传感器轨道映射表：用于多轨道/多线体环境下，标识传感器所在的轨道编号。
-    /// </summary>
-    ConcurrentDictionary<string,int> SensorRails { get; }
+ 
 }
