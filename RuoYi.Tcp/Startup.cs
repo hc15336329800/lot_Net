@@ -34,9 +34,9 @@ namespace RuoYi.Tcp
             // 通过依赖注入提供 ModbusRtuService 实例，方便其他服务或控制器使用
             services.AddSingleton<ITcpService>(sp => sp.GetRequiredService<ModbusRtuService>());
 
-            // 将 ModbusRtuService 注册为后台服务
-            // 这样它将在应用启动时启动，并在应用关闭时停止
-            services.AddHostedService(sp => sp.GetRequiredService<ModbusRtuService>());
+            // ModbusRtuService 仅在设备主动连接时由 TcpService 调用
+            // 不再作为后台任务主动轮询设备
+ 
 
             // 注册 TcpService 为单例服务
             services.AddSingleton<TcpService>();

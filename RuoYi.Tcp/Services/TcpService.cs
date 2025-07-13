@@ -35,6 +35,29 @@ namespace RuoYi.Tcp.Services
         private readonly IotDeviceVariableService _variableService;
 
 
+        /// <summary>
+        /// 通过已建立的连接向设备发送数据并等待响应。
+        /// </summary>
+        public async Task<byte[]?> SendAsync(long deviceId,byte[] data,CancellationToken token = default)
+        {
+            if(_clients.TryGetValue(deviceId,out var client))
+            {
+                try
+                {
+                    var stream = client.GetStream();
+                    await stream.WriteAsync(data,0,data.Length,token);
+                    var buffer = new byte[256];
+                    var len = await stream.ReadAsync(buffer,0,buffer.Length,token);
+                    return buffer.Take(len).ToArray();
+                }
+                catch(Exception ex)
+                {
+                    _logger.LogError(ex,"Send to device {Device} failed",deviceId);
+                }
+            }
+            return null;
+        }
+
 
         // 构造函数，注入所需的服务
         public TcpService(ILogger<TcpService> logger,
