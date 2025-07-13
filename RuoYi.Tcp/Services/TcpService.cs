@@ -43,7 +43,7 @@ namespace RuoYi.Tcp.Services
         /// <summary>
         /// 通过已建立的连接向设备发送数据并等待响应。
         /// </summary>
-        public async Task<byte[]?> SendAsync(long deviceId,byte[] data,CancellationToken token = default,int? expectedLength = null)
+        public async Task<byte[]?> SendAsync(long deviceId,byte[] data,CancellationToken token = default)
         {
             if(_clients.TryGetValue(deviceId,out var client))
             {
@@ -53,7 +53,7 @@ namespace RuoYi.Tcp.Services
                 {
                     var stream = client.GetStream();
                     await stream.WriteAsync(data,0,data.Length,token);
-                    var buffer = new byte[expectedLength ?? 256];
+                    var buffer = new byte[256];
                     int read = 0;
                     do
                     {
@@ -61,7 +61,7 @@ namespace RuoYi.Tcp.Services
                         if(r == 0) break;
                         read += r;
                     }
-                    while(read < buffer.Length && (expectedLength != null || stream.DataAvailable));
+                    while(read < buffer.Length && stream.DataAvailable);
                     return buffer.Take(read).ToArray();
                 }
                 catch(Exception ex)

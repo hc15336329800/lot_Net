@@ -71,11 +71,11 @@ namespace RuoYi.Tcp.Services
         public async Task HandleClientAsync(TcpClient client,IotDeviceDto device,CancellationToken token)
         {
 
-            //在HandleClientAsync开头加日志，输出调用栈（stacktrace）：
-            var remote = client.Client.RemoteEndPoint?.ToString() ?? "null";
-            var msg111 = $"Accepted new TCP connection from: {remote}";
-            Console.WriteLine(msg111);
-            _logger.LogWarning(msg111 + Environment.NewLine + Environment.StackTrace);
+            //在HandleClientAsync开头加日志，输出调用栈（stacktrace）：备用调试 不用删除
+            //var remote = client.Client.RemoteEndPoint?.ToString() ?? "null";
+            //var msg111 = $"Accepted new TCP connection from: {remote}";
+            //Console.WriteLine(msg111);
+            //_logger.LogWarning(msg111 + Environment.NewLine + Environment.StackTrace);
 
 
 
