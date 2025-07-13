@@ -45,6 +45,12 @@ namespace RuoYi.Tcp.Services
         // 但你必须保证所有的包都是你自己主发的，不能直接接收设备主动推送的响应包！,直接接受的话就默认0
         private readonly ConcurrentDictionary<byte,ushort> _lastReadStartAddrs = new();
 
+        /// <summary>
+        /// 最近一次读取的起始寄存器地址
+        /// </summary>
+        public ConcurrentDictionary<byte,ushort> LastReadStartAddrs => _lastReadStartAddrs;
+
+
         public ModbusRtuService(ILogger<ModbusRtuService> logger,
             IotDeviceService deviceService,
             IotProductPointService pointService,
@@ -363,20 +369,8 @@ namespace RuoYi.Tcp.Services
         /// <summary>
         /// 计算 CRC 校验码
         /// </summary>
-        private static ushort ComputeCrc(byte[] data)
-        {
-            ushort crc = 0xFFFF;
-            foreach(var b in data)
-            {
-                crc ^= b;
-                for(int i = 0; i < 8; i++)
-                {
-                    if((crc & 1) != 0) crc = (ushort)((crc >> 1) ^ 0xA001);
-                    else crc >>= 1;
-                }
-            }
-            return crc;
-        }
+        private static ushort ComputeCrc(byte[] data) => RuoYi.Common.Utils.ModbusUtils.ComputeCrc(data);
+
 
         /// <summary>
         /// 验证 CRC 校验
@@ -534,17 +528,8 @@ namespace RuoYi.Tcp.Services
                 ushort qty = (ushort)(point.DataLength ?? 1);// 读取数据长度
                 byte slave = (byte)point.SlaveAddress.Value;
                 byte func = (byte)point.FunctionCode.Value;
-                byte hiAddr = (byte)(point.RegisterAddress.Value >> 8);
-                byte loAddr = (byte)(point.RegisterAddress.Value & 0xFF);
-                byte hiQty = (byte)(qty >> 8);
-                byte loQty = (byte)(qty & 0xFF);
-                var list = new List<byte> { slave,func,hiAddr,loAddr,hiQty,loQty };
-                _service._lastReadStartAddrs[slave] = (ushort)point.RegisterAddress.Value;
 
-                ushort crc = ComputeCrc(list.ToArray());// 计算 CRC 校验码
-                list.Add((byte)(crc & 0xFF));
-                list.Add((byte)(crc >> 8));
-                return list.ToArray(); // 返回请求帧
+                return RuoYi.Common.Utils.ModbusUtils.BuildReadFrame(slave,func,(ushort)point.RegisterAddress.Value,qty,_service.LastReadStartAddrs);
             }
 
 
@@ -649,20 +634,8 @@ namespace RuoYi.Tcp.Services
             /// <summary>
             /// 计算 CRC 校验码
             /// </summary>
-            private static ushort ComputeCrc(byte[] data)
-            {
-                ushort crc = 0xFFFF;
-                foreach(var b in data)
-                {
-                    crc ^= b;
-                    for(int i = 0; i < 8; i++)
-                    {
-                        if((crc & 1) != 0) crc = (ushort)((crc >> 1) ^ 0xA001);
-                        else crc >>= 1;
-                    }
-                }
-                return crc;
-            }
+            private static ushort ComputeCrc(byte[] data) => RuoYi.Common.Utils.ModbusUtils.ComputeCrc(data);
+
 
             /// <summary>
             /// 验证 CRC 校验
