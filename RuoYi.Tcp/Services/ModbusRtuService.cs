@@ -1,9 +1,12 @@
 ﻿using System.Collections.Concurrent;
+using System.Net;
 using System.Net.Sockets;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RuoYi.Data.Dtos.IOT;
 using RuoYi.Iot.Services;
+using System.Net;
+
 
 namespace RuoYi.Tcp.Services
 {
@@ -67,6 +70,16 @@ namespace RuoYi.Tcp.Services
         /// </summary>
         public async Task HandleClientAsync(TcpClient client,IotDeviceDto device,CancellationToken token)
         {
+
+            //在HandleClientAsync开头加日志，输出调用栈（stacktrace）：
+            var remote = client.Client.RemoteEndPoint?.ToString() ?? "null";
+            var msg111 = $"Accepted new TCP connection from: {remote}";
+            Console.WriteLine(msg111);
+            _logger.LogWarning(msg111 + Environment.NewLine + Environment.StackTrace);
+
+
+
+
 
             //最终作用（这句话的意义）
             //你后面收到Modbus报文时，报文里有寄存器地址（如01、02），
@@ -288,13 +301,25 @@ namespace RuoYi.Tcp.Services
         /// </summary>
         private async Task LoadDevicesAsync(CancellationToken token)
         {
-            // 获取所有状态正常且未删除的设备列表
 
+            // 获取所有状态正常且未删除的设备列表
             var devices = await _deviceService.GetDtoListAsync(new IotDeviceDto { Status = "0",DelFlag = "0" });
+            string[] selfAddresses = { "127.0.0.1","localhost" }; // 本机IP、localhost等
+            int serverPort = 5003; // todo: 这里需要appsettings.json中取配置
+
+
             foreach(var d in devices)
             {
                 // 如果设备没有 TCP 主机或端口信息，则跳过
                 if(d.TcpHost == null || d.TcpPort == null) continue;
+
+                // 判断是否等于API端口
+                if(selfAddresses.Contains(d.TcpHost) && d.TcpPort == serverPort)
+                {
+                    _logger.LogError($"【配置错误】设备 {d.DeviceName} 的 tcp_host/tcp_port 指向了本服务器API监听端口({d.TcpHost}:{d.TcpPort})，请勿与服务端口一致，否则会产生死循环和数据异常！");
+                    continue; // 跳过该设备，不进行轮询
+                }
+
                 // 获取该设备关联的所有产品点
                 var points = await _pointService.GetDtoListAsync(new IotProductPointDto { ProductId = d.ProductId,Status = "0",DelFlag = "0" });
                 // 获取该设备的变量映射
@@ -304,6 +329,7 @@ namespace RuoYi.Tcp.Services
             }
         }
 
+       
 
         /// <summary>
         /// 向指定设备的指定点写入数据。

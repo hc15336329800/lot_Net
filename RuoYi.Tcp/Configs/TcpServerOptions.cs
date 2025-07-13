@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace RuoYi.Tcp.Configs
 {
     /// <summary>
-    /// Options for Tcp server listener.
+    /// Options for Tcp server listener. 监听端口
     /// </summary>
     public class TcpServerOptions
     {
