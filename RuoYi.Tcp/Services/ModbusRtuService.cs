@@ -8,10 +8,32 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using RuoYi.Data.Dtos.IOT;
+using RuoYi.Data.Entities.Iot;
 using RuoYi.Iot.Services;
 
 namespace RuoYi.Tcp.Services
 {
+
+    /// <summary>
+    /// 联合主键：从机地址 + 寄存器地址
+    /// </summary>
+    public readonly struct ModbusKey : IEquatable<ModbusKey>
+    {
+        public byte SlaveAddress { get; }
+        public ushort RegisterAddress { get; }
+        public ModbusKey(byte slave,ushort reg)
+        {
+            SlaveAddress = slave;
+            RegisterAddress = reg;
+        }
+        public bool Equals(ModbusKey other) => SlaveAddress == other.SlaveAddress && RegisterAddress == other.RegisterAddress;
+        public override bool Equals(object? obj) => obj is ModbusKey other && Equals(other);
+        public override int GetHashCode( ) => HashCode.Combine(SlaveAddress,RegisterAddress);
+        public override string ToString( ) => $"Slave:{SlaveAddress}-Reg:{RegisterAddress}";
+    }
+
+
+
     /// <summary>
     /// ModbusRtu 数据协议 （默认协议） 
     /// 该类处理 Modbus RTU 通信，它是默认协议。
@@ -41,9 +63,17 @@ namespace RuoYi.Tcp.Services
         /// </summary>
         public async Task HandleClientAsync(TcpClient client,IotDeviceDto device,CancellationToken token)
         {
+
+            //最终作用（这句话的意义）
+            //你后面收到Modbus报文时，报文里有寄存器地址（如01、02），
+            //你能快速用 pointMap 找到这个地址对应的点位配置（如数据类型、名称等），
+            //然后用点位的key，再从 varMap 找到设备变量明细的主键和存储位置，
+            //最终将解析的数据存入设备变量表，实现“设备级数据存库”。
+
             // 加载点位映射和变量映射，便于后续解析后存库
-            Dictionary<ushort,IotProductPointDto>? pointMap = null;
-            Dictionary<string,IotDeviceVariableDto>? varMap = null;
+            Dictionary<ModbusKey,List<IotProductPointDto>>? pointMap = null; // 修改类型
+
+            Dictionary<string,IotDeviceVariableDto>? varMap = null; //点位key（pointKey/variableKey）→ 设备变量明细（iot_device_variable）。
             try
             {
                 if(_pointService != null && device.ProductId.HasValue)
@@ -54,18 +84,19 @@ namespace RuoYi.Tcp.Services
                         Status = "0",
                         DelFlag = "0"
                     });
-                    // 只保留第一个重复的寄存器点位
+                    // 改为：支持一个寄存器+从机可挂多个点位（如1:N情况）
+
                     pointMap = points
-                        .Where(p => p.RegisterAddress.HasValue)
-                        .GroupBy(p => (ushort)p.RegisterAddress!.Value)
-                        .ToDictionary(g => g.Key,g => g.First());
+                     .Where(p => p.RegisterAddress.HasValue && p.SlaveAddress.HasValue)
+                     .GroupBy(p => new ModbusKey((byte)p.SlaveAddress!.Value,(ushort)p.RegisterAddress!.Value))
+                     .ToDictionary(g => g.Key,g => g.ToList());
 
                 }
 
                 if(_variableService != null)
                 {
                     varMap = await _variableService.GetVariableMapAsync(device.Id);
-                 }
+                }
 
                 // 【调试】输出变量映射表内容和数量，判断是否为空
                 if(varMap == null || varMap.Count == 0)
@@ -109,13 +140,14 @@ namespace RuoYi.Tcp.Services
                     byte slaveAddr = recv[0]; // 设备地址
                     byte func = recv[1];      // 功能码
 
+
                     // === 3. 根据不同功能码处理 ===
                     if((func == 0x03 || func == 0x04) && pointMap != null && varMap != null)
                     {
                         // 读保持/输入寄存器响应
                         byte byteCount = recv[2]; // 数据区长度（字节数）
                         if(recv.Length < 3 + byteCount + 2)
-                             continue; // 帧长度异常
+                            continue; // 帧长度异常
 
                         var dataBytes = recv.Skip(3).Take(byteCount).ToArray();
 
@@ -123,51 +155,48 @@ namespace RuoYi.Tcp.Services
                         Console.WriteLine($"【调试】pointMap.Count={pointMap?.Count}, varMap.Count={varMap?.Count}");
 
 
+                  
+
                         // 由于一次请求可能读多个寄存器，每2字节一个寄存器
+                        // 报文解析循环中查找点位
                         for(int i = 0; i < byteCount / 2; i++)
                         {
-                            ushort regAddr = 0;
-                            // 通常可以通过查询请求时的寄存器起始地址来定位真实点位，这里举例假设连续映射
-                            // 你可自定义寄存器基址，这里用i叠加
-                            var basePoint = pointMap.Values.OrderBy(p => p.RegisterAddress).FirstOrDefault();
-                            if(basePoint != null)
-                                regAddr = (ushort)(basePoint.RegisterAddress!.Value + i);
+                            ushort regAddr =  帮我补全逻辑;  // todo: 根据请求帧起始地址+偏移量i推算出?
+                            byte slaveAddr = recv[0];
 
-                            // ★ 1. 显示当前要解析的寄存器地址
-                            Console.WriteLine($"【调试】正在解析寄存器地址：{regAddr}");
+                            var key = new ModbusKey(slaveAddr,regAddr);
 
-
-                            if(pointMap.TryGetValue(regAddr,out var point) && point.PointKey != null
-                                && varMap.TryGetValue(point.PointKey,out var varDto) && varDto.VariableId.HasValue)
+                            if(pointMap.TryGetValue(key,out var pointList))
                             {
-                                // 拿2字节数据
-                                var singleRegBytes = dataBytes.Skip(i * 2).Take(2).ToArray();
-                                var value = ParseValue(singleRegBytes,point.DataType,point.ByteOrder,point.Signed ?? false);
+                                foreach(var point in pointList)
+                                {
+                                    if(point.PointKey != null && varMap.TryGetValue(point.PointKey,out var varDto) && varDto.VariableId.HasValue)
+                                    {
+                                        var singleRegBytes = dataBytes.Skip(i * 2).Take(2).ToArray();
+                                        var value = ParseValue(singleRegBytes,point.DataType,point.ByteOrder,point.Signed ?? false);
 
-                                // ★ 2. 存库前打印准备写入信息
-                                Console.WriteLine($"【准备存库】设备：{device.DeviceName}，功能码：{func:X2}，寄存器地址：{regAddr}，点位：{point.PointKey}，值：{value}");
+                                        Console.WriteLine($"【准备存库】设备：{device.DeviceName}，从机：{slaveAddr}，寄存器：{regAddr}，点位：{point.PointKey}，值：{value}");
 
+                                        await _variableService!.SaveValueAsync(device.Id,varDto.VariableId.Value,point.PointKey,value);
 
-                                // 存库
-                                await _variableService!.SaveValueAsync(device.Id,varDto.VariableId.Value,point.PointKey,value);
-
-                                // 日志记录
-                                string msg = $"【存库成功】设备：{device.DeviceName}，功能码：{func:X2}，寄存器地址：{regAddr}，点位：{point.PointKey}，值：{value}";
-                                _logger.LogDebug(msg);
-                                Console.WriteLine(msg);
-
-
+                                        string msg = $"【存库成功】设备：{device.DeviceName}，从机：{slaveAddr}，寄存器：{regAddr}，点位：{point.PointKey}，值：{value}";
+                                        _logger.LogDebug(msg);
+                                        Console.WriteLine(msg);
+                                    }
+                                }
                             }
                             else
                             {
-                                // ★ 3. 没查到映射时提示
-                                Console.WriteLine($"【警告】未匹配到点位或变量，寄存器地址={regAddr}");
+                                Console.WriteLine($"【警告】未匹配到点位，从机={slaveAddr}，寄存器={regAddr}");
                             }
                         }
                     }
                     else if(func == 0x06 && pointMap != null && varMap != null)
                     {
                         // 写单寄存器响应
+                       //    todo： 0x06功能码解析也需用ModbusKey（不能再用ushort直查）
+ 
+
                         ushort addr = (ushort)((recv[2] << 8) | recv[3]);
                         if(pointMap.TryGetValue(addr,out var point) && point.PointKey != null
                             && varMap.TryGetValue(point.PointKey,out var varDto) && varDto.VariableId.HasValue)
