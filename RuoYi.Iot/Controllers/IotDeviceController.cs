@@ -44,12 +44,71 @@ namespace RuoYi.Iot.Controllers
 
         }
 
+
+
+
+        /// <summary>
+        /// 只下发 Modbus RTU 读寄存器指令（不等待响应，响应由其他服务处理）
+        /// </summary>
+        [HttpGet("TestRead")]
+        public async Task<AjaxResult> TestRead(long id)
+        {
+            if(id == 0)
+            {
+                id = 99100001250627L; // 测试
+            }
+            var device = await _service.GetDtoAsync(id);
+
+            if(device.TcpHost == null || device.TcpPort == null)
+            {
+                return AjaxResult.Error("设备未配置 TCP 主机或端口");
+            }
+
+            byte slave = 0x01;
+            byte func = 0x04;
+            ushort startAddress = 0x01F4;
+            ushort quantity = 0x0002;
+
+            ConcurrentDictionary<byte,ushort>? lastDict = null;
+            var svcType = Type.GetType("RuoYi.Tcp.Services.ModbusRtuService, RuoYi.Tcp");
+            if(svcType != null)
+            {
+                dynamic? svc = HttpContext.RequestServices.GetService(svcType);
+                if(svc != null)
+                {
+                    try
+                    {
+                        lastDict = svc.LastReadStartAddrs as ConcurrentDictionary<byte,ushort>;
+                    }
+                    catch { }
+                }
+            }
+
+            var frame = ModbusUtils.BuildReadFrame(slave,func,startAddress,quantity,lastDict);
+
+            try
+            {
+                // 仅发送，不等待结果，不处理应答
+                _ = _tcpService.SendAsync(id,frame,HttpContext.RequestAborted);
+
+                return AjaxResult.Success("指令已下发");
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex,"Modbus 读指令发送失败");
+                return AjaxResult.Error("发送失败",ex.Message);
+            }
+        }
+
+
+
+
         /// <summary>
         /// 主动向设备发送 Modbus RTU 读寄存器指令 (01 04 01F4 0002)
         /// 用于测试数据库写入功能
         /// </summary>
-        [HttpGet("TestRead")]
-        public async Task<AjaxResult> TestRead(long id)
+        [HttpGet("TestReadV1")]
+        public async Task<AjaxResult> TestReadV1(long id)
         {
 
             if(id==0 )
