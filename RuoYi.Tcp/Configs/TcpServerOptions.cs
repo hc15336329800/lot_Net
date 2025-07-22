@@ -18,9 +18,9 @@ namespace RuoYi.Tcp.Configs
 
 
         /// <summary>
-        /// Interval in seconds between polling cycles.  采集时间
-        /// 后期需要根据表字段进行动态配置
+        /// Interval in seconds between polling cycles.   
+        ///  轮询周期之间的间隔（以秒为单位）。
         /// </summary>
-        public int PollIntervalSeconds { get; set; } = 3;
+        public int PollIntervalSeconds { get; set; } = 1;
     }
 }

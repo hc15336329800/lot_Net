@@ -18,6 +18,7 @@ namespace RuoYi.Iot.Controllers
 {
     [ApiDescriptionSettings("Iot")]
     [Route("iot/deviceVariable")]
+    [AllowAnonymous] //匿名
     public class IotDeviceVariableController : ControllerBase
     {
         private readonly ILogger<IotDeviceVariableController> _logger;

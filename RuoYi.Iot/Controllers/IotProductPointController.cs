@@ -16,6 +16,7 @@ namespace RuoYi.Iot.Controllers
 {
     [ApiDescriptionSettings("Iot")]
     [Route("iot/productPoint")]
+    [AllowAnonymous] //匿名
     public class IotProductPointController : ControllerBase
     {
         private readonly ILogger<IotProductPointController> _logger;

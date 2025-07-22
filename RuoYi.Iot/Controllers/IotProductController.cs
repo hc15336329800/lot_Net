@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using RuoYi.Common.Enums;
+﻿using RuoYi.Common.Enums;
 using RuoYi.Data.Dtos.IOT;
 using RuoYi.Framework;
 using RuoYi.Iot.Services;
@@ -16,6 +9,7 @@ namespace RuoYi.Iot.Controllers
 {
     [ApiDescriptionSettings("Iot")]
     [Route("iot/product")]
+    [AllowAnonymous] //匿名
     public class IotProductController : ControllerBase
     {
         private readonly ILogger<IotProductController> _logger;
@@ -40,7 +34,7 @@ namespace RuoYi.Iot.Controllers
             return AjaxResult.Success(data);
         }
 
-        [HttpPost]
+        [HttpPost("add")]
         [Log(Title = "产品",BusinessType = BusinessType.INSERT)]
         public async Task<AjaxResult> Add([FromBody] IotProductDto dto)
         {
@@ -48,7 +42,7 @@ namespace RuoYi.Iot.Controllers
             return AjaxResult.Success(ok);
         }
 
-        [HttpPut]
+        [HttpPost("edit")]
         [Log(Title = "产品",BusinessType = BusinessType.UPDATE)]
         public async Task<AjaxResult> Edit([FromBody] IotProductDto dto)
         {
@@ -56,9 +50,10 @@ namespace RuoYi.Iot.Controllers
             return AjaxResult.Success(data);
         }
 
-        [HttpDelete("{ids}")]
+  
+        [HttpPost("delete")]
         [Log(Title = "产品",BusinessType = BusinessType.DELETE)]
-        public async Task<AjaxResult> Delete(long[] ids)
+        public async Task<AjaxResult> Delete([FromBody] long[] ids)
         {
             var data = await _service.DeleteAsync(ids);
             return AjaxResult.Success(data);
