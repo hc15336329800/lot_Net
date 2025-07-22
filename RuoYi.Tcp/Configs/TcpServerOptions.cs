@@ -15,5 +15,12 @@ namespace RuoYi.Tcp.Configs
         /// Port to listen on.
         /// </summary>
         public int Port { get; set; } = 5003;
+
+
+        /// <summary>
+        /// Interval in seconds between polling cycles.  采集时间
+        /// 后期需要根据表字段进行动态配置
+        /// </summary>
+        public int PollIntervalSeconds { get; set; } = 3;
     }
 }

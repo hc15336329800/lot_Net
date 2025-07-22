@@ -6,6 +6,8 @@ using Microsoft.Extensions.Logging;
 using RuoYi.Data.Dtos.IOT;
 using RuoYi.Iot.Services;
 using System.Net;
+using Microsoft.Extensions.Options;
+using RuoYi.Tcp.Configs;
 
 
 namespace RuoYi.Tcp.Services
@@ -41,6 +43,8 @@ namespace RuoYi.Tcp.Services
         private readonly IotDeviceService _deviceService;// 用于与 IoT 设备交互的服务
         private readonly IotProductPointService _pointService;// 用于与 IoT 产品点交互的服务
         private readonly IotDeviceVariableService _variableService;// 用于与设备变量交互的服务
+        private readonly TcpServerOptions _options;
+
 
         private readonly ConcurrentDictionary<long,DeviceConnection> _connections = new();// 存储活动的设备连接
 
@@ -57,12 +61,14 @@ namespace RuoYi.Tcp.Services
         public ModbusRtuService(ILogger<ModbusRtuService> logger,
             IotDeviceService deviceService,
             IotProductPointService pointService,
-            IotDeviceVariableService variableService)
+           IotDeviceVariableService variableService,
+            IOptions<TcpServerOptions> options)
         {
             _logger = logger;
             _deviceService = deviceService;
             _pointService = pointService;
             _variableService = variableService;
+            _options = options.Value;
         }
 
         /// <summary>
@@ -289,11 +295,15 @@ namespace RuoYi.Tcp.Services
             await LoadDevicesAsync(stoppingToken); // 加载所有设备信息
             while(!stoppingToken.IsCancellationRequested)// 如果没有取消请求，持续处理
             {
-                foreach(var conn in _connections.Values)
-                {
-                    await conn.PollAsync(stoppingToken);// 对每个设备连接进行轮询操作
-                }
-                await Task.Delay(TimeSpan.FromSeconds(1),stoppingToken);// 延迟1秒钟后再继续
+                //foreach(var conn in _connections.Values)
+                //{
+                //    await conn.PollAsync(stoppingToken);// 对每个设备连接进行轮询操作
+                //}
+                //await Task.Delay(TimeSpan.FromSeconds(1),stoppingToken);// 延迟1秒钟后再继续
+
+                var tasks = _connections.Values.Select(c => c.PollAsync(stoppingToken));
+                await Task.WhenAll(tasks);
+                await Task.Delay(TimeSpan.FromSeconds(_options.PollIntervalSeconds),stoppingToken);
             }
         }
 
