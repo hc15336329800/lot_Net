@@ -42,6 +42,20 @@ namespace RuoYi.Iot.Controllers
             return AjaxResult.Success(data);
         }
 
+
+        /// <summary>
+        /// 根据ProductId查询点位列表
+        /// </summary>
+        /// <param name="pid"></param>
+        /// <returns></returns>
+        [HttpGet("listbypid/{pid}")]
+        public async Task<AjaxResult> GetByPid(long pid)
+        {
+            var list = await _service.GetDtoListAsync(new IotProductPointDto { ProductId = pid });
+            return AjaxResult.Success(list);
+        }
+
+
         [HttpPost("add")]
         [Log(Title = "产品点位新增",BusinessType = BusinessType.INSERT)]
         public async Task<AjaxResult> Add([FromBody] IotProductPointDto dto)

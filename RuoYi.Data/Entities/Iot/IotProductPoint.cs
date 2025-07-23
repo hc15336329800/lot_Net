@@ -65,10 +65,10 @@ namespace RuoYi.Data.Entities.Iot
         public bool? Signed { get; set; }
 
         [SugarColumn(ColumnName = "read_type",ColumnDescription = "读写类型")]
-        public string? ReadType { get; set; }
+        public int? ReadType { get; set; }
 
         [SugarColumn(ColumnName = "storage_mode",ColumnDescription = "存储方式")]
-        public string? StorageMode { get; set; }
+        public int? StorageMode { get; set; }
 
         [SugarColumn(ColumnName = "display_on_dashboard",ColumnDescription = "看板展示")]
         public bool? DisplayOnDashboard { get; set; }

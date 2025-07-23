@@ -28,8 +28,8 @@ namespace RuoYi.Data.Dtos.IOT
         public int? RegisterAddress { get; set; }
         public string? ByteOrder { get; set; }
         public bool? Signed { get; set; }
-        public string? ReadType { get; set; }
-        public string? StorageMode { get; set; }
+        public int? ReadType { get; set; }
+        public int? StorageMode { get; set; }
         public bool? DisplayOnDashboard { get; set; }
         public string? CollectFormula { get; set; }
         public string? ControlFormula { get; set; }
