@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using RuoYi.Common.Enums;
+using RuoYi.Common.Utils;
 using RuoYi.Data.Dtos.IOT;
 using RuoYi.Framework;
 using RuoYi.Iot.Services;
@@ -34,22 +35,25 @@ namespace RuoYi.Iot.Controllers
             return await _service.GetDtoPagedListAsync(dto);
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("infobyid/{id}")]
         public async Task<AjaxResult> Get(long id)
         {
             var data = await _service.GetDtoAsync(id);
             return AjaxResult.Success(data);
         }
 
-        [HttpPost]
-        [Log(Title = "产品点位",BusinessType = BusinessType.INSERT)]
+        [HttpPost("add")]
+        [Log(Title = "产品点位新增",BusinessType = BusinessType.INSERT)]
         public async Task<AjaxResult> Add([FromBody] IotProductPointDto dto)
         {
+            dto.Id = NextId.Id13(); //必须使用这个生成id
+            dto.Status = "0";
+            dto.DelFlag = "0";
             var ok = await _service.InsertAsync(dto);
             return AjaxResult.Success(ok);
         }
 
-        [HttpPut]
+        [HttpPost("edit")]
         [Log(Title = "产品点位",BusinessType = BusinessType.UPDATE)]
         public async Task<AjaxResult> Edit([FromBody] IotProductPointDto dto)
         {
@@ -57,7 +61,7 @@ namespace RuoYi.Iot.Controllers
             return AjaxResult.Success(data);
         }
 
-        [HttpDelete("{ids}")]
+        [HttpPost("delete")]
         [Log(Title = "产品点位",BusinessType = BusinessType.DELETE)]
         public async Task<AjaxResult> Delete(long[] ids)
         {
