@@ -108,6 +108,8 @@ RuoYi.Data  ： 静态表，静态类
 
 
 
+## ID规范 重要！
+- 以后所有新增操作  id都要使用NextId.Id13生成13位的id(与前端兼容 防止精度丢失)
 
 ## TcpServer 配置
 
