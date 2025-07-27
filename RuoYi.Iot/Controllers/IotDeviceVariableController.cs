@@ -36,10 +36,12 @@ namespace RuoYi.Iot.Controllers
             return await _service.GetDtoPagedListAsync(dto);
         }
 
-        [HttpGet("{id}")]
-        public async Task<AjaxResult> Get(long id)
+
+        // todo:  需要完善查询条件  根据device_id
+        [HttpGet("infobyid/{id}")]
+        public async Task<AjaxResult> Get(long deviceId)
         {
-            var data = await _service.GetDtoAsync(id);
+            var data = await _service.GetDtoAsync(deviceId);
             return AjaxResult.Success(data);
         }
 
