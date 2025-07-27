@@ -72,14 +72,16 @@ namespace RuoYi.Iot.Controllers
 
             return AjaxResult.Success(data);
         }
+ 
 
-        [HttpDelete("{ids}")]
+        [HttpPost("delete")]
         [Log(Title = "设备变量",BusinessType = BusinessType.DELETE)]
-        public async Task<AjaxResult> Delete(long[] ids)
+        public async Task<AjaxResult> Delete([FromBody] long[] ids)
         {
             var data = await _service.DeleteAsync(ids);
             return AjaxResult.Success(data);
         }
+
 
 
         /// <summary>
