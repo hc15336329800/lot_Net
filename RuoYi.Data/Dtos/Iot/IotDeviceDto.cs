@@ -26,5 +26,6 @@ namespace RuoYi.Data.Dtos.IOT
         public DateTime? ActivateTime { get; set; }
         public string? Status { get; set; }
         public string? DelFlag { get; set; }
+        public string? Remark { get; set; }
     }
 }

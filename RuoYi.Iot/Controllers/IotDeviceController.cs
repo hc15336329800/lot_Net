@@ -149,8 +149,14 @@ namespace RuoYi.Iot.Controllers
 
 
 
- 
-    
+
+        [HttpGet("list")]
+        public async Task<SqlSugarPagedList<IotDeviceDto>> List([FromQuery] IotDeviceDto dto)
+        {
+            return await _service.GetDtoPagedListAsync(dto);
+        }
+
+
 
         [HttpGet("infobyid/{id}")]
         public async Task<AjaxResult> Get(long id)
@@ -165,19 +171,23 @@ namespace RuoYi.Iot.Controllers
         public async Task<AjaxResult> Add([FromBody] IotDeviceDto dto)
         {
             dto.Id = NextId.Id13(); //必须使用这个生成id
+                                    // 默认值填充
+            dto.OrgId ??= 0;
+            dto.DeviceStatus = "offline";
+            dto.IotCardNo ??= "0";
+            dto.TcpHost ??= "127.0.0.1";
+            dto.TcpPort ??= 5003;
+            dto.TagCategory ??= "0";
             dto.Status = "0";
             dto.DelFlag = "0";
+            dto.AutoRegPacket = _service.BuildAutoRegPacket(dto);
+ 
+
             var ok = await _service.InsertAsync(dto);
             return AjaxResult.Success(ok);
         }
 
-        [HttpPost("edit")]
-        [Log(Title = "设备",BusinessType = BusinessType.UPDATE)]
-        public async Task<AjaxResult> Edit([FromBody] IotDeviceDto dto)
-        {
-            var data = await _service.UpdateAsync(dto);
-            return AjaxResult.Success(data);
-        }
+ 
 
 
         [HttpPost("delete")]
