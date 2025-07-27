@@ -158,7 +158,7 @@ namespace RuoYi.Iot.Controllers
 
 
 
-        [HttpGet("infobyid/{id}")]
+        [HttpGet("infoById/{id}")]
         public async Task<AjaxResult> Get(long id)
         {
             var data = await _service.GetDtoAsync(id);

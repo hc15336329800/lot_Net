@@ -37,12 +37,12 @@ namespace RuoYi.Iot.Controllers
         }
 
 
-        // todo:  需要完善查询条件  根据device_id
-        [HttpGet("infobyid/{id}")]
-        public async Task<AjaxResult> Get(long deviceId)
+        //查询详情，根据device_id
+        [HttpGet("infobyid/{device_id}")]
+        public async Task<AjaxResult> Get([FromRoute(Name = "device_id")] long deviceId)
         {
-            var data = await _service.GetDtoAsync(deviceId);
-            return AjaxResult.Success(data);
+            var list = await _service.GetDtoListAsync(new IotDeviceVariableDto { DeviceId = deviceId });
+            return AjaxResult.Success(list);
         }
 
         [HttpPost]
