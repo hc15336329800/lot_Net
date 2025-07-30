@@ -41,6 +41,7 @@ namespace RuoYi.Iot.Controllers
         [HttpGet("infobyid/{device_id}")]
         public async Task<AjaxResult> Get([FromRoute(Name = "device_id")] long deviceId)
         {
+            await _service.SyncDeviceVariablesAsync(deviceId);
             var list = await _service.GetDtoListAsync(new IotDeviceVariableDto { DeviceId = deviceId });
             return AjaxResult.Success(list);
         }

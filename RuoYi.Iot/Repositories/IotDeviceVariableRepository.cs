@@ -65,5 +65,14 @@ public class IotDeviceVariableRepository : BaseRepository<IotDeviceVariable,IotD
         return await Repo.AsQueryable().Where(d => d.DeviceId == deviceId).ToListAsync();
     }
 
- 
+
+    public async Task<IotDeviceVariable?> GetByDeviceIdAndKeyAsync(long deviceId,string variableKey)
+    {
+        return await Repo.AsQueryable()
+            .LeftJoin<IotProductPoint>((dv,pp) => dv.VariableId == pp.Id)
+            .Where((dv,pp) => dv.DeviceId == deviceId && pp.PointKey == variableKey)
+            .Select((dv,pp) => dv)
+            .FirstAsync();
+    }
+
 }

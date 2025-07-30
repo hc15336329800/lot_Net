@@ -19,13 +19,21 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
     private readonly IotDeviceVariableRepository _repo;
     private readonly ILogger<IotDeviceVariableService> _logger;
     private readonly IotDeviceVariableHistoryRepository _historyRepo;
+    private readonly IotDeviceService _deviceService;
+    private readonly IotProductPointService _pointService;
 
 
-    public IotDeviceVariableService(ILogger<IotDeviceVariableService> logger,IotDeviceVariableRepository repo,IotDeviceVariableHistoryRepository historyRepo)
+    public IotDeviceVariableService(ILogger<IotDeviceVariableService> logger,
+        IotDeviceVariableRepository repo,
+        IotDeviceVariableHistoryRepository historyRepo,
+        IotDeviceService deviceService,
+        IotProductPointService pointService)
     {
         _logger = logger;
         _repo = repo;
         _historyRepo = historyRepo;
+        _deviceService = deviceService;
+        _pointService = pointService;
 
         BaseRepo = repo;
     }
@@ -40,6 +48,53 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
         var dto = new IotDeviceVariableDto { Id = id };
         return await _repo.GetDtoFirstAsync(dto);
     }
+
+
+    /// <summary>
+    /// 确保设备变量与产品点位一致，如有缺失则自动补全
+    /// </summary>
+    public async Task SyncDeviceVariablesAsync(long deviceId)
+    {
+        var device = await _deviceService.GetDtoAsync(deviceId);
+        if(device == null || !device.ProductId.HasValue)
+            return;
+
+        var points = await _pointService.GetDtoListAsync(new IotProductPointDto
+        {
+            ProductId = device.ProductId,
+            Status = "0",
+            DelFlag = "0"
+        });
+
+        if(points.Count == 0)
+            return;
+
+        var existing = await _repo.GetByDeviceIdAsync(deviceId);
+        var existIds = existing.Select(v => v.VariableId).ToHashSet();
+
+        var newVars = new List<IotDeviceVariable>();
+        foreach(var p in points)
+        {
+            if(!existIds.Contains(p.Id))
+            {
+                newVars.Add(new IotDeviceVariable
+                {
+                    Id = NextId.Id13(),
+                    DeviceId = deviceId,
+                    VariableId = p.Id,
+                    CurrentValue = p.DefaultValue,
+                    Status = "0",
+                    DelFlag = "0"
+                });
+            }
+        }
+
+        if(newVars.Count > 0)
+        {
+            await _repo.InsertBatchAsync(newVars);
+        }
+    }
+
 
     /// <summary>
     /// 更新当前值并记录历史
