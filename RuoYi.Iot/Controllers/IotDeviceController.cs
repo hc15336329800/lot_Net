@@ -14,6 +14,7 @@ using RuoYi.Iot.Services;
 using RuoYi.System;
 using SqlSugar;
 using RuoYi.Common.Utils;
+using RuoYi.Data.Entities.Iot;
 
 
 
@@ -184,6 +185,41 @@ namespace RuoYi.Iot.Controllers
  
 
             var ok = await _service.InsertAsync(dto);
+
+
+            // 根据产品点位初始化设备变量
+            if(ok && dto.ProductId.HasValue)
+            {
+                var points = await _pointService.GetDtoListAsync(new IotProductPointDto
+                {
+                    ProductId = dto.ProductId,
+                    Status = "0",
+                    DelFlag = "0"
+                });
+
+                if(points.Count > 0)
+                {
+                    var vars = points.Select(p => new IotDeviceVariableDto
+                    {
+                        Id = NextId.Id13(),
+                        DeviceId = dto.Id,
+                        VariableId = p.Id,
+                        VariableName = p.PointName,
+                        VariableKey = p.PointKey,
+                        VariableType = p.VariableType,
+                        CurrentValue = p.DefaultValue,
+                        Status = "0",
+                        DelFlag = "0"
+                    }).ToList();
+
+                    if(vars.Count > 0)
+                    {
+                        var entityList = vars.Adapt<List<IotDeviceVariable>>(); // DTO 转实体，避免类型不匹配
+                        await _variableService.InsertBatchAsync(entityList);
+                    }
+                }
+            }
+
             return AjaxResult.Success(ok);
         }
 
