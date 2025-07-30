@@ -16,7 +16,8 @@ public class IotProductRepository : BaseRepository<IotProduct,IotProductDto>
     {
         return Repo.AsQueryable()
             .WhereIF(dto.Id > 0,d => d.Id == dto.Id)
-.Where(d => d.DelFlag == "0")
+            .WhereIF(!string.IsNullOrEmpty(dto.ProductCode),d => d.ProductCode == dto.ProductCode)
+            .Where(d => d.DelFlag == "0")
             .WhereIF(!string.IsNullOrEmpty(dto.ProductName),d => d.ProductName.Contains(dto.ProductName!));
     }
 
@@ -24,6 +25,7 @@ public class IotProductRepository : BaseRepository<IotProduct,IotProductDto>
     {
         return Repo.AsQueryable()
             .WhereIF(dto.Id > 0,d => d.Id == dto.Id)
+            .WhereIF(!string.IsNullOrEmpty(dto.ProductCode),d => d.ProductCode == dto.ProductCode)
             .WhereIF(dto.DelFlag == null,d => d.DelFlag == "0") // 默认查未删除
             .WhereIF(!string.IsNullOrEmpty(dto.ProductName),d => d.ProductName.Contains(dto.ProductName!))
             .Select(d => new IotProductDto

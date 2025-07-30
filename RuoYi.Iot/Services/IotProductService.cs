@@ -34,4 +34,13 @@ public class IotProductService : BaseService<IotProduct,IotProductDto>, ITransie
         var dto = new IotProductDto { Id = id };
         return await _repo.GetDtoFirstAsync(dto);
     }
+
+
+    public async Task<IotProductDto?> GetDtoByCodeAsync(string code)
+    {
+        var dto = new IotProductDto { ProductCode = code };
+        return await _repo.GetDtoFirstAsync(dto);
+    }
+
+
 }

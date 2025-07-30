@@ -165,6 +165,17 @@ namespace RuoYi.Tcp.Services
                 var deviceDto = await _deviceService.GetDtoAsync(device.Id);
                 var productId = device.ProductId;
                 var product = await _productService.GetDtoAsync(productId);
+                //处理 TCP 客户端连接时添加了产品信息的空检查，以防止产品记录丢失时崩溃
+                if(product == null)
+                {
+                    // fallback to product code lookup when product id not matched
+                    product = await _productService.GetDtoByCodeAsync(productId.ToString());
+                }
+                if(product == null)
+                {
+                    _logger.LogWarning("Product id/code {Id} not found for device {DeviceId}",productId,device.Id);
+                    return; // stop processing if product info is missing
+                }
                 _clients[device.Id] = client;// 将设备 ID 和客户端关联起来
                 _locks[device.Id] = new SemaphoreSlim(1,1); // 初始化设备锁
 
