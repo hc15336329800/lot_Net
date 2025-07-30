@@ -11,7 +11,7 @@ using RuoYi.Data.Dtos.IOT;
 using RuoYi.Iot.Services;
 using RuoYi.Tcp.Configs;
 using System.Threading;
-
+using System.Threading.Tasks;
 
 // 这个类的主要职责是监听和分发 TCP 连接请求，
 
@@ -25,7 +25,7 @@ namespace RuoYi.Tcp.Services
     /// <summary>
     /// TCP 监听服务，根据注册包分发到具体协议处理器。
     /// </summary>
-    public class TcpService : BackgroundService, ITcpSender
+    public class TcpService : BackgroundService, ITcpSender, ITcpResponseListener
     {
         private readonly ILogger<TcpService> _logger;
         private readonly IServiceProvider _serviceProvider;
@@ -35,9 +35,22 @@ namespace RuoYi.Tcp.Services
         private TcpListener? _listener;
         private readonly ConcurrentDictionary<long,TcpClient> _clients = new(); // 存储连接的客户端
         private readonly ConcurrentDictionary<long,SemaphoreSlim> _locks = new(); // 每个设备的发送队列
- 
+
+        private readonly ConcurrentDictionary<long,TaskCompletionSource<byte[]?>> _pendingResponses = new();
+
+
 
         private readonly IotDeviceVariableService _variableService;
+
+
+        public void OnTcpDataReceived(long deviceId,byte[] data)
+        {
+            if(_pendingResponses.TryRemove(deviceId,out var tcs))
+            {
+                tcs.TrySetResult(data);
+            }
+        }
+
 
 
         /// <summary>
@@ -51,18 +64,27 @@ namespace RuoYi.Tcp.Services
                 await sem.WaitAsync(token);
                 try
                 {
+                    var tcs = new TaskCompletionSource<byte[]?>(TaskCreationOptions.RunContinuationsAsynchronously);
+                    _pendingResponses[deviceId] = tcs;
+
                     var stream = client.GetStream();
                     await stream.WriteAsync(data,0,data.Length,token);
-                    var buffer = new byte[256];
-                    int read = 0;
-                    do
+                    //var buffer = new byte[256];
+                    //int read = 0;
+                    //do
+                    using var cts = CancellationTokenSource.CreateLinkedTokenSource(token);
+                    cts.CancelAfter(TimeSpan.FromSeconds(_options.ResponseTimeoutSeconds));
+                    try
                     {
-                        int r = await stream.ReadAsync(buffer,read,buffer.Length - read,token);
-                        if(r == 0) break;
-                        read += r;
+                        return await tcs.Task.WaitAsync(cts.Token);
                     }
-                    while(read < buffer.Length && stream.DataAvailable);
-                    return buffer.Take(read).ToArray();
+                    catch(OperationCanceledException)
+                    {
+                        _logger.LogWarning("Timeout waiting response from device {Device}",deviceId);
+                        return null;
+                    }
+                    //while(read < buffer.Length && stream.DataAvailable);
+                    //return buffer.Take(read).ToArray();
                 }
                 catch(Exception ex)
                 {
@@ -70,6 +92,8 @@ namespace RuoYi.Tcp.Services
                 }
                 finally
                 {
+                    _pendingResponses.TryRemove(deviceId,out _);
+
                     sem.Release();
                 }
             }

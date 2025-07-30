@@ -44,6 +44,8 @@ namespace RuoYi.Tcp.Services
         private readonly IotProductPointService _pointService;// 用于与 IoT 产品点交互的服务
         private readonly IotDeviceVariableService _variableService;// 用于与设备变量交互的服务
         private readonly TcpServerOptions _options;
+        private readonly ITcpResponseListener? _responseListener;
+
 
 
         private readonly ConcurrentDictionary<long,DeviceConnection> _connections = new();// 存储活动的设备连接
@@ -62,13 +64,15 @@ namespace RuoYi.Tcp.Services
             IotDeviceService deviceService,
             IotProductPointService pointService,
            IotDeviceVariableService variableService,
-            IOptions<TcpServerOptions> options)
+                 IOptions<TcpServerOptions> options,
+            ITcpResponseListener? responseListener = null)
         {
             _logger = logger;
             _deviceService = deviceService;
             _pointService = pointService;
             _variableService = variableService;
             _options = options.Value;
+            _responseListener = responseListener;
         }
 
         /// <summary>
@@ -163,6 +167,8 @@ namespace RuoYi.Tcp.Services
                             BitConverter.ToString(recv).Replace("-"," "));
                         continue;
                     }
+
+                    _responseListener?.OnTcpDataReceived(device.Id,recv);
 
                     byte slaveAddr = recv[0]; // 设备地址
                     byte func = recv[1];      // 功能码

@@ -55,7 +55,8 @@ public class ModbusRtuServiceTests
     public async Task ClientCanSendMultipleFramesAndStayConnected( )
     {
         var options = Microsoft.Extensions.Options.Options.Create(new TcpServerOptions());
-        var service = new ModbusRtuService(NullLogger<ModbusRtuService>.Instance,null!,null!,null!,options);
+        var service = new ModbusRtuService(NullLogger<ModbusRtuService>.Instance,null!,null!,null!,options,null);
+
         var device = new IotDeviceDto { Id = 1,DeviceName = "dev" };
 
         var listener = new TcpListener(IPAddress.Loopback,0);

@@ -22,5 +22,11 @@ namespace RuoYi.Tcp.Configs
         ///  轮询周期之间的间隔（以秒为单位）。
         /// </summary>
         public int PollIntervalSeconds { get; set; } = 1;
+
+
+        /// <summary>
+        /// Timeout waiting for a device response when sending commands (seconds). 超时
+        /// </summary>
+        public int ResponseTimeoutSeconds { get; set; } = 5;
     }
 }

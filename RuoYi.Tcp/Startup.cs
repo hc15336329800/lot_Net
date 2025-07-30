@@ -43,6 +43,8 @@ namespace RuoYi.Tcp
             // 注册 TcpService 为单例服务
             services.AddSingleton<TcpService>();
             services.AddSingleton<ITcpSender>(sp => sp.GetRequiredService<TcpService>());
+            services.AddSingleton<ITcpResponseListener>(sp => sp.GetRequiredService<TcpService>());
+
 
 
             // 将 TcpService 注册为后台服务
