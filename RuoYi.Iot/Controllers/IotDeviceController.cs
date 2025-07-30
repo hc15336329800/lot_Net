@@ -204,12 +204,13 @@ namespace RuoYi.Iot.Controllers
                         Id = NextId.Id13(),
                         DeviceId = dto.Id,
                         VariableId = p.Id,
-                        VariableName = p.PointName,
-                        VariableKey = p.PointKey,
-                        VariableType = p.VariableType,
+                        //VariableName = p.PointName,
+                        //VariableKey = p.PointKey,
+                        //VariableType = p.VariableType,
                         CurrentValue = p.DefaultValue,
                         Status = "0",
-                        DelFlag = "0"
+                        DelFlag = "0",
+                        VariableKey = p.PointKey // 用于记录历史
                     }).ToList();
 
                     if(vars.Count > 0)
@@ -221,9 +222,9 @@ namespace RuoYi.Iot.Controllers
                             Id = v.Id,
                             DeviceId = v.DeviceId ?? 0,
                             VariableId = v.VariableId ?? 0,
-                            VariableName = v.VariableName ?? string.Empty,
-                            VariableKey = v.VariableKey ?? string.Empty,
-                            VariableType = v.VariableType ?? string.Empty,
+                            //VariableName = v.VariableName ?? string.Empty,
+                            //VariableKey = v.VariableKey ?? string.Empty,
+                            //VariableType = v.VariableType ?? string.Empty,
                             CurrentValue = v.CurrentValue,
                             Status = v.Status ?? "0",
                             DelFlag = v.DelFlag ?? "0",

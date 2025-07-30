@@ -5,6 +5,12 @@
  
 ## 注意事项
 - 目前默认一个用户一个角色！ 多角色还没有正式测试和优化！
+
+
+
+## 关于数据库批量新增报错问题
+- SqlSugar 的 MySQL BulkCopy 依赖于该LOAD DATA LOCAL INFILE功能。
+- 因此，当 MySQL 的全局变量被禁用（设置为 0）时，就会发生故障local_infile。使用 SqlSugar 进行批量插入需要连接字符串选项AllowLoadLocalInfile=true和服务器变量local_infile=1。运行：
  
 
 

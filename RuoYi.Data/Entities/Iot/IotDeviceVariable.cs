@@ -22,14 +22,14 @@ namespace RuoYi.Data.Entities.Iot
         [SugarColumn(ColumnName = "variable_id",ColumnDescription = "变量ID")]
         public long VariableId { get; set; }
 
-        [SugarColumn(ColumnName = "variable_name",ColumnDescription = "变量名称")]
-        public string VariableName { get; set; } = string.Empty;
+        //[SugarColumn(ColumnName = "variable_name",ColumnDescription = "变量名称")]
+        //public string VariableName { get; set; } = string.Empty;
 
-        [SugarColumn(ColumnName = "variable_key",ColumnDescription = "变量标识")]
-        public string VariableKey { get; set; } = string.Empty;
+        //[SugarColumn(ColumnName = "variable_key",ColumnDescription = "变量标识")]
+        //public string VariableKey { get; set; } = string.Empty;
 
-        [SugarColumn(ColumnName = "variable_type",ColumnDescription = "变量类型")]
-        public string VariableType { get; set; } = string.Empty;
+        //[SugarColumn(ColumnName = "variable_type",ColumnDescription = "变量类型")]
+        //public string VariableType { get; set; } = string.Empty;
 
         [SugarColumn(ColumnName = "current_value",ColumnDescription = "当前值")]
         public string? CurrentValue { get; set; }

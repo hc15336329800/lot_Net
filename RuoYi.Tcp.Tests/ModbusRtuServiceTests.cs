@@ -7,8 +7,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using RuoYi.Data.Dtos.IOT;
+using RuoYi.Tcp.Configs;
 using RuoYi.Tcp.Services;
 using Xunit;
+using Microsoft.Extensions.Options;
+using RuoYi.Tcp.Configs;
 
 public class ModbusRtuServiceTests
 {
@@ -51,7 +54,8 @@ public class ModbusRtuServiceTests
     [Fact]
     public async Task ClientCanSendMultipleFramesAndStayConnected( )
     {
-        var service = new ModbusRtuService(NullLogger<ModbusRtuService>.Instance,null!,null!,null!);
+        var options = Microsoft.Extensions.Options.Options.Create(new TcpServerOptions());
+        var service = new ModbusRtuService(NullLogger<ModbusRtuService>.Instance,null!,null!,null!,options);
         var device = new IotDeviceDto { Id = 1,DeviceName = "dev" };
 
         var listener = new TcpListener(IPAddress.Loopback,0);

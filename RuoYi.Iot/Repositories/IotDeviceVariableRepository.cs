@@ -24,27 +24,27 @@ public class IotDeviceVariableRepository : BaseRepository<IotDeviceVariable,IotD
     public override ISugarQueryable<IotDeviceVariableDto> DtoQueryable(IotDeviceVariableDto dto)
     {
         return Repo.AsQueryable()
-            .WhereIF(dto.Id > 0,d => d.Id == dto.Id)
-            .WhereIF(dto.DeviceId.HasValue,d => d.DeviceId == dto.DeviceId)
-                        .Where(d => d.Status == "0" && d.DelFlag == "0")  // 无论如何都加
-
-            .Select(d => new IotDeviceVariableDto
+            .LeftJoin<IotProductPoint>((dv,pp) => dv.VariableId == pp.Id)
+            .WhereIF(dto.Id > 0,(dv,pp) => dv.Id == dto.Id)
+            .WhereIF(dto.DeviceId.HasValue,(dv,pp) => dv.DeviceId == dto.DeviceId)
+            .Where((dv,pp) => dv.Status == "0" && dv.DelFlag == "0") // 无论如何都加
+            .Select((dv,pp) => new IotDeviceVariableDto
             {
-                Id = d.Id,
-                DeviceId = d.DeviceId,
-                VariableId = d.VariableId,
-                VariableName = d.VariableName,
-                VariableKey = d.VariableKey,
-                VariableType = d.VariableType,
-                CurrentValue = d.CurrentValue,
-                LastUpdateTime = d.LastUpdateTime,
-                Status = d.Status,
-                DelFlag = d.DelFlag,
-                Remark = d.Remark,
-                CreateBy = d.CreateBy,
-                CreateTime = d.CreateTime,
-                UpdateBy = d.UpdateBy,
-                UpdateTime = d.UpdateTime
+                Id = dv.Id,
+                DeviceId = dv.DeviceId,
+                VariableId = dv.VariableId,
+                VariableName = pp.PointName,
+                VariableKey = pp.PointKey,
+                VariableType = pp.VariableType,
+                CurrentValue = dv.CurrentValue,
+                LastUpdateTime = dv.LastUpdateTime,
+                Status = dv.Status,
+                DelFlag = dv.DelFlag,
+                Remark = dv.Remark,
+                CreateBy = dv.CreateBy,
+                CreateTime = dv.CreateTime,
+                UpdateBy = dv.UpdateBy,
+                UpdateTime = dv.UpdateTime
             });
     }
 
@@ -65,10 +65,5 @@ public class IotDeviceVariableRepository : BaseRepository<IotDeviceVariable,IotD
         return await Repo.AsQueryable().Where(d => d.DeviceId == deviceId).ToListAsync();
     }
 
-    public async Task<IotDeviceVariable?> GetByDeviceIdAndKeyAsync(long deviceId,string variableKey)
-    {
-        return await Repo.AsQueryable()
-            .Where(d => d.DeviceId == deviceId && d.VariableKey == variableKey)
-            .FirstAsync();
-    }
+ 
 }
