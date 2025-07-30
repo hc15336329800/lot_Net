@@ -214,7 +214,22 @@ namespace RuoYi.Iot.Controllers
 
                     if(vars.Count > 0)
                     {
-                        var entityList = vars.Adapt<List<IotDeviceVariable>>(); // DTO 转实体，避免类型不匹配
+
+                        // 使用显式映射，避免因自适应转换问题导致数据库写入失败
+                        var entityList = vars.Select(v => new IotDeviceVariable
+                        {
+                            Id = v.Id,
+                            DeviceId = v.DeviceId ?? 0,
+                            VariableId = v.VariableId ?? 0,
+                            VariableName = v.VariableName ?? string.Empty,
+                            VariableKey = v.VariableKey ?? string.Empty,
+                            VariableType = v.VariableType ?? string.Empty,
+                            CurrentValue = v.CurrentValue,
+                            Status = v.Status ?? "0",
+                            DelFlag = v.DelFlag ?? "0",
+                            LastUpdateTime = v.LastUpdateTime,
+                        }).ToList();
+
                         await _variableService.InsertBatchAsync(entityList);
                     }
                 }
