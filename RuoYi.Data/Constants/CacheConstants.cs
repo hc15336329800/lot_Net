@@ -39,7 +39,15 @@
         /// </summary>
         public const string TX_DataView_Info = "tx_DataView_info:";
 
+        /// <summary>
+        /// 设备点位列表缓存前缀
+        /// </summary>
+        public const string IOT_POINT_MAP_KEY = "iot_point_map:";
 
+        /// <summary>
+        /// 设备变量映射缓存前缀
+        /// </summary>
+        public const string IOT_VAR_MAP_KEY = "iot_var_map:";
 
     }
 }

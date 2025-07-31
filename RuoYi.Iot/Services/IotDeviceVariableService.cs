@@ -11,6 +11,9 @@ using RuoYi.Data.Dtos.IOT;
 using RuoYi.Data.Entities.Iot;
 using RuoYi.Framework.DependencyInjection;
 using RuoYi.Iot.Repositories;
+using RuoYi.Framework.Cache;
+using RuoYi.Data;
+
 
 namespace RuoYi.Iot.Services;
 
@@ -21,19 +24,22 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
     private readonly IotDeviceVariableHistoryRepository _historyRepo;
     private readonly IotDeviceService _deviceService;
     private readonly IotProductPointService _pointService;
+    private readonly ICache _cache;
 
 
     public IotDeviceVariableService(ILogger<IotDeviceVariableService> logger,
         IotDeviceVariableRepository repo,
         IotDeviceVariableHistoryRepository historyRepo,
         IotDeviceService deviceService,
-        IotProductPointService pointService)
+         IotProductPointService pointService,
+        ICache cache)
     {
         _logger = logger;
         _repo = repo;
         _historyRepo = historyRepo;
         _deviceService = deviceService;
         _pointService = pointService;
+        _cache = cache;
 
         BaseRepo = repo;
     }
@@ -59,12 +65,7 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
         if(device == null || !device.ProductId.HasValue)
             return;
 
-        var points = await _pointService.GetDtoListAsync(new IotProductPointDto
-        {
-            ProductId = device.ProductId,
-            Status = "0",
-            DelFlag = "0"
-        });
+        var points = await _pointService.GetCachedListAsync(device.ProductId.Value);
 
         if(points.Count == 0)
             return;
@@ -92,6 +93,8 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
         if(newVars.Count > 0)
         {
             await _repo.InsertBatchAsync(newVars);
+            _cache.Remove(CacheConstants.IOT_VAR_MAP_KEY + deviceId);
+
         }
     }
 
@@ -140,9 +143,23 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
     /// </summary>
     public async Task<Dictionary<string,IotDeviceVariableDto>> GetVariableMapAsync(long deviceId)
     {
+        string cacheKey = CacheConstants.IOT_VAR_MAP_KEY + deviceId;
+        var cached = await _cache.GetAsync<Dictionary<string,IotDeviceVariableDto>>(cacheKey);
+        if(cached != null && cached.Count > 0)
+        {
+            return cached;
+        }
+
         var list = await _repo.GetDtoListAsync(new IotDeviceVariableDto { DeviceId = deviceId });
-        return list.Where(v => !string.IsNullOrEmpty(v.VariableKey))
-                   .ToDictionary(v => v.VariableKey!,v => v);
+        var dict = list.Where(v => !string.IsNullOrEmpty(v.VariableKey))
+                        .ToDictionary(v => v.VariableKey!,v => v);
+
+        if(dict.Count > 0)
+        {
+            await _cache.SetAsync(cacheKey,dict,60 * 24); // 缓存一天
+        }
+
+        return dict;
     }
 
     /// <summary>
@@ -151,5 +168,15 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
     public async Task<List<IotDeviceVariableDto>> GetLatestListAsync(long deviceId)
     {
         return await _repo.GetDtoListAsync(new IotDeviceVariableDto { DeviceId = deviceId });
+    }
+
+
+
+    /// <summary>
+    /// 移除指定设备的变量映射缓存
+    /// </summary>
+    public void RemoveCache(long deviceId)
+    {
+        _cache.Remove(CacheConstants.IOT_VAR_MAP_KEY + deviceId);
     }
 }

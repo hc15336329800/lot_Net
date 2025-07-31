@@ -102,7 +102,7 @@ namespace RuoYi.Iot.Controllers
 
                 // 获取产品点和变量映射
                 var points = device.ProductId.HasValue ?
-                    await _pointService.GetDtoListAsync(new IotProductPointDto { ProductId = device.ProductId,Status = "0",DelFlag = "0" }) :
+                    await _pointService.GetCachedListAsync(device.ProductId.Value) :
                     new List<IotProductPointDto>();
 
                 var pointMap = points
@@ -190,12 +190,8 @@ namespace RuoYi.Iot.Controllers
             // 根据产品点位初始化设备变量
             if(ok && dto.ProductId.HasValue)
             {
-                var points = await _pointService.GetDtoListAsync(new IotProductPointDto
-                {
-                    ProductId = dto.ProductId,
-                    Status = "0",
-                    DelFlag = "0"
-                });
+                var points = await _pointService.GetCachedListAsync(dto.ProductId.Value);
+
 
                 if(points.Count > 0)
                 {

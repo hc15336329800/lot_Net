@@ -51,7 +51,7 @@ namespace RuoYi.Iot.Controllers
         [HttpGet("listbypid/{pid}")]
         public async Task<AjaxResult> GetByPid(long pid)
         {
-            var list = await _service.GetDtoListAsync(new IotProductPointDto { ProductId = pid });
+            var list = await _service.GetCachedListAsync(pid);
             return AjaxResult.Success(list);
         }
 
@@ -64,6 +64,10 @@ namespace RuoYi.Iot.Controllers
             dto.Status = "0";
             dto.DelFlag = "0";
             var ok = await _service.InsertAsync(dto);
+            if(ok)
+            {
+                _service.RemoveCache(dto.ProductId ?? 0);
+            }
             return AjaxResult.Success(ok);
         }
 
@@ -72,6 +76,10 @@ namespace RuoYi.Iot.Controllers
         public async Task<AjaxResult> Edit([FromBody] IotProductPointDto dto)
         {
             var data = await _service.UpdateAsync(dto);
+            if(data > 0)
+            {
+                _service.RemoveCache(dto.ProductId ?? 0);
+            }
             return AjaxResult.Success(data);
         }
 

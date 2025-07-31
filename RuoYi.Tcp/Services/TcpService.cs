@@ -70,7 +70,7 @@ namespace RuoYi.Tcp.Services
                 if(pointService == null || variableService == null) return;
 
                 var points = device.ProductId.HasValue ?
-                    await pointService.GetDtoListAsync(new IotProductPointDto { ProductId = device.ProductId,Status = "0",DelFlag = "0" }) :
+                    await pointService.GetCachedListAsync(device.ProductId.Value) :
                     new List<IotProductPointDto>();
 
                 // 复制集合，避免在枚举过程中被修改

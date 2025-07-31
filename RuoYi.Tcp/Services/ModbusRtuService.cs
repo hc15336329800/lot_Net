@@ -101,12 +101,7 @@ namespace RuoYi.Tcp.Services
             {
                 if(_pointService != null && device.ProductId.HasValue)
                 {
-                    var points = await _pointService.GetDtoListAsync(new IotProductPointDto
-                    {
-                        ProductId = device.ProductId,
-                        Status = "0",
-                        DelFlag = "0"
-                    });
+                    var points = await _pointService.GetCachedListAsync(device.ProductId.Value);
                     // 改为：支持一个寄存器+从机可挂多个点位（如1:N情况）
 
                     // 使用 ToList() 复制集合，避免后续操作时被意外修改
@@ -343,7 +338,7 @@ namespace RuoYi.Tcp.Services
                 }
 
                 // 获取该设备关联的所有产品点
-                var points = await _pointService.GetDtoListAsync(new IotProductPointDto { ProductId = d.ProductId,Status = "0",DelFlag = "0" });
+                var points = await _pointService.GetCachedListAsync(d.ProductId.Value);
 
                 // 为并发安全复制集合
                 var pointsList = points.ToList();

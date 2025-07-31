@@ -52,7 +52,11 @@ namespace RuoYi.Iot.Controllers
         {
             var ok = await _service.InsertAsync(dto);
 
-            //新增历史记录？
+             if(ok)
+            {
+                _service.RemoveCache(dto.DeviceId ?? 0);
+            }
+
             if(ok && dto.DeviceId.HasValue && dto.VariableId.HasValue && !string.IsNullOrEmpty(dto.VariableKey) && !string.IsNullOrEmpty(dto.CurrentValue))
             {
                 await _service.SaveValueAsync(dto.DeviceId.Value,dto.VariableId.Value,dto.VariableKey!,dto.CurrentValue!);
@@ -67,7 +71,12 @@ namespace RuoYi.Iot.Controllers
         {
             var data = await _service.UpdateAsync(dto);
 
-            //新增历史记录？
+            if(data > 0)
+            {
+                _service.RemoveCache(dto.DeviceId ?? 0);
+            }
+
+
             if(dto.DeviceId.HasValue && dto.VariableId.HasValue && !string.IsNullOrEmpty(dto.VariableKey) && !string.IsNullOrEmpty(dto.CurrentValue))
             {
                 await _service.SaveValueAsync(dto.DeviceId.Value,dto.VariableId.Value,dto.VariableKey!,dto.CurrentValue!);
