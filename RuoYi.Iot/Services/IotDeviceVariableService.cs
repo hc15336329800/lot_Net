@@ -13,7 +13,7 @@ using RuoYi.Framework.DependencyInjection;
 using RuoYi.Iot.Repositories;
 using RuoYi.Framework.Cache;
 using RuoYi.Data;
-
+using Microsoft.Extensions.DependencyInjection;
 
 namespace RuoYi.Iot.Services;
 
@@ -25,6 +25,7 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
     private readonly IotDeviceService _deviceService;
     private readonly IotProductPointService _pointService;
     private readonly ICache _cache;
+    private readonly IServiceScopeFactory _scopeFactory;
 
 
     public IotDeviceVariableService(ILogger<IotDeviceVariableService> logger,
@@ -32,7 +33,8 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
         IotDeviceVariableHistoryRepository historyRepo,
         IotDeviceService deviceService,
          IotProductPointService pointService,
-        ICache cache)
+        ICache cache,
+        IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
         _repo = repo;
@@ -40,6 +42,7 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
         _deviceService = deviceService;
         _pointService = pointService;
         _cache = cache;
+        _scopeFactory = scopeFactory;
 
         BaseRepo = repo;
     }
@@ -104,8 +107,12 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
     /// </summary>
     public async Task SaveValueAsync(long deviceId,long variableId,string variableKey,string value)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IotDeviceVariableRepository>();
+        var historyRepo = scope.ServiceProvider.GetRequiredService<IotDeviceVariableHistoryRepository>();
+
         var timestamp = DateTime.Now;
-        int affected = await _repo.UpdateCurrentValueAsync(deviceId,variableId,value,timestamp);
+        int affected = await repo.UpdateCurrentValueAsync(deviceId,variableId,value,timestamp);
         if(affected > 0)
         {
             Console.WriteLine($"[调试] 设备{deviceId}的变量{variableId}已更新CurrentValue为{value}，LastUpdateTime为{timestamp}");
@@ -126,7 +133,9 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
             Value = value,               //采集值
             Timestamp = timestamp   //采集时间
         };
-        bool insertOk = await _historyRepo.InsertAsync(history); //插入
+
+        bool insertOk = await historyRepo.InsertAsync(history); //插入
+
         if(insertOk)
         {
             Console.WriteLine($"[调试] 历史变量插入成功，ID={history.Id}");

@@ -61,12 +61,12 @@ public class TcpServiceTests
     private static byte[] BuildExpected(bool ok)
     {
         Span<byte> data = stackalloc byte[6];
-        data[0] = 0x55;
-        data[1] = 0xAA;
-        data[2] = 0x01;
-        data[3] = ok ? (byte)0x01 : (byte)0x00;
-        data[4] = 0x00;
-        data[5] = 0x00;
+        data[0] = 0xE3;
+        data[1] = 0x8E;
+        data[2] = 0x38;
+        data[3] = 0x00;
+        data[4] = 0x01;
+        data[5] = ok ? (byte)0x06 : (byte)0x33; // success or unknown device
         byte checksum = PacketUtils.CalculateChecksum(data);
         return new byte[] { data[0],data[1],data[2],data[3],data[4],data[5],checksum };
     }
