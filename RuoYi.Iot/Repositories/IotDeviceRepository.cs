@@ -18,6 +18,11 @@ public class IotDeviceRepository : BaseRepository<IotDevice,IotDeviceDto>
         Repo = repo;
     }
 
+    public async Task<IotDevice?> GetByPacketAsync(string packet)
+    {
+        return await Repo.FirstOrDefaultAsync(d => d.AutoRegPacket == packet);
+    }
+
     public override ISugarQueryable<IotDevice> Queryable(IotDeviceDto dto)
     {
         return Repo.AsQueryable()

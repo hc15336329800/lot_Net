@@ -168,7 +168,9 @@ namespace RuoYi.Tcp.Services
                 }
 
                 // 根据注册包查询设备
-                device = await _deviceService.BaseRepo.Repo.FirstOrDefaultAsync(d => d.AutoRegPacket == reg);
+                //device = await _deviceService.BaseRepo.Repo.FirstOrDefaultAsync(d => d.AutoRegPacket == reg);
+                device = await _deviceService.GetByPacketAsync(reg);
+
                 if(device == null)
                 {
                     _logger.LogWarning("Unknown registration packet: {Packet}",reg);// 记录未知注册包警告

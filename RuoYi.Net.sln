@@ -38,6 +38,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuoYi.Tcp", "RuoYi.Tcp\RuoY
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuoYi.Tcp.Tests", "RuoYi.Tcp.Tests\RuoYi.Tcp.Tests.csproj", "{EA4720A4-0E23-4D68-AC11-E917EFAAAA62}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "说明指导书", "说明指导书", "{182BCFE9-EDF9-4AAE-B805-33B4B07459C5}"
+	ProjectSection(SolutionItems) = preProject
+		C:\Users\zgr\Desktop\TCP设备上云协议规范.pdf = C:\Users\zgr\Desktop\TCP设备上云协议规范.pdf
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -99,6 +104,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{182BCFE9-EDF9-4AAE-B805-33B4B07459C5} = {06F6111D-F0A0-4572-92D8-4BC2ABECBDF3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {B2073C2C-0FD3-452B-8047-8134D68E12CE}

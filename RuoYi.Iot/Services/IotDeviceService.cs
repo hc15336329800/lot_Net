@@ -24,6 +24,12 @@ public class IotDeviceService : BaseService<IotDevice,IotDeviceDto>, ITransient
         BaseRepo = repo;
     }
 
+
+    public async Task<IotDevice?> GetByPacketAsync(string packet)
+    {
+        return await _repo.GetByPacketAsync(packet);
+    }
+
     public async Task<IotDevice> GetAsync(long id)
     {
         return await base.FirstOrDefaultAsync(e => e.Id == id);

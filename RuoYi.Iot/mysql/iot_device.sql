@@ -46,7 +46,8 @@ CREATE TABLE `iot_device`  (
   INDEX `idx_device_dn`(`device_dn` ASC) USING BTREE,
   INDEX `idx_org`(`org_id` ASC) USING BTREE,
   INDEX `idx_product`(`product_id` ASC) USING BTREE,
-  INDEX `idx_status`(`device_status` ASC) USING BTREE
+  INDEX `idx_status`(`device_status` ASC) USING BTREE,
+  UNIQUE INDEX `idx_auto_reg_packet`(`auto_reg_packet` ASC)
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '物联网—设备表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
