@@ -12,6 +12,10 @@ using RuoYi.Iot.Services;
 using RuoYi.Tcp.Configs;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using RuoYi.Common.Utils;
+using System.Linq;
+
 
 // 这个类的主要职责是监听和分发 TCP 连接请求，
 
@@ -51,6 +55,99 @@ namespace RuoYi.Tcp.Services
             }
         }
 
+
+
+        // 让注册包验证成功后只发送一次测试命令  (这个是特定的测试指令 临时测试的)
+        private Task StartTestReadLoop(IotDeviceDto device,CancellationToken token)
+        {
+            // ===== 临时测试代码，仅发送一次请求，后期会删除 =====
+            return Task.Run(async ( ) =>
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var pointService = scope.ServiceProvider.GetService<IotProductPointService>();
+                var variableService = scope.ServiceProvider.GetService<IotDeviceVariableService>();
+                var modbusService = scope.ServiceProvider.GetService<ModbusRtuService>();
+                if(pointService == null || variableService == null) return;
+
+                var points = device.ProductId.HasValue ?
+                    await pointService.GetDtoListAsync(new IotProductPointDto { ProductId = device.ProductId,Status = "0",DelFlag = "0" }) :
+                    new List<IotProductPointDto>();
+
+                var pointMap = points
+                    .Where(p => p.RegisterAddress.HasValue && p.SlaveAddress.HasValue)
+                    .GroupBy(p => new ModbusKey((byte)p.SlaveAddress!.Value,(ushort)p.RegisterAddress!.Value))
+                    .ToDictionary(g => g.Key,g => g.ToList());
+
+                var varMap = await variableService.GetVariableMapAsync(device.Id);
+
+                // ==== 只发送一次 ====
+                byte slave = 0x01;
+                byte func = 0x04;
+                ushort startAddress = 0x01F4;
+                ushort quantity = 0x0002;
+
+                var frame = ModbusUtils.BuildReadFrame(slave,func,startAddress,quantity,modbusService?.LastReadStartAddrs);
+                var resp = await SendAsync(device.Id,frame,token);
+
+                if(resp != null && resp.Length >= 5)
+                {
+                    int byteCount = resp[2];
+                    var dataBytes = resp.Skip(3).Take(byteCount).ToArray();
+                    ushort realStart = startAddress;
+                    modbusService?.LastReadStartAddrs?.TryGetValue(slave,out realStart);
+
+                    for(int i = 0; i < byteCount / 2; i++)
+                    {
+                        ushort regAddr = (ushort)(realStart + i);
+                        var key = new ModbusKey(slave,regAddr);
+                        if(pointMap.TryGetValue(key,out var plist))
+                        {
+                            foreach(var p in plist)
+                            {
+                                if(p.PointKey != null && varMap.TryGetValue(p.PointKey,out var v) && v.VariableId.HasValue)
+                                {
+                                    var regBytes = dataBytes.Skip(i * 2).Take(2).ToArray();
+                                    var value = ParseValue(regBytes,p.DataType,p.ByteOrder,p.Signed ?? false);
+                                    await variableService.SaveValueAsync(device.Id,v.VariableId.Value,p.PointKey,value);
+                                }
+                            }
+                        }
+                    }
+                }
+                // ===== 临时测试代码结束 =====
+            },token);
+        }
+
+
+
+        private static string ParseValue(byte[] data,string? dataType,string? order,bool signed)
+        {
+            var buf = ApplyByteOrder(data,order);
+            if(string.Equals(dataType,"float",StringComparison.OrdinalIgnoreCase) && buf.Length >= 4)
+            {
+                if(BitConverter.IsLittleEndian) Array.Reverse(buf);
+                return BitConverter.ToSingle(buf,0).ToString();
+            }
+            if(buf.Length >= 2)
+            {
+                if(BitConverter.IsLittleEndian) Array.Reverse(buf);
+                return signed ? BitConverter.ToInt16(buf,0).ToString() : BitConverter.ToUInt16(buf,0).ToString();
+            }
+            return BitConverter.ToString(buf);
+        }
+
+        private static byte[] ApplyByteOrder(byte[] bytes,string? order)
+        {
+            if(string.IsNullOrEmpty(order) || order.Equals("ABCD",StringComparison.OrdinalIgnoreCase) || bytes.Length < 4)
+                return bytes;
+            return order.ToUpper() switch
+            {
+                "DCBA" => bytes.Reverse().ToArray(),
+                "BADC" => new[] { bytes[1],bytes[0],bytes[3],bytes[2] },
+                "CDAB" => new[] { bytes[2],bytes[3],bytes[0],bytes[1] },
+                _ => bytes
+            };
+        }
 
 
         /// <summary>
@@ -100,17 +197,23 @@ namespace RuoYi.Tcp.Services
             return null;
         }
 
-        private static byte[] BuildRegistrationResponse(bool success)
+
+        //注册包非法：0x31       设备不存在：0x33    注册成功：0x06
+        private static byte[] BuildRegistrationResponse(byte command)
         {
-            Span<byte> data = stackalloc byte[6];
-            data[0] = 0x55;
-            data[1] = 0xAA;
-            data[2] = 0x01;
-            data[3] = success ? (byte)0x01 : (byte)0x00;
-            data[4] = 0x00;
-            data[5] = 0x00;
-            byte checksum = PacketUtils.CalculateChecksum(data);
-            return [data[0],data[1],data[2],data[3],data[4],data[5],checksum];
+            // 包头
+            byte[] header = { 0xE3,0x8E,0x38 };
+            // 长度
+            byte[] length = { 0x00,0x01 };
+            // 命令字
+            byte[] cmd = { command };
+            // 前6字节拼成一段
+            byte[] packet = header.Concat(length).Concat(cmd).ToArray();
+            // 校验位（比如累加取低8位，可以根据你的实际算法修改）
+            byte checksum = 0;
+            foreach(var b in packet) checksum += b;
+            // 最终7字节包
+            return packet.Concat(new byte[] { checksum }).ToArray();
         }
 
         // 构造函数，注入所需的服务
@@ -175,7 +278,10 @@ namespace RuoYi.Tcp.Services
                 var reg = Encoding.UTF8.GetString(buffer,0,length).Trim();// 读取并解析注册包
                 if(string.IsNullOrEmpty(reg))   
                 {
-                    await stream.WriteAsync(BuildRegistrationResponse(false),token);
+                    // 注册包非法，返回 0x31
+                    await stream.WriteAsync(BuildRegistrationResponse(0x31),token);
+                     //等待50ms
+                    await Task.Delay(100,token);  //TCP协议下，服务器端client.Dispose()会关闭连接，有时极短时间内，回复包还没送到客户端缓冲区，socket已被关闭，造成客户端收不到包。
                     client.Dispose();
                     return;
                 }
@@ -187,13 +293,17 @@ namespace RuoYi.Tcp.Services
                 if(device == null)
                 {
                     _logger.LogWarning("Unknown registration packet: {Packet}",reg);
-                    await stream.WriteAsync(BuildRegistrationResponse(false),token);
+                    // 设备不存在/注册包非法
+                    await stream.WriteAsync(BuildRegistrationResponse(0x33),token);  // 0x33 设备不存在（如需0x31，参考你的业务）
+                    await Task.Delay(100,token);
                     client.Dispose();
                     return;
                 }
 
 
-                await stream.WriteAsync(BuildRegistrationResponse(true),token);
+                 // 注册成功
+                await stream.WriteAsync(BuildRegistrationResponse(0x06),token);
+                await Task.Delay(100,token);
 
                 // 标记设备上线并写入历史
 
@@ -223,6 +333,9 @@ namespace RuoYi.Tcp.Services
                 _locks[device.Id] = new SemaphoreSlim(1,1); // 初始化设备锁
 
 
+                using var loopCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+                var testLoop = StartTestReadLoop(deviceDto,loopCts.Token);
+
                 ITcpService? handler = null;
                 // 根据产品的接入协议和数据协议选择处理器
                 if(product.AccessProtocol == "1" && product.DataProtocol == "1")
@@ -238,6 +351,9 @@ namespace RuoYi.Tcp.Services
                 {
                     await handler.HandleClientAsync(client,deviceDto,token);
                 }
+
+                loopCts.Cancel();
+                await testLoop;
             }
             catch(Exception ex)
             {

@@ -38,9 +38,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuoYi.Tcp", "RuoYi.Tcp\RuoY
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RuoYi.Tcp.Tests", "RuoYi.Tcp.Tests\RuoYi.Tcp.Tests.csproj", "{EA4720A4-0E23-4D68-AC11-E917EFAAAA62}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "说明指导书", "说明指导书", "{182BCFE9-EDF9-4AAE-B805-33B4B07459C5}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "平台开发规范指导书", "平台开发规范指导书", "{182BCFE9-EDF9-4AAE-B805-33B4B07459C5}"
 	ProjectSection(SolutionItems) = preProject
 		C:\Users\zgr\Desktop\TCP设备上云协议规范.pdf = C:\Users\zgr\Desktop\TCP设备上云协议规范.pdf
+		C:\Users\zgr\Desktop\注册包返回规范.txt = C:\Users\zgr\Desktop\注册包返回规范.txt
 	EndProjectSection
 EndProject
 Global
