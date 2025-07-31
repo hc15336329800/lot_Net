@@ -73,12 +73,17 @@ namespace RuoYi.Tcp.Services
                     await pointService.GetDtoListAsync(new IotProductPointDto { ProductId = device.ProductId,Status = "0",DelFlag = "0" }) :
                     new List<IotProductPointDto>();
 
-                var pointMap = points
+                // 复制集合，避免在枚举过程中被修改
+                var pointsList = points.ToList();
+
+                var pointMap = pointsList
                     .Where(p => p.RegisterAddress.HasValue && p.SlaveAddress.HasValue)
                     .GroupBy(p => new ModbusKey((byte)p.SlaveAddress!.Value,(ushort)p.RegisterAddress!.Value))
                     .ToDictionary(g => g.Key,g => g.ToList());
 
-                var varMap = await variableService.GetVariableMapAsync(device.Id);
+                var map = await variableService.GetVariableMapAsync(device.Id);
+                var varMap = new Dictionary<string,IotDeviceVariableDto>(map);
+
 
                 // ==== 只发送一次 ====
                 byte slave = 0x01;

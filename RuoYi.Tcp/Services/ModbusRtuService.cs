@@ -344,10 +344,17 @@ namespace RuoYi.Tcp.Services
 
                 // 获取该设备关联的所有产品点
                 var points = await _pointService.GetDtoListAsync(new IotProductPointDto { ProductId = d.ProductId,Status = "0",DelFlag = "0" });
+
+                // 为并发安全复制集合
+                var pointsList = points.ToList();
+
                 // 获取该设备的变量映射
-                var variableMap = await _variableService.GetVariableMapAsync(d.Id);
+                var map = await _variableService.GetVariableMapAsync(d.Id);
+                var variableMap = new Dictionary<string,IotDeviceVariableDto>(map);
+
+
                 // 创建设备连接并存储在 _connections 中
-                _connections[d.Id] = new DeviceConnection(this,d,points,variableMap,_variableService,_logger);
+                _connections[d.Id] = new DeviceConnection(this,d,pointsList,variableMap,_variableService,_logger);
             }
         }
 
@@ -681,7 +688,7 @@ namespace RuoYi.Tcp.Services
 
             /// <summary>
             /// 计算 CRC 校验码
-            /// </summary>
+            /// </summary>var pointsList = points.ToList();
             private static ushort ComputeCrc(byte[] data) => RuoYi.Common.Utils.ModbusUtils.ComputeCrc(data);
 
 
