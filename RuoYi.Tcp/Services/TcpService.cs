@@ -63,55 +63,80 @@ namespace RuoYi.Tcp.Services
             // ===== 临时测试代码，仅发送一次请求，后期会删除 =====
             return Task.Run(async ( ) =>
             {
+                // 1. 创建新的依赖注入作用域（每次独立获取服务，防止多线程冲突）
                 using var scope = _serviceProvider.CreateScope();
+
+                // 2. 获取点位服务、设备变量服务、Modbus服务实例（如果没有直接返回）
                 var pointService = scope.ServiceProvider.GetService<IotProductPointService>();
                 var variableService = scope.ServiceProvider.GetService<IotDeviceVariableService>();
                 var modbusService = scope.ServiceProvider.GetService<ModbusRtuService>();
                 if(pointService == null || variableService == null) return;
 
+                // 3. 根据 device.ProductId 获取产品点位列表（无ProductId则空列表）
                 var pointsList = device.ProductId.HasValue ?
-                          (await pointService.GetCachedListAsync(device.ProductId.Value)).ToList() :
-                          new List<IotProductPointDto>();
+                        (await pointService.GetCachedListAsync(device.ProductId.Value)).ToList() :
+                        new List<IotProductPointDto>();
 
-
-
+                // 4. 将点位列表分组映射为【ModbusKey -> 点位列表】，便于后续按从机/寄存器定位
                 var pointMap = pointsList
                     .Where(p => p.RegisterAddress.HasValue && p.SlaveAddress.HasValue)
                     .GroupBy(p => new ModbusKey((byte)p.SlaveAddress!.Value,(ushort)p.RegisterAddress!.Value))
                     .ToDictionary(g => g.Key,g => g.ToList());
 
+                // 5. 获取变量映射表【pointKey -> 设备变量对象】，用于存储解析后的数据
                 var varMap = new Dictionary<string,IotDeviceVariableDto>(
-                          await variableService.GetVariableMapAsync(device.Id));
+                        await variableService.GetVariableMapAsync(device.Id));
 
+                // ========== 只发送一次 ==========
 
-                // ==== 只发送一次 ====
-                byte slave = 0x01;
-                byte func = 0x04;
-                ushort startAddress = 0x01F4;
-                ushort quantity = 0x0002;
+                // 6. 构造Modbus读取请求： 
+               
+                byte slave = 0x01; // 从机地址设为1
+               
+                byte func = 0x04; // 功能码为0x04（读输入寄存器）
+               
+                ushort startAddress = 0x0000; // 起始寄存器地址改为0
+            
+                ushort quantity = 0x0001;    // 读取数量改为1个寄存器
 
+                // 7. 生成读取帧（支持连续读取），记录/复用最近一次起始地址
                 var frame = ModbusUtils.BuildReadFrame(slave,func,startAddress,quantity,modbusService?.LastReadStartAddrs);
+
+                // 8. 向设备发送指令并异步等待响应
                 var resp = await SendAsync(device.Id,frame,token);
 
+                // 9. 判断收到的响应是否为合法Modbus包（长度大于等于5字节）
                 if(resp != null && resp.Length >= 5)
                 {
+                    // 10. 提取数据区字节数及实际数据内容
                     int byteCount = resp[2];
                     var dataBytes = resp.Skip(3).Take(byteCount).ToArray();
+
+                    // 11. 获取实际读取起始地址（可支持连续分段读取）
                     ushort realStart = startAddress;
                     modbusService?.LastReadStartAddrs?.TryGetValue(slave,out realStart);
 
+                    // 12. 遍历数据区，每两个字节对应一个寄存器
                     for(int i = 0; i < byteCount / 2; i++)
                     {
                         ushort regAddr = (ushort)(realStart + i);
                         var key = new ModbusKey(slave,regAddr);
+
+                        // 13. 判断当前寄存器地址是否配置了点位
                         if(pointMap.TryGetValue(key,out var plist))
                         {
                             foreach(var p in plist)
                             {
+                                // 14. 查找点位对应的变量信息（需pointKey和VariableId有效）
                                 if(p.PointKey != null && varMap.TryGetValue(p.PointKey,out var v) && v.VariableId.HasValue)
                                 {
+                                    // 15. 截取该寄存器的原始数据字节
                                     var regBytes = dataBytes.Skip(i * 2).Take(2).ToArray();
+
+                                    // 16. 按数据类型/字节序/有无符号解析出实际值
                                     var value = ParseValue(regBytes,p.DataType,p.ByteOrder,p.Signed ?? false);
+
+                                    // 17. 调用变量服务异步保存解析值到设备变量表
                                     await variableService.SaveValueAsync(device.Id,v.VariableId.Value,p.PointKey,value);
                                 }
                             }
