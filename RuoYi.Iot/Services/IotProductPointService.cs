@@ -58,7 +58,8 @@ public class IotProductPointService : BaseService<IotProductPoint,IotProductPoin
         var list = await _cache.GetAsync<List<IotProductPointDto>>(cacheKey);
         if(list != null && list.Count > 0)
         {
-            return list;
+            // 返回缓存副本，防止多个线程同时修改导致枚举异常
+            return new List<IotProductPointDto>(list);
         }
 
         list = await _repo.GetDtoListAsync(new IotProductPointDto

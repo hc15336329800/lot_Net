@@ -156,7 +156,8 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
         var cached = await _cache.GetAsync<Dictionary<string,IotDeviceVariableDto>>(cacheKey);
         if(cached != null && cached.Count > 0)
         {
-            return cached;
+            // 返回缓存副本，避免多线程环境下修改同一实例
+            return new Dictionary<string,IotDeviceVariableDto>(cached);
         }
 
         var list = await _repo.GetDtoListAsync(new IotDeviceVariableDto { DeviceId = deviceId });
