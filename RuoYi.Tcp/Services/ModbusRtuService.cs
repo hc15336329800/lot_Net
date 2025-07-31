@@ -109,7 +109,10 @@ namespace RuoYi.Tcp.Services
                     });
                     // 改为：支持一个寄存器+从机可挂多个点位（如1:N情况）
 
-                    pointMap = points
+                    // 使用 ToList() 复制集合，避免后续操作时被意外修改
+                    var pointsList = points.ToList();
+
+                    pointMap = pointsList
                      .Where(p => p.RegisterAddress.HasValue && p.SlaveAddress.HasValue) //只保留有从机地址和有寄存器地址的点位（因为这些点位才能映射到Modbus物理地址上）。
                      .GroupBy(p => new ModbusKey((byte)p.SlaveAddress!.Value,(ushort)p.RegisterAddress!.Value)) //把所有点位，按“从机地址 + 寄存器地址”分组。
                      .ToDictionary(g => g.Key,g => g.ToList());
@@ -121,7 +124,9 @@ namespace RuoYi.Tcp.Services
                 //- 目的是不用每次存库都查表，提高性能和一致性。
                 if(_variableService != null)
                 {
-                    varMap = await _variableService.GetVariableMapAsync(device.Id);
+                    var map = await _variableService.GetVariableMapAsync(device.Id);
+                    // 创建副本以避免在枚举时集合被修改
+                    varMap = new Dictionary<string,IotDeviceVariableDto>(map);
                 }
 
                 // 【调试】输出变量映射表内容和数量，判断是否为空
