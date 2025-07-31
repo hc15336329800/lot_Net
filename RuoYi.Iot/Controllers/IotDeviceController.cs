@@ -181,8 +181,8 @@ namespace RuoYi.Iot.Controllers
             dto.TagCategory ??= "0";
             dto.Status = "0";
             dto.DelFlag = "0";
-            dto.AutoRegPacket = _service.BuildAutoRegPacket(dto);
- 
+             dto.AutoRegPacket = IotDeviceService.BuildAutoRegPacket(dto);
+
 
             var ok = await _service.InsertAsync(dto);
 

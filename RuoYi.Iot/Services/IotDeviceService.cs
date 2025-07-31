@@ -9,6 +9,7 @@ using RuoYi.Data.Dtos.IOT;
 using RuoYi.Data.Entities.Iot;
 using RuoYi.Framework.DependencyInjection;
 using RuoYi.Iot.Repositories;
+using RuoYi.Framework.DataEncryption.Extensions;
 
 namespace RuoYi.Iot.Services;
 
@@ -49,16 +50,24 @@ public class IotDeviceService : BaseService<IotDevice,IotDeviceDto>, ITransient
     /// <summary>
     /// 根据设备信息生成自动注册包字符串
     /// </summary>
-    public string BuildAutoRegPacket(IotDeviceDto device)
+    public static string BuildAutoRegPacket(IotDeviceDto device,bool encrypt = false)
     {
         ArgumentNullException.ThrowIfNull(device);
 
-        var host = device.TcpHost ?? string.Empty;
-        var port = device.TcpPort?.ToString() ?? string.Empty;
-        var pid = device.ProductId?.ToString() ?? string.Empty;
-        var dn = device.DeviceDn ?? string.Empty;
-        var key = device.CommKey ?? string.Empty;
+        const string header = "##"; // two byte packet header
+        var dn = (device.DeviceDn ?? string.Empty).PadRight(20).Substring(0,20);
+        var key = (device.CommKey ?? string.Empty).PadRight(8).Substring(0,8);
+        var card = (device.IotCardNo ?? string.Empty).PadRight(20).Substring(0,20);
 
-        return $"{host}:{port}?pid={pid}&dn={dn}&key={key}";
+        var plain = string.Concat(header,dn,key,card);
+
+        if(encrypt && !string.IsNullOrEmpty(device.CommKey))
+        {
+            var bytes = Encoding.UTF8.GetBytes(plain);
+            var enc = bytes.ToAESEncrypt(device.CommKey);
+            return Convert.ToBase64String(enc);
+        }
+
+        return plain;
     }
 }

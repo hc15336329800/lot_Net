@@ -100,6 +100,18 @@ namespace RuoYi.Tcp.Services
             return null;
         }
 
+        private static byte[] BuildRegistrationResponse(bool success)
+        {
+            Span<byte> data = stackalloc byte[6];
+            data[0] = 0x55;
+            data[1] = 0xAA;
+            data[2] = 0x01;
+            data[3] = success ? (byte)0x01 : (byte)0x00;
+            data[4] = 0x00;
+            data[5] = 0x00;
+            byte checksum = PacketUtils.CalculateChecksum(data);
+            return [data[0],data[1],data[2],data[3],data[4],data[5],checksum];
+        }
 
         // 构造函数，注入所需的服务
         public TcpService(ILogger<TcpService> logger,
@@ -161,8 +173,9 @@ namespace RuoYi.Tcp.Services
                 var buffer = new byte[256];
                 var length = await stream.ReadAsync(buffer,0,buffer.Length,token);
                 var reg = Encoding.UTF8.GetString(buffer,0,length).Trim();// 读取并解析注册包
-                if(string.IsNullOrEmpty(reg))  // 如果注册包为空，则关闭连接
+                if(string.IsNullOrEmpty(reg))   
                 {
+                    await stream.WriteAsync(BuildRegistrationResponse(false),token);
                     client.Dispose();
                     return;
                 }
@@ -173,13 +186,17 @@ namespace RuoYi.Tcp.Services
 
                 if(device == null)
                 {
-                    _logger.LogWarning("Unknown registration packet: {Packet}",reg);// 记录未知注册包警告
+                    _logger.LogWarning("Unknown registration packet: {Packet}",reg);
+                    await stream.WriteAsync(BuildRegistrationResponse(false),token);
                     client.Dispose();
                     return;
                 }
 
+
+                await stream.WriteAsync(BuildRegistrationResponse(true),token);
+
                 // 标记设备上线并写入历史
-                
+
                 int count = await _deviceService.UpdateStatusAsync(device.Id,"online1");//设备的状态
                 if(count > 0)
                     Console.WriteLine($"[调试] 设备{device.Id}状态已更新为online！");
