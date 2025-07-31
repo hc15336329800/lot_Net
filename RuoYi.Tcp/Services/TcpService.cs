@@ -357,7 +357,7 @@ namespace RuoYi.Tcp.Services
 
 
                 using var loopCts = CancellationTokenSource.CreateLinkedTokenSource(token);
-                var testLoop = StartTestReadLoop(deviceDto,loopCts.Token);
+                //var testLoop = StartTestReadLoop(deviceDto,loopCts.Token);  //发送测试指令
 
                 ITcpService? handler = null;
                 // 根据产品的接入协议和数据协议选择处理器
@@ -376,7 +376,7 @@ namespace RuoYi.Tcp.Services
                 }
 
                 loopCts.Cancel();
-                await testLoop; //定时器测试
+                //await testLoop; //发送测试指令
             }
             catch(Exception ex)
             {

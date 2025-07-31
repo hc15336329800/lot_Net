@@ -51,11 +51,22 @@ public class IotDeviceVariableRepository : BaseRepository<IotDeviceVariable,IotD
     public async Task<int> UpdateCurrentValueAsync(long deviceId,long variableId,string value,DateTime timestamp)
     {
 
+        var id = await Repo.AsQueryable()
+           .Where(d => d.DeviceId == deviceId && d.VariableId == variableId)
+           .Select(d => d.Id)
+           .FirstAsync();
+
+        if(id == 0)
+        {
+            RuoYi.Framework.Logging.Log.Warning("Device variable not found for device {0} variable {1}",deviceId,variableId);
+            return 0;
+        }
+
         return await base.Updateable()
-         .SetColumns(d => d.CurrentValue == value)
-         .SetColumns(d => d.LastUpdateTime == timestamp)
-         .Where(d => d.DeviceId == deviceId && d.VariableId == variableId)  //设备+变量ID
-         .ExecuteCommandAsync();
+            .SetColumns(d => d.CurrentValue == value)
+            .SetColumns(d => d.LastUpdateTime == timestamp)
+            .Where(d => d.Id == id)
+            .ExecuteCommandAsync();
 
     }
 
