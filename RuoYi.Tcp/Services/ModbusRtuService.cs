@@ -320,7 +320,7 @@ namespace RuoYi.Tcp.Services
             // 获取所有状态正常且未删除的设备列表
             var devices = await _deviceService.GetDtoListAsync(new IotDeviceDto { Status = "0",DelFlag = "0" });
             string[] selfAddresses = { "127.0.0.1","localhost" }; // 本机IP、localhost等
-            int serverPort = 5003; // todo: 这里需要appsettings.json中取配置
+            int serverPort = _options.Port;  //5003; // todo: 这里需要appsettings.json中取配置
 
 
             foreach(var d in devices)

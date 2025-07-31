@@ -33,8 +33,6 @@ namespace RuoYi.Tcp.Services
     {
         private readonly ILogger<TcpService> _logger;
         private readonly IServiceProvider _serviceProvider;
-        private readonly IotDeviceService _deviceService;
-        private readonly IotProductService _productService;
         private readonly TcpServerOptions _options;
         private TcpListener? _listener;
         private readonly ConcurrentDictionary<long,TcpClient> _clients = new(); // 存储连接的客户端
@@ -43,8 +41,16 @@ namespace RuoYi.Tcp.Services
         private readonly ConcurrentDictionary<long,TaskCompletionSource<byte[]?>> _pendingResponses = new();
 
 
+        // 构造函数，注入所需的服务
+        public TcpService(ILogger<TcpService> logger,
+                          IServiceProvider serviceProvider,
+                          IOptions<TcpServerOptions> options)
+        {
+            _logger = logger;
+            _serviceProvider = serviceProvider;
+            _options = options.Value;
+        }
 
-        private readonly IotDeviceVariableService _variableService;
 
 
         public void OnTcpDataReceived(long deviceId,byte[] data)
@@ -245,21 +251,7 @@ namespace RuoYi.Tcp.Services
             return packet.Concat(new byte[] { checksum }).ToArray();
         }
 
-        // 构造函数，注入所需的服务
-        public TcpService(ILogger<TcpService> logger,
-                          IServiceProvider serviceProvider,
-                          IotDeviceService deviceService,
-                          IotProductService productService,
-                            IotDeviceVariableService variableService,
-                          IOptions<TcpServerOptions> options)
-        {
-            _logger = logger;
-            _serviceProvider = serviceProvider;
-            _deviceService = deviceService;
-            _productService = productService;
-            _options = options.Value;
-            _variableService = variableService;
-        }
+
 
 
         // 重写 ExecuteAsync 方法，执行后台服务的异步任务
@@ -300,6 +292,10 @@ namespace RuoYi.Tcp.Services
             IotDevice? device = null;
             try
             {
+                using var scope = _serviceProvider.CreateScope();
+                var deviceService = scope.ServiceProvider.GetRequiredService<IotDeviceService>();
+                var productService = scope.ServiceProvider.GetRequiredService<IotProductService>();
+
                 // 获取客户端的网络流
                 var stream = client.GetStream();
                 var buffer = new byte[256];
@@ -316,8 +312,7 @@ namespace RuoYi.Tcp.Services
                 }
 
                 // 根据注册包查询设备
-                //device = await _deviceService.BaseRepo.Repo.FirstOrDefaultAsync(d => d.AutoRegPacket == reg);
-                device = await _deviceService.GetByPacketAsync(reg);
+                device = await deviceService.GetByPacketAsync(reg);
 
                 if(device == null)
                 {
@@ -336,22 +331,21 @@ namespace RuoYi.Tcp.Services
 
                 // 标记设备上线并写入历史
 
-                int count = await _deviceService.UpdateStatusAsync(device.Id,"online1");//设备的状态
+                int count = await deviceService.UpdateStatusAsync(device.Id,"online1");//设备的状态
                 if(count > 0)
                     Console.WriteLine($"[调试] 设备{device.Id}状态已更新为online！");
                 else
                     Console.WriteLine($"[警告] 设备{device.Id}状态更新失败（未找到记录或无变更）！");
-                // await _variableService.SaveValueAsync(device.Id,0,"online","1");  //设备最新数据、设备历史数据 ？ 这里还没解析数据呢  写入啥数据？？？ 
 
                 // 获取设备的详细信息
-                var deviceDto = await _deviceService.GetDtoAsync(device.Id);
+                var deviceDto = await deviceService.GetDtoAsync(device.Id);
                 var productId = device.ProductId;
-                var product = await _productService.GetDtoAsync(productId);
+                var product = await productService.GetDtoAsync(productId);
                 //处理 TCP 客户端连接时添加了产品信息的空检查，以防止产品记录丢失时崩溃
                 if(product == null)
                 {
                     // fallback to product code lookup when product id not matched
-                    product = await _productService.GetDtoByCodeAsync(productId.ToString());
+                    product = await productService.GetDtoByCodeAsync(productId.ToString());
                 }
                 if(product == null)
                 {
