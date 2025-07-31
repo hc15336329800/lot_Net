@@ -101,11 +101,10 @@ namespace RuoYi.Tcp.Services
             {
                 if(_pointService != null && device.ProductId.HasValue)
                 {
-                    var points = await _pointService.GetCachedListAsync(device.ProductId.Value);
+                    var pointsList = (await _pointService.GetCachedListAsync(device.ProductId.Value)).ToList();
                     // 改为：支持一个寄存器+从机可挂多个点位（如1:N情况）
 
-                    // 使用 ToList() 复制集合，避免后续操作时被意外修改
-                    var pointsList = points.ToList();
+        
 
                     pointMap = pointsList
                      .Where(p => p.RegisterAddress.HasValue && p.SlaveAddress.HasValue) //只保留有从机地址和有寄存器地址的点位（因为这些点位才能映射到Modbus物理地址上）。
@@ -119,9 +118,8 @@ namespace RuoYi.Tcp.Services
                 //- 目的是不用每次存库都查表，提高性能和一致性。
                 if(_variableService != null)
                 {
-                    var map = await _variableService.GetVariableMapAsync(device.Id);
-                    // 创建副本以避免在枚举时集合被修改
-                    varMap = new Dictionary<string,IotDeviceVariableDto>(map);
+                    varMap = new Dictionary<string,IotDeviceVariableDto>(
+                        await _variableService.GetVariableMapAsync(device.Id));
                 }
 
                 // 【调试】输出变量映射表内容和数量，判断是否为空
@@ -337,15 +335,12 @@ namespace RuoYi.Tcp.Services
                     continue; // 跳过该设备，不进行轮询
                 }
 
-                // 获取该设备关联的所有产品点
-                var points = await _pointService.GetCachedListAsync(d.ProductId.Value);
+                var pointsList = (await _pointService.GetCachedListAsync(d.ProductId.Value)).ToList();
 
-                // 为并发安全复制集合
-                var pointsList = points.ToList();
 
                 // 获取该设备的变量映射
-                var map = await _variableService.GetVariableMapAsync(d.Id);
-                var variableMap = new Dictionary<string,IotDeviceVariableDto>(map);
+                var variableMap = new Dictionary<string,IotDeviceVariableDto>(
+                    await _variableService.GetVariableMapAsync(d.Id));
 
 
                 // 创建设备连接并存储在 _connections 中

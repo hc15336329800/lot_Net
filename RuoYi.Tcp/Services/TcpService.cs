@@ -69,20 +69,19 @@ namespace RuoYi.Tcp.Services
                 var modbusService = scope.ServiceProvider.GetService<ModbusRtuService>();
                 if(pointService == null || variableService == null) return;
 
-                var points = device.ProductId.HasValue ?
-                    await pointService.GetCachedListAsync(device.ProductId.Value) :
-                    new List<IotProductPointDto>();
+                var pointsList = device.ProductId.HasValue ?
+                          (await pointService.GetCachedListAsync(device.ProductId.Value)).ToList() :
+                          new List<IotProductPointDto>();
 
-                // 复制集合，避免在枚举过程中被修改
-                var pointsList = points.ToList();
+
 
                 var pointMap = pointsList
                     .Where(p => p.RegisterAddress.HasValue && p.SlaveAddress.HasValue)
                     .GroupBy(p => new ModbusKey((byte)p.SlaveAddress!.Value,(ushort)p.RegisterAddress!.Value))
                     .ToDictionary(g => g.Key,g => g.ToList());
 
-                var map = await variableService.GetVariableMapAsync(device.Id);
-                var varMap = new Dictionary<string,IotDeviceVariableDto>(map);
+                var varMap = new Dictionary<string,IotDeviceVariableDto>(
+                          await variableService.GetVariableMapAsync(device.Id));
 
 
                 // ==== 只发送一次 ====
@@ -281,11 +280,11 @@ namespace RuoYi.Tcp.Services
                 var buffer = new byte[256];
                 var length = await stream.ReadAsync(buffer,0,buffer.Length,token);
                 var reg = Encoding.UTF8.GetString(buffer,0,length).Trim();// 读取并解析注册包
-                if(string.IsNullOrEmpty(reg))   
+                if(string.IsNullOrEmpty(reg))
                 {
                     // 注册包非法，返回 0x31
                     await stream.WriteAsync(BuildRegistrationResponse(0x31),token);
-                     //等待50ms
+                    //等待50ms
                     await Task.Delay(100,token);  //TCP协议下，服务器端client.Dispose()会关闭连接，有时极短时间内，回复包还没送到客户端缓冲区，socket已被关闭，造成客户端收不到包。
                     client.Dispose();
                     return;
@@ -306,7 +305,7 @@ namespace RuoYi.Tcp.Services
                 }
 
 
-                 // 注册成功
+                // 注册成功
                 await stream.WriteAsync(BuildRegistrationResponse(0x06),token);
                 await Task.Delay(100,token);
 
@@ -358,7 +357,7 @@ namespace RuoYi.Tcp.Services
                 }
 
                 loopCts.Cancel();
-                await testLoop;
+                await testLoop; //定时器测试
             }
             catch(Exception ex)
             {
@@ -392,6 +391,6 @@ namespace RuoYi.Tcp.Services
                 try { sem.Dispose(); } catch { }
             }
             _locks.Clear(); // 发送队列不再逐个释放，避免并发问题
-         }
+        }
     }
 }
