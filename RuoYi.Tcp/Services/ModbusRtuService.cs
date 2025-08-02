@@ -54,6 +54,10 @@ namespace RuoYi.Tcp.Services
         // 但你必须保证所有的包都是你自己主发的，不能直接接收设备主动推送的响应包！,直接接受的话就默认0
         private readonly ConcurrentDictionary<byte,ushort> _lastReadStartAddrs = new();
 
+        // 记录当前已经占用的从机地址，避免多个设备使用相同地址导致数据混乱
+        private readonly ConcurrentDictionary<byte,long> _slaveAddressMap = new();
+
+
         /// <summary>
         /// 最近一次读取的起始寄存器地址
         /// </summary>
@@ -92,11 +96,12 @@ namespace RuoYi.Tcp.Services
             Dictionary<ModbusKey,List<IotProductPointDto>>? pointMap = null; // 修改类型
 
             Dictionary<string,IotDeviceVariableDto>? varMap = null; //点位key（pointKey/variableKey）→ 设备变量明细（iot_device_variable）。
-            
-            
-            
+
+            // 记录该连接对应的从机地址，用于断开时清理
+            byte? registeredSlaveAddr = null;
+
             //------------------------------------------------------处理注册包
-            
+
             try
             {
                 if(_pointService != null && device.ProductId.HasValue)
@@ -170,6 +175,17 @@ namespace RuoYi.Tcp.Services
 
                     byte slaveAddr = recv[0]; // 设备地址
                     byte func = recv[1];      // 功能码
+
+                    // 如果该从机地址已被其它设备占用，则忽略当前设备的数据
+                    if(_slaveAddressMap.TryGetValue(slaveAddr,out var existId) && existId != device.Id)
+                    {
+                        _logger.LogDebug("Duplicate slave address {Slave} from device {Device}, data ignored",slaveAddr,device.DeviceName);
+                        continue;
+                    }
+
+                    // 记录该设备占用的从机地址
+                    _slaveAddressMap.TryAdd(slaveAddr,device.Id);
+                    registeredSlaveAddr ??= slaveAddr;
 
 
                     // === 3. 只做功能码 0x03/0x04 响应帧  ,注意此处是解析响应帧格式！！！ ===
@@ -277,6 +293,12 @@ namespace RuoYi.Tcp.Services
             }
             finally
             {
+                if(registeredSlaveAddr.HasValue)
+                {
+                    _slaveAddressMap.TryRemove(registeredSlaveAddr.Value,out _);
+                    _lastReadStartAddrs.TryRemove(registeredSlaveAddr.Value,out _);
+                }
+
                 try { client.Dispose(); } catch { }
                 Console.WriteLine($"【断开连接】设备：{device.DeviceName} 已断开。");
 
