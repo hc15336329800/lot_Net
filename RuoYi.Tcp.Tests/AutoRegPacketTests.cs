@@ -20,10 +20,10 @@ public class AutoRegPacketTests
 
         var packet = IotDeviceService.BuildAutoRegPacket(dto);
         Assert.Equal(50,packet.Length);
-        var expected = "##" +
-            "DN001".PadRight(20).Substring(0,20) +
-            "KEY".PadRight(8).Substring(0,8) +
-            "CARD".PadRight(20).Substring(0,20);
+        var expected = "31" +
+            "DN001".PadRight(20,'0').Substring(0,20) +
+            "KEY".PadRight(8,'0').Substring(0,8) +
+            "CARD".PadRight(20,'0').Substring(0,20);
         Assert.Equal(expected,packet);
     }
 
@@ -40,7 +40,7 @@ public class AutoRegPacketTests
         var enc = IotDeviceService.BuildAutoRegPacket(dto,true);
         var bytes = Convert.FromBase64String(enc);
         var plainBytes = bytes.ToAESDecrypt(dto.CommKey!);
-        var plain = Encoding.UTF8.GetString(plainBytes);
+        var plain = Encoding.ASCII.GetString(plainBytes);
         var expectedPlain = IotDeviceService.BuildAutoRegPacket(dto);
         Assert.Equal(expectedPlain,plain);
     }

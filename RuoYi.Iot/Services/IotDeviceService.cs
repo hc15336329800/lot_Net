@@ -54,16 +54,16 @@ public class IotDeviceService : BaseService<IotDevice,IotDeviceDto>, ITransient
     {
         ArgumentNullException.ThrowIfNull(device);
 
-        const string header = "##"; // two byte packet header
-        var dn = (device.DeviceDn ?? string.Empty).PadRight(20).Substring(0,20);
-        var key = (device.CommKey ?? string.Empty).PadRight(8).Substring(0,8);
-        var card = (device.IotCardNo ?? string.Empty).PadRight(20).Substring(0,20);
+        const string header = "31"; // 固定两位起始码
+        var dn = (device.DeviceDn ?? string.Empty).PadRight(20,'0').Substring(0,20);
+        var key = (device.CommKey ?? string.Empty).PadRight(8,'0').Substring(0,8);
+        var card = (device.IotCardNo ?? string.Empty).PadRight(20,'0').Substring(0,20);
 
         var plain = string.Concat(header,dn,key,card);
 
         if(encrypt && !string.IsNullOrEmpty(device.CommKey))
         {
-            var bytes = Encoding.UTF8.GetBytes(plain);
+            var bytes = Encoding.ASCII.GetBytes(plain);
             var enc = bytes.ToAESEncrypt(device.CommKey);
             return Convert.ToBase64String(enc);
         }
