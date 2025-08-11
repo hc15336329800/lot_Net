@@ -23,10 +23,10 @@ namespace RuoYi.Iot.Services
             BaseRepo = repo;
         }
 
-        public async Task<IotDeviceVariableHistory> GetAsync(long id)
-        {
-            return await base.FirstOrDefaultAsync(e => e.Id == id);
-        }
+        //public async Task<IotDeviceVariableHistory> GetAsync(long id)
+        //{
+        //    return await base.FirstOrDefaultAsync(e => e.Id == id);
+        //}
 
         public async Task<IotDeviceVariableHistoryDto> GetDtoAsync(long id)
         {

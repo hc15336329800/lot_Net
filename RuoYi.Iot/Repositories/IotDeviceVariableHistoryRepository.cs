@@ -19,7 +19,7 @@ namespace RuoYi.Iot.Repositories
         public override ISugarQueryable<IotDeviceVariableHistory> Queryable(IotDeviceVariableHistoryDto dto)
         {
             return Repo.AsQueryable()
-                .WhereIF(dto.Id > 0,d => d.Id == dto.Id)
+                //.WhereIF(dto.Id > 0,d => d.Id == dto.Id)
                 .WhereIF(dto.DeviceId.HasValue,d => d.DeviceId == dto.DeviceId)
                 .WhereIF(dto.VariableId.HasValue,d => d.VariableId == dto.VariableId);
         }
@@ -27,12 +27,12 @@ namespace RuoYi.Iot.Repositories
         public override ISugarQueryable<IotDeviceVariableHistoryDto> DtoQueryable(IotDeviceVariableHistoryDto dto)
         {
             return Repo.AsQueryable()
-                .WhereIF(dto.Id > 0,d => d.Id == dto.Id)
+                //.WhereIF(dto.Id > 0,d => d.Id == dto.Id)
                 .WhereIF(dto.DeviceId.HasValue,d => d.DeviceId == dto.DeviceId)
                 .WhereIF(dto.VariableId.HasValue,d => d.VariableId == dto.VariableId)
                 .Select(d => new IotDeviceVariableHistoryDto
                 {
-                    Id = d.Id,
+                    //Id = d.Id,
                     DeviceId = d.DeviceId,
                     VariableId = d.VariableId,
                     VariableKey = d.VariableKey,

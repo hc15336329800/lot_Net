@@ -125,7 +125,7 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
 
         var history = new IotDeviceVariableHistory
         {
-            Id = IdGenerator.NewId(),
+            //Id = IdGenerator.NewId(),
              
             DeviceId = deviceId,  //设备ID
             VariableId = variableId, //变量ID
@@ -138,11 +138,11 @@ public class IotDeviceVariableService : BaseService<IotDeviceVariable,IotDeviceV
 
         if(insertOk)
         {
-            Console.WriteLine($"[调试] 历史变量插入成功，ID={history.Id}");
+            Console.WriteLine($"[调试] 历史变量插入成功");
         }
         else
         {
-            Console.WriteLine($"[警告] 历史变量插入失败，ID={history.Id}");
+            Console.WriteLine($"[警告] 历史变量插入失败");
         }
 
     }

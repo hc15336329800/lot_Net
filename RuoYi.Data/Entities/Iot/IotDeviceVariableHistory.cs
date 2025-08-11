@@ -12,12 +12,12 @@ namespace RuoYi.Data.Entities.Iot
     /// 物联网—设备变量历史表
     /// </summary>
     //[Tenant("slave")]
-    //[Tenant(DataConstants.Slave)]  
+    [Tenant(DataConstants.Slave)]
     [SugarTable("iot_device_variable_history","物联网—设备变量历史表")]
     public class IotDeviceVariableHistory : UserBaseEntity
     {
-        [SugarColumn(ColumnName = "id",IsPrimaryKey = true)]
-        public long Id { get; set; }
+        //[SugarColumn(ColumnName = "id",IsPrimaryKey = true)]
+        //public long Id { get; set; }
 
         [SugarColumn(ColumnName = "device_id",ColumnDescription = "设备ID")]
         public long DeviceId { get; set; }
