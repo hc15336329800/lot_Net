@@ -3,7 +3,7 @@ using SqlSugar;
 
 namespace RuoYi.Data.Slave.Entities
 {
-    [Tenant(DataConstants.Slave)]
+    //[Tenant(DataConstants.Slave)] ？？  为什么增加从库注解》》》？？
     [SugarTable("sys_user", "用户表")]
     public class SlaveSysUser : UserBaseEntity
     {

@@ -11,7 +11,8 @@ namespace RuoYi.Data.Entities.Iot
     /// <summary>
     /// 物联网—设备变量历史表
     /// </summary>
-    [Tenant("slave")]
+    //[Tenant("slave")]
+    //[Tenant(DataConstants.Slave)]  
     [SugarTable("iot_device_variable_history","物联网—设备变量历史表")]
     public class IotDeviceVariableHistory : UserBaseEntity
     {
