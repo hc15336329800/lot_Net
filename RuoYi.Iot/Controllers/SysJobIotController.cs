@@ -49,5 +49,21 @@ namespace RuoYi.Iot.Controllers
             await _service.DeleteAsync(ids.ToList());
             return AjaxResult.Success();
         }
+
+        [HttpPut("changeStatus")]
+        [Log(Title = "定时任务",BusinessType = BusinessType.UPDATE)]
+        public async Task<AjaxResult> ChangeStatus([FromBody] SysJobIotDto dto)
+        {
+            var success = await _service.ChangeStatusAsync(dto);
+            return success ? AjaxResult.Success() : AjaxResult.Error();
+        }
+
+        [HttpPut("run")]
+        [Log(Title = "定时任务",BusinessType = BusinessType.UPDATE)]
+        public async Task<AjaxResult> Run([FromBody] SysJobIotDto dto)
+        {
+            var result = await _service.Run(dto);
+            return result ? AjaxResult.Success() : AjaxResult.Error("任务不存在或已过期！");
+        }
     }
 }

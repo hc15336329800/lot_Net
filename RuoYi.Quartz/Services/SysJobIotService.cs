@@ -55,4 +55,22 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
         await _sysJobService.DeleteJobByIdsAsync(jobIds);
         await _repository.DeleteAsync(jobIds);
     }
+
+    /// <summary>
+    /// 任务调度状态修改
+    /// </summary>
+    /// <param name="dto">任务对象</param>
+    public async Task<bool> ChangeStatusAsync(SysJobIotDto dto)
+    {
+        return await _sysJobService.ChangeStatusAsync(dto);
+    }
+
+    /// <summary>
+    /// 定时任务立即执行一次
+    /// </summary>
+    /// <param name="dto">任务对象</param>
+    public async Task<bool> Run(SysJobIotDto dto)
+    {
+        return await _sysJobService.Run(dto);
+    }
 }
