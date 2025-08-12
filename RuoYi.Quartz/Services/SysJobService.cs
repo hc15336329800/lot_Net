@@ -16,14 +16,19 @@ public class SysJobService : BaseService<SysJob, SysJobDto>, ITransient
 {
     private readonly ILogger<SysJobService> _logger;
     private readonly SysJobRepository _sysJobRepository;
+    private readonly SysJobIotRepository _sysJobIotRepository;
+
 
     public SysJobService(ILogger<SysJobService> logger,
-        SysJobRepository sysJobRepository)
+        SysJobRepository sysJobRepository,
+        SysJobIotRepository sysJobIotRepository)
     {
         BaseRepo = sysJobRepository;
 
         _logger = logger;
         _sysJobRepository = sysJobRepository;
+        _sysJobIotRepository = sysJobIotRepository;
+
     }
 
     // 项目启动时，初始化定时器 主要是防止手动修改数据库导致未同步到定时任务处理（注：不能手动修改数据库ID和任务组名，否则会导致脏数据）
@@ -33,8 +38,15 @@ public class SysJobService : BaseService<SysJob, SysJobDto>, ITransient
         await _scheduler.Clear();
 
         var jobs = _sysJobRepository.GetDtoList(new SysJobDto());
-        foreach (var job in jobs)
+        var iotJobs = _sysJobIotRepository.GetDtoList(new SysJobIotDto());
+
+        foreach(var job in jobs)
         {
+            var ext = iotJobs.FirstOrDefault(e => e.JobId == job.JobId);
+            if(ext != null)
+            {
+                job.InvokeTarget = $"{job.InvokeTarget}?targetType={ext.TargetType}&taskType={ext.TaskType}&deviceId={ext.DeviceId}&selectPoints={ext.SelectPoints}&triggerSource={ext.TriggerSource}";
+            }
             await ScheduleUtils.CreateScheduleJob(job);
         }
 

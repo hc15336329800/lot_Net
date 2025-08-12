@@ -14,7 +14,6 @@
     <ProjectReference Include="..\RuoYi.Common\RuoYi.Common.csproj" />
     <ProjectReference Include="..\RuoYi.Data\RuoYi.Data.csproj" />
     <ProjectReference Include="..\RuoYi.Framework\RuoYi.Framework.csproj" />
-    <ProjectReference Include="..\RuoYi.Mqtt\RuoYi.Mqtt.csproj" />
     <ProjectReference Include="..\RuoYi.System\RuoYi.System.csproj" />
   </ItemGroup>
 

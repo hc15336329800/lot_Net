@@ -1,0 +1,58 @@
+﻿using RuoYi.Common.Data;
+using RuoYi.Quartz.Dtos;
+using RuoYi.Quartz.Entities;
+using RuoYi.Quartz.Repositories;
+
+namespace RuoYi.Quartz.Services;
+
+/// <summary>
+///  定时任务IOT扩展表 Service
+/// </summary>
+public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
+{
+    private readonly SysJobIotRepository _repository;
+    private readonly SysJobService _sysJobService;
+
+    public SysJobIotService(SysJobIotRepository repository,SysJobService sysJobService)
+    {
+        BaseRepo = repository;
+        _repository = repository;
+        _sysJobService = sysJobService;
+    }
+
+    /// <summary>
+    /// 新增任务并创建扩展信息
+    /// </summary>
+    public async Task<bool> InsertAsync(SysJobIotDto dto)
+    {
+        var ok = await _sysJobService.InsertJobAsync(dto);
+        if(ok)
+        {
+            dto.JobId = dto.JobId;
+            return await _repository.InsertAsync(dto);
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// 更新任务及扩展信息
+    /// </summary>
+    public async Task<bool> UpdateAsync(SysJobIotDto dto)
+    {
+        var rows = await _sysJobService.UpdateJobAsync(dto);
+        if(rows)
+        {
+            await _repository.UpdateAsync(dto);
+        }
+        return rows;
+    }
+
+    /// <summary>
+    /// 删除任务及扩展信息
+    /// </summary>
+    public async Task DeleteAsync(List<long> jobIds)
+    {
+        await _sysJobService.DeleteJobByIdsAsync(jobIds);
+        await _repository.DeleteAsync(jobIds);
+    }
+}

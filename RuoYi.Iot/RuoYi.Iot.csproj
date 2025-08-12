@@ -11,12 +11,13 @@
     <ProjectReference Include="..\RuoYi.Data\RuoYi.Data.csproj" />
     <ProjectReference Include="..\RuoYi.Framework\RuoYi.Framework.csproj" />
     <ProjectReference Include="..\RuoYi.System\RuoYi.System.csproj" />
+    <ProjectReference Include="..\RuoYi.Quartz\RuoYi.Quartz.csproj" />
+
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Enums\" />
     <Folder Include="Model\" />
-    <Folder Include="mysql\" />
   </ItemGroup>
 
 </Project>
