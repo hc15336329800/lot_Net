@@ -6,9 +6,7 @@ using MQTTnet;
 using MQTTnet.Client;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using RuoYi.Iot.Services;
 using RuoYi.Data.Dtos.IOT;
-using RuoYi.Iot.Controllers;
 
 namespace RuoYi.Mqtt.Services
 {
@@ -24,7 +22,6 @@ namespace RuoYi.Mqtt.Services
         private bool _isConnected; // 当前连接状态,私有字段存储实际的连接状态
         public bool IsConnected => _isConnected; // 只读的公共属性,IsConnected
 
-        private readonly IotDeviceVariableService _deviceVariableService;
 
 
         /// <summary>
@@ -36,10 +33,9 @@ namespace RuoYi.Mqtt.Services
         /// 构造函数，初始化 MQTT 客户端和相关配置
         /// </summary>
         /// <param name="logger">日志记录器</param>
-        public MqttService(ILogger<MqttService> logger,IotDeviceVariableService deviceVariableService)
+        public MqttService(ILogger<MqttService> logger)
         {
             _logger = logger;
-            _deviceVariableService = deviceVariableService;
             var factory = new MqttFactory();
             _mqttClient = factory.CreateMqttClient();
             _topicHandlers = new ConcurrentDictionary<string,Action<string,string>>();
@@ -79,8 +75,7 @@ namespace RuoYi.Mqtt.Services
                 // 调用全局事件
                 OnMessageReceived?.Invoke(topic,payload);
 
-                await HandlePayloadAsync(payload);
-
+ 
 
                 // 调用主题对应的处理器
                 if(_topicHandlers.TryGetValue(topic,out var handler))
@@ -204,28 +199,9 @@ namespace RuoYi.Mqtt.Services
             }
         }
 
-        private async Task HandlePayloadAsync(string payload)
-        {
-            try
-            {
-                var data = JsonSerializer.Deserialize<DevicePayload>(payload);
-                if(data != null && data.DeviceId > 0 && data.Values != null)
-                {
-                    var map = await _deviceVariableService.GetVariableMapAsync(data.DeviceId);
-                    foreach(var kv in data.Values)
-                    {
-                        if(map.TryGetValue(kv.Key,out var variable) && variable.VariableId.HasValue)
-                        {
-                            await _deviceVariableService.SaveValueAsync(data.DeviceId,variable.VariableId.Value,kv.Key,kv.Value);
-                        }
-                    }
-                }
-            }
-            catch(Exception ex)
-            {
-                _logger.LogDebug(ex,"Failed to parse device payload");
-            }
-        }
+
+
+ 
 
 
         /// <summary>

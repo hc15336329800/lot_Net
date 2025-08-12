@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\RuoYi.Common\RuoYi.Common.csproj" />
     <ProjectReference Include="..\RuoYi.Data\RuoYi.Data.csproj" />
+    <ProjectReference Include="..\RuoYi.Framework\RuoYi.Framework.csproj" />
     <ProjectReference Include="..\RuoYi.Iot\RuoYi.Iot.csproj" />
 
   </ItemGroup>

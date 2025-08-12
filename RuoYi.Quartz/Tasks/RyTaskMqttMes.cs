@@ -2,7 +2,6 @@
 using StackExchange.Redis;
 using System.Text.Json;
 using RuoYi.Mqtt.Model;
-using RuoYi.Mqtt.Services;
 
 [Task("RyTaskMqttMes")]
 public class RyTaskMqttMes
