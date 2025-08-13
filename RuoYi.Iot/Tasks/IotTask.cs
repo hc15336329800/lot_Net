@@ -14,7 +14,7 @@ public class IotTask
     /// <summary>
     /// 示例：读取点位当前值并加 1 写回（直接传参）
     /// </summary>
-    public async Task ReadAndWriteWithParams(long deviceId,string pointKey)
+    public async Task readAndWriteWithParams(long deviceId,string pointKey)
     {
         var logger = App.GetService<ILogger<IotTask>>();
         var deviceSvc = App.GetService<IotDeviceService>();
@@ -45,10 +45,10 @@ public class IotTask
     /// <summary>
     /// 示例：根据任务配置自动读取并写入设备点位
     /// </summary>
-    public async Task ReadAndWrite( )
+    public async Task readAndWrite( )
     {
 
-        Console.WriteLine("测试 ：定时任务ReadAndWrite执行");
+        Console.WriteLine("测试 ：定时任务readAndWrite执行");
         return;
 
  
