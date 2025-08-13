@@ -57,7 +57,7 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
     }
 
     /// <summary>
-    /// 任务调度状态修改
+    /// 任务调度状态修改  启停
     /// </summary>
     /// <param name="dto">任务对象</param>
     public async Task<bool> ChangeStatusAsync(SysJobIotDto dto)
