@@ -19,7 +19,15 @@ namespace RuoYi.Quartz.Utils
             Type? target = AssemblyUtils.GetTaskAttributeClassType(taskName);
             if(target == null) { return; }
 
-            InvokeMethod(target, methodName, methodParams?.ToArray());
+            JobContext.CurrentJob = sysJob;
+            try
+            {
+                InvokeMethod(target,methodName,methodParams?.ToArray());
+            }
+            finally
+            {
+                JobContext.CurrentJob = null;
+            }
         }
 
         public static void InvokeMethod(Type target, string methodName, object?[]? methodParams)
