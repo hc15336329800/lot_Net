@@ -10,7 +10,7 @@ namespace RuoYi.Iot.Controllers
 {
     [ApiDescriptionSettings("Iot")]
     [Route("iot/job")]
-    [AllowAnonymous]
+    [AllowAnonymous] //匿名
     public class SysJobIotController : ControllerBase
     {
         private readonly SysJobIotService _service;
@@ -58,10 +58,14 @@ namespace RuoYi.Iot.Controllers
             return success ? AjaxResult.Success() : AjaxResult.Error();
         }
 
+
+        // 运行一次任务
         [HttpPut("run")]
         [Log(Title = "定时任务",BusinessType = BusinessType.UPDATE)]
         public async Task<AjaxResult> Run([FromBody] SysJobIotDto dto)
         {
+            Console.WriteLine("运行一次任务开始");
+
             var result = await _service.Run(dto);
             return result ? AjaxResult.Success() : AjaxResult.Error("任务不存在或已过期！");
         }
