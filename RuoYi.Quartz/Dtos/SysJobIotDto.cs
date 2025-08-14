@@ -40,5 +40,10 @@ namespace RuoYi.Quartz.Dtos
         /// </summary>
         [MaxLength(64,ErrorMessage = "触发源不能超过64个字符")]
         public string? TriggerSource { get; set; }
+
+        /// <summary>
+        /// 任务启停标记（1启动 0停止）
+        /// </summary>
+        public int? Star { get; set; }
     }
 }

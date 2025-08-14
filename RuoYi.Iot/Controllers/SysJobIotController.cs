@@ -5,6 +5,7 @@ using RuoYi.System;
 using RuoYi.Quartz.Dtos;
 using RuoYi.Quartz.Services;
 using SqlSugar;
+using RuoYi.Quartz.Enums;
 
 namespace RuoYi.Iot.Controllers
 {
@@ -75,10 +76,15 @@ namespace RuoYi.Iot.Controllers
         /// </summary>
         /// <param name="dto">任务对象</param>
         [HttpPut("runCron")]
-        [Log(Title = "定时任务 运行一次",BusinessType = BusinessType.UPDATE)]
-        public async Task<bool> RunCron(SysJobIotDto dto)
+        [Log(Title = "定时任务启停",BusinessType = BusinessType.UPDATE)]
+        public async Task<AjaxResult> RunCron([FromBody] SysJobIotDto dto)
         {
-            return true; //todo： 需要完善
+            Console.WriteLine("运行Cron任务开始");
+            return AjaxResult.Success();
+
+            dto.Status = dto.Star == 1 ? ScheduleStatus.NORMAL.GetValue() : ScheduleStatus.PAUSE.GetValue();
+            var success = await _service.ChangeStatusAsync(dto);
+            return success ? AjaxResult.Success() : AjaxResult.Error();
         }
     }
 }
