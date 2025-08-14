@@ -1,4 +1,5 @@
-﻿using RuoYi.Framework.Attributes;
+﻿using RuoYi.Common.Utils;
+using RuoYi.Framework.Attributes;
 using RuoYi.Iot.Services;
 using RuoYi.Quartz.Dtos;
 using RuoYi.Quartz.Utils;
@@ -43,43 +44,73 @@ public class IotTask
     }
 
     /// <summary>
-    /// 示例：根据任务配置自动读取并写入设备点位
+    /// 示例：测试是否执行
     /// </summary>
     public async Task readAndWrite( )
     {
+
+        Console.WriteLine("测试 ：定时任务readAndWrite执行");
+        return;
  
+    }
 
+
+    /// <summary>
+    /// 发送读取指令到设备，利用已有 TCP 连接获取点位数据
+    /// </summary>
+    /// <param name="deviceId">设备 ID</param>
+    /// <param name="productId">产品 ID</param>
+    public async Task sendReadCommand(long deviceId,long productId)
+    {
+        // 获取日志组件和所需的服务实例
         var logger = App.GetService<ILogger<IotTask>>();
-        var job = JobContext.CurrentJob as SysJobIotDto;
-        if(job?.DeviceId == null || string.IsNullOrWhiteSpace(job.SelectPoints))
-        {
-            logger.LogWarning("Job configuration missing device or point information");
-            return;
-        }
-
-        var pointKey = job.SelectPoints.Split(',',StringSplitOptions.RemoveEmptyEntries).First();
         var deviceSvc = App.GetService<IotDeviceService>();
-        var varSvc = App.GetService<IotDeviceVariableService>();
+        var pointSvc = App.GetService<IotProductPointService>();
+        var tcpSender = App.GetService<ITcpSender>();
 
-        var device = await deviceSvc.GetDtoAsync(job.DeviceId.Value);
+        // 根据设备 ID 查询设备信息
+        var device = await deviceSvc.GetDtoAsync(deviceId);
         if(device == null)
         {
-            logger.LogWarning($"Device {job.DeviceId} not found");
+            logger.LogWarning($"设备 {deviceId} 不存在");
             return;
         }
 
-        var map = await varSvc.GetVariableMapAsync(job.DeviceId.Value);
-        if(!map.TryGetValue(pointKey,out var variable) || !variable.VariableId.HasValue)
+        // 判断设备是否在线（online1 表示在线）
+        if(!string.Equals(device.DeviceStatus,"online1",StringComparison.OrdinalIgnoreCase))
         {
-            logger.LogWarning($"Point {pointKey} not found on device {job.DeviceId}");
+            logger.LogWarning($"设备 {deviceId} 不在线");
             return;
         }
 
-        logger.LogInformation($"Current {pointKey} value: {variable.CurrentValue}");
+        // 根据产品 ID 获取点位列表
+        var points = await pointSvc.GetCachedListAsync(productId);
+        var targets = points
+            .Where(p => p.RegisterAddress.HasValue && p.SlaveAddress.HasValue)
+            .ToList();
 
-        var newVal = (int.Parse(variable.CurrentValue ?? "0") + 1).ToString();
-        await varSvc.SaveValueAsync(job.DeviceId.Value,variable.VariableId.Value,pointKey,newVal);
+        if(targets.Count == 0)
+        {
+            logger.LogWarning("未找到可用的点位");
+            return;
+        }
 
-        logger.LogInformation($"Updated {pointKey} to {newVal}");
+        foreach(var p in targets)
+        {
+            // 组装 Modbus RTU 读取指令
+            byte slave = (byte)p.SlaveAddress!.Value;
+            byte func = (byte)(p.FunctionCode ?? 3);
+            ushort start = (ushort)p.RegisterAddress!.Value;
+            ushort qty = (ushort)Math.Max(1,(p.DataLength ?? 16) / 16);
+
+            var frame = ModbusUtils.BuildReadFrame(slave,func,start,qty);
+
+            // 通过当前 TCP 连接发送读取指令
+            await tcpSender.SendAsync(deviceId,frame);
+        }
     }
+ 
+
+
 }
+ 

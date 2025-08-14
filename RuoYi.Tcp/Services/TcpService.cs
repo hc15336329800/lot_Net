@@ -389,6 +389,19 @@ namespace RuoYi.Tcp.Services
                 {
                     _clients.TryRemove(device.Id,out _);
                     _locks.TryRemove(device.Id,out _); // 清理发送队列
+
+                    try
+                    {
+                        // 更新设备下线状态
+                        using var scope = _serviceProvider.CreateScope();
+                        var deviceService = scope.ServiceProvider.GetRequiredService<IotDeviceService>();
+                        await deviceService.UpdateStatusAsync(device.Id,"offline");
+                    }
+                    catch(Exception ex)
+                    {
+                        _logger.LogError(ex,"Failed to update device {DeviceId} status to offline",device.Id);
+                    }
+
                 }
                 try { client.Dispose(); } catch { } // 安全关闭客户端连接
             }
