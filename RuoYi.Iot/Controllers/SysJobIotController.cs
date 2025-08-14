@@ -6,6 +6,7 @@ using RuoYi.Quartz.Dtos;
 using RuoYi.Quartz.Services;
 using SqlSugar;
 using RuoYi.Quartz.Enums;
+using RuoYi.Quartz.Utils;
 
 namespace RuoYi.Iot.Controllers
 {
@@ -71,6 +72,11 @@ namespace RuoYi.Iot.Controllers
             return result ? AjaxResult.Success() : AjaxResult.Error("任务不存在或已过期！");
         }
 
+
+// 注意：runCron仅通过调用来切换作业的状态_service.ChangeStatusAsync，最终恢复或暂停 Quartz 作业，而无需重新创建或启动调度程序
+
+//调度程序仅在应用程序启动时通过后台线程初始化并启动，因此，如果调度程序在runCron调用时未运行，则作业将不会触发，直到应用程序重新启动并InitSchedule再次执行
+
         /// <summary>
         ///  任务启停：启动则任务按 Cron 表达式执行  
         /// </summary>
@@ -80,10 +86,18 @@ namespace RuoYi.Iot.Controllers
         public async Task<AjaxResult> RunCron([FromBody] SysJobIotDto dto)
         {
             Console.WriteLine("运行Cron任务开始");
-            return AjaxResult.Success();
+            //return AjaxResult.Success();
 
             dto.Status = dto.Star == 1 ? ScheduleStatus.NORMAL.GetValue() : ScheduleStatus.PAUSE.GetValue();
             var success = await _service.ChangeStatusAsync(dto);
+            if(success && dto.Star == 1)
+            {
+                var scheduler = await ScheduleUtils.GetDefaultScheduleAsync();
+                if(!scheduler.IsStarted || scheduler.InStandbyMode)
+                {
+                    await scheduler.Start();
+                }
+            }
             return success ? AjaxResult.Success() : AjaxResult.Error();
         }
     }
