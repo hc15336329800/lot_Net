@@ -61,13 +61,24 @@ namespace RuoYi.Iot.Controllers
 
         // 运行一次任务
         [HttpPut("run")]
-        [Log(Title = "定时任务",BusinessType = BusinessType.UPDATE)]
+        [Log(Title = "定时任务 运行一次",BusinessType = BusinessType.UPDATE)]
         public async Task<AjaxResult> Run([FromBody] SysJobIotDto dto)
         {
             Console.WriteLine("运行一次任务开始");
 
             var result = await _service.Run(dto);
             return result ? AjaxResult.Success() : AjaxResult.Error("任务不存在或已过期！");
+        }
+
+        /// <summary>
+        ///  任务启停：启动则任务按 Cron 表达式执行  
+        /// </summary>
+        /// <param name="dto">任务对象</param>
+        [HttpPut("runCron")]
+        [Log(Title = "定时任务 运行一次",BusinessType = BusinessType.UPDATE)]
+        public async Task<bool> RunCron(SysJobIotDto dto)
+        {
+            return true; //todo： 需要完善
         }
     }
 }
