@@ -47,12 +47,7 @@ public class IotTask
     /// </summary>
     public async Task readAndWrite( )
     {
-
-        Console.WriteLine("测试 ：定时任务readAndWrite执行");
-        return;
-
  
-
 
         var logger = App.GetService<ILogger<IotTask>>();
         var job = JobContext.CurrentJob as SysJobIotDto;

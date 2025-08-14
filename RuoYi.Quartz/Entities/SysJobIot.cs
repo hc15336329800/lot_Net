@@ -33,8 +33,16 @@ namespace RuoYi.Quartz.Entities
         [SugarColumn(ColumnName = "device_id",ColumnDescription = "设备ID")]
         public long? DeviceId { get; set; }
 
+
         /// <summary>
-        /// 选择点位
+        /// 产品ID
+        /// </summary>
+        [SugarColumn(ColumnName = "product_id",ColumnDescription = "设备ID")]
+        public long? productId { get; set; }
+
+
+        /// <summary>
+        /// 选择点位 （ iot_product_point表的 point_key 字段）
         /// </summary>
         [SugarColumn(ColumnName = "select_points",ColumnDescription = "选择点位")]
         public string? SelectPoints { get; set; }

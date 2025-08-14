@@ -25,7 +25,12 @@ namespace RuoYi.Quartz.Dtos
         public long? DeviceId { get; set; }
 
         /// <summary>
-        /// 选择点位
+        /// 产品ID
+        /// </summary>
+        public long? productId { get; set; }
+
+        /// <summary>
+        ///  选择点位 （ iot_product_point表的 point_key 字段）
         /// </summary>
         [MaxLength(500,ErrorMessage = "选择点位不能超过500个字符")]
         public string? SelectPoints { get; set; }

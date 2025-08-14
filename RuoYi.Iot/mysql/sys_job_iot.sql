@@ -4,7 +4,9 @@ CREATE TABLE sys_job_iot (
   target_type   varchar(64)   DEFAULT '' COMMENT '目标类型',
   task_type     varchar(64)   DEFAULT '' COMMENT '任务类型',
   device_id     bigint(20)    DEFAULT NULL COMMENT '设备ID',
-  select_points varchar(500)  DEFAULT '' COMMENT '选择点位',
+  product_id     bigint(20)    DEFAULT NULL COMMENT '所属产品ID',
+
+  select_points varchar(500)  DEFAULT '' COMMENT '选择点位（ （ iot_product_point表的 point_key 字段））',
   trigger_source varchar(64)  DEFAULT '' COMMENT '触发源',
   status        char(1)       DEFAULT '0' COMMENT '状态',
   create_by     varchar(64)   DEFAULT '' COMMENT '创建者',
