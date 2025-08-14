@@ -68,29 +68,45 @@ public class IotTask
         var pointSvc = App.GetService<IotProductPointService>();
         var tcpSender = App.GetService<ITcpSender>();
 
+        Console.WriteLine($"[INFO] 开始执行 sendReadCommand，deviceId={deviceId}, productId={productId}");
+
+
         // 根据设备 ID 查询设备信息
         var device = await deviceSvc.GetDtoAsync(deviceId);
         if(device == null)
         {
+            Console.WriteLine($"[WARN] 设备 {deviceId} 不存在");
+
             logger.LogWarning($"设备 {deviceId} 不存在");
             return;
         }
 
+        Console.WriteLine($"[INFO] 已获取设备信息：{device.DeviceName}，状态={device.DeviceStatus}");
+
+
         // 判断设备是否在线（online1 表示在线）
         if(!string.Equals(device.DeviceStatus,"online1",StringComparison.OrdinalIgnoreCase))
         {
+            Console.WriteLine($"[WARN] 设备 {deviceId} 不在线");
+
             logger.LogWarning($"设备 {deviceId} 不在线");
             return;
         }
 
         // 根据产品 ID 获取点位列表
         var points = await pointSvc.GetCachedListAsync(productId);
+        Console.WriteLine($"[INFO] 获取到 {points.Count} 个点位");
+
         var targets = points
             .Where(p => p.RegisterAddress.HasValue && p.SlaveAddress.HasValue)
             .ToList();
 
+        Console.WriteLine($"[INFO] 有效点位数量：{targets.Count}");
+
+
         if(targets.Count == 0)
         {
+            Console.WriteLine("[WARN] 未找到可用的点位");
             logger.LogWarning("未找到可用的点位");
             return;
         }
@@ -104,9 +120,12 @@ public class IotTask
             ushort qty = (ushort)Math.Max(1,(p.DataLength ?? 16) / 16);
 
             var frame = ModbusUtils.BuildReadFrame(slave,func,start,qty);
+            Console.WriteLine($"[INFO] 发送读取指令 -> Slave={slave}, Func={func}, Start={start}, Qty={qty}, Frame={BitConverter.ToString(frame)}");
 
             // 通过当前 TCP 连接发送读取指令
             await tcpSender.SendAsync(deviceId,frame);
+            Console.WriteLine($"[INFO] sendReadCommand 执行完成，已向设备 {deviceId} 发送所有读取指令");
+
         }
     }
  
