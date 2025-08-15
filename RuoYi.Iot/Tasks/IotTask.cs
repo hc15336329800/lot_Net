@@ -2,6 +2,7 @@
 using RuoYi.Framework.Attributes;
 using RuoYi.Iot.Services;
 using RuoYi.Quartz.Dtos;
+using RuoYi.Quartz.Services;
 using RuoYi.Quartz.Utils;
 
 namespace RuoYi.Iot.Tasks;
@@ -51,85 +52,124 @@ public class IotTask
 
         Console.WriteLine("测试 ：定时任务readAndWrite执行");
         return;
- 
+
     }
 
 
+ 
     /// <summary>
     /// 发送读取指令到设备，利用已有 TCP 连接获取点位数据
+    /// 发送读取指令到指定设备，若同时存在设备ID和产品ID，优先使用设备ID
     /// </summary>
-    /// <param name="deviceId">设备 ID</param>
-    /// <param name="productId">产品 ID</param>
-    public async Task sendReadCommand(long deviceId,long productId)
+    public async Task sendReadCommand( )
     {
-        // 获取日志组件和所需的服务实例
         var logger = App.GetService<ILogger<IotTask>>();
         var deviceSvc = App.GetService<IotDeviceService>();
         var pointSvc = App.GetService<IotProductPointService>();
         var tcpSender = App.GetService<ITcpSender>();
+        var jobExtSvc = App.GetService<SysJobIotService>();
+
+        Console.WriteLine($"[DEBUG] {DateTime.Now:yyyy-MM-dd HH:mm:ss} -> sendReadCommand() 方法开始执行");
+
+        // 获取当前任务及其扩展信息
+        var job = JobContext.CurrentJob;
+        if(job == null)
+        {
+            logger.LogWarning("未获取到任务上下文");
+            Console.WriteLine("[WARN] 未获取到任务上下文");
+            return;
+        }
+        Console.WriteLine($"[DEBUG] 当前任务ID: {job.JobId}");
+
+        var ext = await jobExtSvc.FirstOrDefaultAsync(e => e.JobId == job.JobId);
+        if(ext == null)
+        {
+            logger.LogWarning($"任务 {job.JobId} 未找到扩展信息");
+            Console.WriteLine($"[WARN] 任务 {job.JobId} 未找到扩展信息");
+            return;
+        }
+
+        long? deviceId = ext.DeviceId;
+        long? productId = ext.productId;
+        Console.WriteLine($"[DEBUG] 从扩展信息读取 -> deviceId={deviceId}, productId={productId}");
+
+        // 若同时存在设备ID和产品ID，以设备ID为准
+        if(deviceId == null && productId != null)
+        {
+            Console.WriteLine($"[DEBUG] 未指定设备ID，根据产品ID {productId} 查询设备");
+            var devEntity = await deviceSvc.FirstOrDefaultAsync(d => d.ProductId == productId);
+            if(devEntity == null)
+            {
+                logger.LogWarning($"产品 {productId} 未找到设备");
+                Console.WriteLine($"[WARN] 产品 {productId} 未找到设备");
+                return;
+            }
+            if(!string.Equals(devEntity.DeviceStatus,"online1",StringComparison.OrdinalIgnoreCase))
+            {
+                logger.LogWarning($"设备 {devEntity.Id} 不在线");
+                Console.WriteLine($"[WARN] 设备 {devEntity.Id} 不在线");
+                return;
+            }
+            deviceId = devEntity.Id;
+            productId = devEntity.ProductId;
+        }
+        else if(deviceId != null)
+        {
+            Console.WriteLine($"[DEBUG] 直接使用设备ID {deviceId} 查询设备");
+            var devEntity = await deviceSvc.FirstOrDefaultAsync(d => d.Id == deviceId);
+            if(devEntity == null)
+            {
+                logger.LogWarning($"设备 {deviceId} 不存在");
+                Console.WriteLine($"[WARN] 设备 {deviceId} 不存在");
+                return;
+            }
+            productId = devEntity.ProductId;
+            if(!string.Equals(devEntity.DeviceStatus,"online1",StringComparison.OrdinalIgnoreCase))
+            {
+                logger.LogWarning($"设备 {deviceId} 不在线");
+                Console.WriteLine($"[WARN] 设备 {deviceId} 不在线");
+                return;
+            }
+        }
+        else
+        {
+            logger.LogWarning($"任务 {job.JobId} 未配置设备或产品");
+            Console.WriteLine($"[WARN] 任务 {job.JobId} 未配置设备或产品");
+            return;
+        }
 
         Console.WriteLine($"[INFO] 开始执行 sendReadCommand，deviceId={deviceId}, productId={productId}");
 
-
-        // 根据设备 ID 查询设备信息
-        var device = await deviceSvc.GetDtoAsync(deviceId);
-        if(device == null)
-        {
-            Console.WriteLine($"[WARN] 设备 {deviceId} 不存在");
-
-            logger.LogWarning($"设备 {deviceId} 不存在");
-            return;
-        }
-
-        Console.WriteLine($"[INFO] 已获取设备信息：{device.DeviceName}，状态={device.DeviceStatus}");
-
-
-        // 判断设备是否在线（online1 表示在线）
-        if(!string.Equals(device.DeviceStatus,"online1",StringComparison.OrdinalIgnoreCase))
-        {
-            Console.WriteLine($"[WARN] 设备 {deviceId} 不在线");
-
-            logger.LogWarning($"设备 {deviceId} 不在线");
-            return;
-        }
-
-        // 根据产品 ID 获取点位列表
-        var points = await pointSvc.GetCachedListAsync(productId);
-        Console.WriteLine($"[INFO] 获取到 {points.Count} 个点位");
+        // 获取点位并发送指令
+        var points = await pointSvc.GetCachedListAsync(productId!.Value);
+        Console.WriteLine($"[DEBUG] 产品 {productId} 获取到 {points.Count} 个点位");
 
         var targets = points
             .Where(p => p.RegisterAddress.HasValue && p.SlaveAddress.HasValue)
             .ToList();
 
-        Console.WriteLine($"[INFO] 有效点位数量：{targets.Count}");
-
-
+        Console.WriteLine($"[DEBUG] 有效点位数量: {targets.Count}");
         if(targets.Count == 0)
         {
-            Console.WriteLine("[WARN] 未找到可用的点位");
-            logger.LogWarning("未找到可用的点位");
+            logger.LogWarning($"设备 {deviceId} 未找到可用的点位");
+            Console.WriteLine($"[WARN] 设备 {deviceId} 未找到可用的点位");
             return;
         }
 
         foreach(var p in targets)
         {
-            // 组装 Modbus RTU 读取指令
             byte slave = (byte)p.SlaveAddress!.Value;
             byte func = (byte)(p.FunctionCode ?? 3);
             ushort start = (ushort)p.RegisterAddress!.Value;
             ushort qty = (ushort)Math.Max(1,(p.DataLength ?? 16) / 16);
 
             var frame = ModbusUtils.BuildReadFrame(slave,func,start,qty);
-            Console.WriteLine($"[INFO] 发送读取指令 -> Slave={slave}, Func={func}, Start={start}, Qty={qty}, Frame={BitConverter.ToString(frame)}");
-
-            // 通过当前 TCP 连接发送读取指令
-            await tcpSender.SendAsync(deviceId,frame);
-            Console.WriteLine($"[INFO] sendReadCommand 执行完成，已向设备 {deviceId} 发送所有读取指令");
-
+            Console.WriteLine($"[INFO] 发送读取指令 -> Device={deviceId}, Slave={slave}, Func={func}, Start={start}, Qty={qty}, Frame={BitConverter.ToString(frame)}");
+            await tcpSender.SendAsync(deviceId.Value,frame);
         }
+
+        Console.WriteLine($"[DEBUG] {DateTime.Now:yyyy-MM-dd HH:mm:ss} -> sendReadCommand() 方法执行结束");
     }
- 
 
 
 }
- 
