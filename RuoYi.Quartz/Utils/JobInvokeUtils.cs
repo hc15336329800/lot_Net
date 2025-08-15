@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using System.Text.RegularExpressions;
+using RuoYi.Framework.Logging;
 
 namespace RuoYi.Quartz.Utils
 {
@@ -34,6 +35,14 @@ namespace RuoYi.Quartz.Utils
         {
             MethodInfo? openMethodInfo = target.GetMethod(methodName);
             if(openMethodInfo == null) { return; }
+
+            int expectedCount = openMethodInfo.GetParameters().Length;
+            int actualCount = methodParams?.Length ?? 0;
+            if(expectedCount != actualCount)
+            {
+                Log.Error($"方法参数个数不匹配：类 {target.FullName}, 方法 {methodName}, 期望 {expectedCount} 个，实际 {actualCount} 个");
+                return;
+            }
 
             var instance = ReflectUtils.CreateInstance(target);
             openMethodInfo.Invoke(instance, methodParams);
