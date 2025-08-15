@@ -1,0 +1,4 @@
+
+2025-08-15优化RuoYi.Quartz
+1、将基于线程的启动序列替换为托管的ScheduleHostedService，确保在服务配置期间通过依赖注入注册调度程序
+2、实现了在启动时立即BackgroundService调用InitSchedule()并使用自动重试逻辑记录错误以从初始化失败中恢复
