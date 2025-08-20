@@ -1,4 +1,5 @@
-﻿using RuoYi.Common.Data;
+﻿using Microsoft.AspNetCore.Http;
+using RuoYi.Common.Data;
 using RuoYi.Quartz.Dtos;
 using RuoYi.Quartz.Entities;
 using RuoYi.Quartz.Repositories;
@@ -135,5 +136,64 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
     {
         return await _sysJobService.Run(dto);
     }
- 
+
+
+
+    /// <summary>
+    /// 根据设备ID查询任务列表
+    /// </summary>
+    public async Task<List<SysJobIotDto>> GetListByDeviceId(long deviceId)
+    {
+        return await GetListByFilter(new SysJobIotDto { DeviceId = deviceId });
+    }
+
+    /// <summary>
+    /// 根据产品ID查询任务列表
+    /// </summary>
+    public async Task<List<SysJobIotDto>> GetListByProductId(long productId)
+    {
+        return await GetListByFilter(new SysJobIotDto { ProductId = productId });
+    }
+
+    private async Task<List<SysJobIotDto>> GetListByFilter(SysJobIotDto dto)
+    {
+        var jobIds = await _repository.Queryable(dto).Select(d => d.JobId).ToListAsync();
+        if(jobIds.Count == 0)
+        {
+            return new List<SysJobIotDto>();
+        }
+
+        var jobList = await _sysJobService.BaseRepo.DtoQueryable(new SysJobDto())
+            .Where(j => jobIds.Contains(j.JobId))
+            .ToListAsync();
+
+        var extList = await _repository.DtoQueryable(new SysJobIotDto())
+            .Where(e => jobIds.Contains(e.JobId))
+            .ToListAsync();
+        var extDict = extList.ToDictionary(e => e.JobId);
+
+        var rows = jobList.Select(j =>
+        {
+            var item = j.Adapt<SysJobIotDto>();
+            if(extDict.TryGetValue(j.JobId,out var ext))
+            {
+                item.TargetType = ext.TargetType;
+                item.TaskType = ext.TaskType;
+                item.DeviceId = ext.DeviceId;
+                item.ProductId = ext.ProductId;
+                item.SelectPoints = ext.SelectPoints;
+                item.TriggerSource = ext.TriggerSource;
+                item.Star = ext.Star;
+                item.Remark = ext.Remark;
+                item.CreateBy = ext.CreateBy;
+                item.CreateTime = ext.CreateTime;
+                item.UpdateBy = ext.UpdateBy;
+                item.UpdateTime = ext.UpdateTime;
+            }
+            return item;
+        }).ToList();
+
+        return rows;
+    }
+
 }

@@ -28,22 +28,18 @@ namespace RuoYi.Iot.Controllers
             return await _service.GetDtoPagedListAsync(dto);
         }
 
-
-        // 根据设备ID查询
-        [HttpGet("device/{deviceId}")]
-        public async Task<AjaxResult> GetByDeviceId(long deviceId)
+        [HttpGet("listByDeviceId/{deviceId}")]
+        public async Task<List<SysJobIotDto>> GetByDevice(long deviceId)
         {
-            var list = await _service.GetJobsByDeviceId(deviceId);
-            return AjaxResult.Success(list);
+            return await _service.GetListByDeviceId(deviceId);
         }
 
-        // 根据产品ID查询
-        [HttpGet("product/{productId}")]
-        public async Task<AjaxResult> GetByProductId(long productId)
+        [HttpGet("listByProduct/{productId}")]
+        public async Task<List<SysJobIotDto>> GetByProduct(long productId)
         {
-            var list = await _service.GetJobsByProductId(productId);
-            return AjaxResult.Success(list);
+            return await _service.GetListByProductId(productId);
         }
+
 
         [HttpPost("add")]
         [Log(Title = "定时任务",BusinessType = BusinessType.INSERT)]
