@@ -26,7 +26,7 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
     /// </summary>
     public override async Task<SqlSugarPagedList<SysJobIotDto>> GetDtoPagedListAsync(SysJobIotDto dto)
     {
-        var jobIds = await _repository.Queryable(dto).Select(d => d.JobId).ToListAsync();
+        var jobIds = await _repository.Queryable(dto).Select(d => d.JobId,true).ToListAsync();
         if(jobIds.Count == 0)
         {
             return new SqlSugarPagedList<SysJobIotDto>
@@ -166,7 +166,10 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
 
     private async Task<List<SysJobIotDto>> GetListByFilter(SysJobIotDto dto)
     {
-        var jobIds = await _repository.Queryable(dto).Select(d => d.JobId).ToListAsync();
+        var jobIds = await _repository.Queryable(dto)
+    .Select<long>("job_id") // ★强制用真实列名
+    .ToListAsync();
+
         if(jobIds.Count == 0)
         {
             return new List<SysJobIotDto>();

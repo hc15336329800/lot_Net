@@ -7,6 +7,8 @@ using RuoYi.Quartz.Services;
 using SqlSugar;
 using RuoYi.Quartz.Enums;
 using RuoYi.Quartz.Utils;
+using RuoYi.Iot.Services;
+using RuoYi.Data.Models;
 
 namespace RuoYi.Iot.Controllers
 {
@@ -16,29 +18,47 @@ namespace RuoYi.Iot.Controllers
     public class SysJobIotController : ControllerBase
     {
         private readonly SysJobIotService _service;
+        private readonly IotProductPointService _productPointService;
 
-        public SysJobIotController(SysJobIotService service)
+
+        public SysJobIotController(SysJobIotService service,IotProductPointService productPointService)
         {
             _service = service;
+            _productPointService = productPointService;
+
         }
 
+        // 所有任务列表
         [HttpGet("list")]
         public async Task<SqlSugarPagedList<SysJobIotDto>> List([FromQuery] SysJobIotDto dto)
         {
             return await _service.GetDtoPagedListAsync(dto);
         }
-
+        //  任务列表 根据设备id查询
         [HttpGet("listByDeviceId/{deviceId}")]
         public async Task<List<SysJobIotDto>> GetByDevice(long deviceId)
         {
             return await _service.GetListByDeviceId(deviceId);
         }
-
+        // 所有任务列表 根据产品id查询
         [HttpGet("listByProduct/{productId}")]
         public async Task<List<SysJobIotDto>> GetByProduct(long productId)
         {
             return await _service.GetListByProductId(productId);
         }
+
+
+        /// <summary>
+        /// 根据产品查询点位列表，返回前端 el-select 需要的数据格式
+        /// </summary>
+        /// <param name="productId">产品ID</param>
+        [HttpGet("pointList/{productId}")]
+        public async Task<List<ElSelect>> PointList(long productId)
+        {
+            var list = await _productPointService.GetCachedListAsync(productId);
+            return list.Select(p => new ElSelect { Label = p.PointName ?? string.Empty,Value = p.Id.ToString() }).ToList();
+        }
+
 
 
         [HttpPost("add")]
