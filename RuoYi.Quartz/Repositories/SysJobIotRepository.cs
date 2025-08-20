@@ -41,7 +41,7 @@ public class SysJobIotRepository : BaseRepository<SysJobIot,SysJobIotDto>
 
                 SelectPoints = d.SelectPoints,
                 TriggerSource = d.TriggerSource,
-                Star = SqlFunc.ToInt32(d.Status),
+                Status =d.Status,
                 Remark = d.Remark,
                 CreateBy = d.CreateBy,
                 CreateTime = d.CreateTime,

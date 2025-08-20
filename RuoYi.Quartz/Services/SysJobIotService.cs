@@ -41,12 +41,21 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
             };
         }
 
-        var jobQuery = _sysJobService.BaseRepo.DtoQueryable(dto).Where(j => jobIds.Contains(j.JobId));
+        var jobQuery = _sysJobService.BaseRepo.Queryable(dto.Adapt<SysJobDto>())
+            .Where(j => jobIds.Contains(j.JobId))
+            .Select(j => new SysJobDto
+            {
+                JobId = j.JobId
+            },true);
         var jobPaged = await _sysJobService.BaseRepo.GetDtoPagedListAsync(jobQuery);
 
         var pageJobIds = jobPaged.Rows.Select(r => r.JobId).ToList();
-        var extList = await _repository.DtoQueryable(new SysJobIotDto())
+        var extList = await _repository.Queryable(new SysJobIotDto())
             .Where(e => pageJobIds.Contains(e.JobId))
+             .Select(e => new SysJobIotDto
+             {
+                 JobId = e.JobId
+             },true)
             .ToListAsync();
         var extDict = extList.ToDictionary(e => e.JobId);
 
@@ -61,7 +70,7 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
                 item.ProductId = ext.ProductId;
                 item.SelectPoints = ext.SelectPoints;
                 item.TriggerSource = ext.TriggerSource;
-                item.Star = ext.Star;
+                item.Status = ext.Status;
                 item.Remark = ext.Remark;
                 item.CreateBy = ext.CreateBy;
                 item.CreateTime = ext.CreateTime;
@@ -163,11 +172,19 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
             return new List<SysJobIotDto>();
         }
 
-        var jobList = await _sysJobService.BaseRepo.DtoQueryable(new SysJobDto())
+        var jobList = await _sysJobService.BaseRepo.Queryable(new SysJobDto())
             .Where(j => jobIds.Contains(j.JobId))
+               .Select(j => new SysJobDto
+               {
+                   JobId = j.JobId
+               },true)
+                 .Select(e => new SysJobIotDto
+                 {
+                     JobId = e.JobId
+                 },true)
             .ToListAsync();
 
-        var extList = await _repository.DtoQueryable(new SysJobIotDto())
+        var extList = await _repository.Queryable(new SysJobIotDto())
             .Where(e => jobIds.Contains(e.JobId))
             .ToListAsync();
         var extDict = extList.ToDictionary(e => e.JobId);
@@ -183,7 +200,7 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
                 item.ProductId = ext.ProductId;
                 item.SelectPoints = ext.SelectPoints;
                 item.TriggerSource = ext.TriggerSource;
-                item.Star = ext.Star;
+                item.Status = ext.Status;
                 item.Remark = ext.Remark;
                 item.CreateBy = ext.CreateBy;
                 item.CreateTime = ext.CreateTime;

@@ -98,9 +98,9 @@ namespace RuoYi.Iot.Controllers
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] 运行Cron任务开始");
             //return AjaxResult.Success();
 
-            dto.Status = dto.Star == 1 ? ScheduleStatus.NORMAL.GetValue() : ScheduleStatus.PAUSE.GetValue();
+            dto.Status = dto.Status == "1" ? ScheduleStatus.NORMAL.GetValue() : ScheduleStatus.PAUSE.GetValue();
             var success = await _service.ChangeStatusAsync(dto);
-            if(success && dto.Star == 1)
+            if(success && dto.Status == "1")
             {
                 var scheduler = await ScheduleUtils.GetDefaultScheduleAsync();
                 if(!scheduler.IsStarted || scheduler.InStandbyMode)
