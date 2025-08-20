@@ -126,8 +126,8 @@ public class IotTask
             productId = devEntity.ProductId;
             if(!string.Equals(devEntity.DeviceStatus,"online1",StringComparison.OrdinalIgnoreCase))
             {
-                logger.LogWarning($"设备 {deviceId} 不在线");
-                Console.WriteLine($"[WARN] 设备 {deviceId} 不在线");
+                logger.LogDebug($"设备 {deviceId} 不在线，跳过执行 sendReadCommand");
+                Console.WriteLine($"[DEBUG] 设备 {deviceId} 不在线，跳过执行 sendReadCommand");
                 return;
             }
         }

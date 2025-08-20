@@ -73,4 +73,43 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
     {
         return await _sysJobService.Run(dto);
     }
+
+
+    /// <summary>
+    /// 根据设备ID查询任务列表
+    /// </summary>
+    public async Task<List<SysJobDto>> GetJobsByDeviceId(long deviceId)
+    {
+        var jobIds = await _repository.Queryable(new SysJobIotDto { DeviceId = deviceId })
+            .Select(d => d.JobId)
+            .ToListAsync();
+
+        if(!jobIds.Any())
+        {
+            return new List<SysJobDto>();
+        }
+
+        var query = _sysJobService.BaseRepo.DtoQueryable(new SysJobDto());
+        query = query.Where(j => jobIds.Contains(j.JobId));
+        return await query.ToListAsync();
+    }
+
+    /// <summary>
+    /// 根据产品ID查询任务列表
+    /// </summary>
+    public async Task<List<SysJobDto>> GetJobsByProductId(long productId)
+    {
+        var jobIds = await _repository.Queryable(new SysJobIotDto { productId = productId })
+            .Select(d => d.JobId)
+            .ToListAsync();
+
+        if(!jobIds.Any())
+        {
+            return new List<SysJobDto>();
+        }
+
+        var query = _sysJobService.BaseRepo.DtoQueryable(new SysJobDto());
+        query = query.Where(j => jobIds.Contains(j.JobId));
+        return await query.ToListAsync();
+    }
 }
