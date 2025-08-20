@@ -21,6 +21,68 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
     }
 
     /// <summary>
+    /// 分页查询任务，先查扩展表再查主表
+    /// </summary>
+    public override async Task<SqlSugarPagedList<SysJobIotDto>> GetDtoPagedListAsync(SysJobIotDto dto)
+    {
+        var jobIds = await _repository.Queryable(dto).Select(d => d.JobId).ToListAsync();
+        if(jobIds.Count == 0)
+        {
+            return new SqlSugarPagedList<SysJobIotDto>
+            {
+                PageIndex = 0,
+                PageSize = 0,
+                Total = 0,
+                Rows = new List<SysJobIotDto>(),
+                Code = StatusCodes.Status200OK,
+                HasPrevPages = false,
+                HasNextPages = false
+            };
+        }
+
+        var jobQuery = _sysJobService.BaseRepo.DtoQueryable(dto).Where(j => jobIds.Contains(j.JobId));
+        var jobPaged = await _sysJobService.BaseRepo.GetDtoPagedListAsync(jobQuery);
+
+        var pageJobIds = jobPaged.Rows.Select(r => r.JobId).ToList();
+        var extList = await _repository.DtoQueryable(new SysJobIotDto())
+            .Where(e => pageJobIds.Contains(e.JobId))
+            .ToListAsync();
+        var extDict = extList.ToDictionary(e => e.JobId);
+
+        var rows = jobPaged.Rows.Select(j =>
+        {
+            var item = j.Adapt<SysJobIotDto>();
+            if(extDict.TryGetValue(j.JobId,out var ext))
+            {
+                item.TargetType = ext.TargetType;
+                item.TaskType = ext.TaskType;
+                item.DeviceId = ext.DeviceId;
+                item.ProductId = ext.ProductId;
+                item.SelectPoints = ext.SelectPoints;
+                item.TriggerSource = ext.TriggerSource;
+                item.Star = ext.Star;
+                item.Remark = ext.Remark;
+                item.CreateBy = ext.CreateBy;
+                item.CreateTime = ext.CreateTime;
+                item.UpdateBy = ext.UpdateBy;
+                item.UpdateTime = ext.UpdateTime;
+            }
+            return item;
+        }).ToList();
+
+        return new SqlSugarPagedList<SysJobIotDto>
+        {
+            PageIndex = jobPaged.PageIndex,
+            PageSize = jobPaged.PageSize,
+            Total = jobPaged.Total,
+            Rows = rows,
+            Code = jobPaged.Code,
+            HasPrevPages = jobPaged.HasPrevPages,
+            HasNextPages = jobPaged.HasNextPages
+        };
+
+    }
+    /// <summary>
     /// 新增任务并创建扩展信息
     /// </summary>
     public async Task<bool> InsertAsync(SysJobIotDto dto)
@@ -73,43 +135,5 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
     {
         return await _sysJobService.Run(dto);
     }
-
-
-    /// <summary>
-    /// 根据设备ID查询任务列表
-    /// </summary>
-    public async Task<List<SysJobDto>> GetJobsByDeviceId(long deviceId)
-    {
-        var jobIds = await _repository.Queryable(new SysJobIotDto { DeviceId = deviceId })
-            .Select(d => d.JobId)
-            .ToListAsync();
-
-        if(!jobIds.Any())
-        {
-            return new List<SysJobDto>();
-        }
-
-        var query = _sysJobService.BaseRepo.DtoQueryable(new SysJobDto());
-        query = query.Where(j => jobIds.Contains(j.JobId));
-        return await query.ToListAsync();
-    }
-
-    /// <summary>
-    /// 根据产品ID查询任务列表
-    /// </summary>
-    public async Task<List<SysJobDto>> GetJobsByProductId(long productId)
-    {
-        var jobIds = await _repository.Queryable(new SysJobIotDto { productId = productId })
-            .Select(d => d.JobId)
-            .ToListAsync();
-
-        if(!jobIds.Any())
-        {
-            return new List<SysJobDto>();
-        }
-
-        var query = _sysJobService.BaseRepo.DtoQueryable(new SysJobDto());
-        query = query.Where(j => jobIds.Contains(j.JobId));
-        return await query.ToListAsync();
-    }
+ 
 }

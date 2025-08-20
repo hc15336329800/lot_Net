@@ -38,7 +38,7 @@ namespace RuoYi.Quartz.Entities
         /// 产品ID
         /// </summary>
         [SugarColumn(ColumnName = "product_id",ColumnDescription = "设备ID")]
-        public long? productId { get; set; }
+        public long? ProductId { get; set; }
 
 
         /// <summary>

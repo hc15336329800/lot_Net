@@ -27,7 +27,7 @@ namespace RuoYi.Quartz.Dtos
         /// <summary>
         /// 产品ID
         /// </summary>
-        public long? productId { get; set; }
+        public long? ProductId { get; set; }
 
         /// <summary>
         ///  选择点位 （ iot_product_point表的 point_key 字段）

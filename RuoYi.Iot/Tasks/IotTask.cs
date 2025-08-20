@@ -90,7 +90,7 @@ public class IotTask
         }
 
         long? deviceId = ext.DeviceId;
-        long? productId = ext.productId;
+        long? productId = ext.ProductId;
         Console.WriteLine($"[DEBUG] 从扩展信息读取 -> deviceId={deviceId}, productId={productId}");
 
         // 若同时存在设备ID和产品ID，以设备ID为准

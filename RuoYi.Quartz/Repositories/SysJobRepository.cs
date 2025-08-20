@@ -20,7 +20,7 @@ public class SysJobRepository : BaseRepository<SysJob, SysJobDto>
             .WhereIF(dto.JobId > 0, (t) => t.JobId == dto.JobId)
             .WhereIF(!string.IsNullOrEmpty(dto.JobName), (t) => t.JobName.Contains(dto.JobName!))
             .WhereIF(!string.IsNullOrEmpty(dto.InvokeTarget), (t) => t.InvokeTarget.Contains(dto.InvokeTarget!))
-            .WhereIF(!string.IsNullOrEmpty(dto.JobGroup), (t) => t.JobName == dto.JobName)
+            .WhereIF(!string.IsNullOrEmpty(dto.JobGroup),(t) => t.JobGroup == dto.JobGroup)
             .WhereIF(!string.IsNullOrEmpty(dto.Status), (t) => t.Status == dto.Status)
         ;
     }
@@ -31,7 +31,7 @@ public class SysJobRepository : BaseRepository<SysJob, SysJobDto>
             .WhereIF(dto.JobId > 0, (t) => t.JobId == dto.JobId)
             .WhereIF(!string.IsNullOrEmpty(dto.JobName), (t) => t.JobName.Contains(dto.JobName!))
             .WhereIF(!string.IsNullOrEmpty(dto.InvokeTarget), (t) => t.InvokeTarget.Contains(dto.InvokeTarget!))
-            .WhereIF(!string.IsNullOrEmpty(dto.JobGroup), (t) => t.JobName == dto.JobName)
+            .WhereIF(!string.IsNullOrEmpty(dto.JobGroup),(t) => t.JobGroup == dto.JobGroup)
             .WhereIF(!string.IsNullOrEmpty(dto.Status), (t) => t.Status == dto.Status)
             .Select((t) => new SysJobDto
             {
