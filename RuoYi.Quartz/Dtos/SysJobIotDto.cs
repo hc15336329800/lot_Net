@@ -5,8 +5,15 @@ namespace RuoYi.Quartz.Dtos
     /// <summary>
     /// 定时任务IOT扩展表 DTO
     /// </summary>
-    public class SysJobIotDto : SysJobDto
+    public class SysJobIotDto : BaseDto
     {
+
+        /// <summary>
+        /// 任务ID
+        /// </summary>
+        public long JobId { get; set; }
+
+
         /// <summary>
         /// 目标类型
         /// </summary>

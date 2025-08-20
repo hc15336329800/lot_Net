@@ -26,7 +26,7 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
     /// </summary>
     public override async Task<SqlSugarPagedList<SysJobIotDto>> GetDtoPagedListAsync(SysJobIotDto dto)
     {
-        var jobIds = await _repository.Queryable(dto).Select(d => d.JobId,true).ToListAsync();
+        var jobIds = await _repository.Queryable(dto).Select(d => d.JobId).ToListAsync();
         if(jobIds.Count == 0)
         {
             return new SqlSugarPagedList<SysJobIotDto>
@@ -46,16 +46,16 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
             .Select(j => new SysJobDto
             {
                 JobId = j.JobId
-            },true);
+            });
         var jobPaged = await _sysJobService.BaseRepo.GetDtoPagedListAsync(jobQuery);
 
         var pageJobIds = jobPaged.Rows.Select(r => r.JobId).ToList();
         var extList = await _repository.Queryable(new SysJobIotDto())
             .Where(e => pageJobIds.Contains(e.JobId))
-             .Select(e => new SysJobIotDto
-             {
-                 JobId = e.JobId
-             },true)
+                       .Select(e => new SysJobIotDto
+                       {
+                           JobId = e.JobId
+                       })
             .ToListAsync();
         var extDict = extList.ToDictionary(e => e.JobId);
 
@@ -97,10 +97,12 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
     /// </summary>
     public async Task<bool> InsertAsync(SysJobIotDto dto)
     {
-        var ok = await _sysJobService.InsertJobAsync(dto);
+        var job = dto.Adapt<SysJobDto>();
+        var ok = await _sysJobService.InsertJobAsync(job);
+        
         if(ok)
         {
-            dto.JobId = dto.JobId;
+            dto.JobId = job.JobId;
             return await _repository.InsertAsync(dto);
         }
         return false;
@@ -111,7 +113,7 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
     /// </summary>
     public async Task<bool> UpdateAsync(SysJobIotDto dto)
     {
-        var rows = await _sysJobService.UpdateJobAsync(dto);
+        var rows = await _sysJobService.UpdateJobAsync(dto.Adapt<SysJobDto>());
         if(rows)
         {
             await _repository.UpdateAsync(dto);
@@ -134,7 +136,7 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
     /// <param name="dto">任务对象</param>
     public async Task<bool> ChangeStatusAsync(SysJobIotDto dto)
     {
-        return await _sysJobService.ChangeStatusAsync(dto);
+        return await _sysJobService.ChangeStatusAsync(dto.Adapt<SysJobDto>());
     }
 
     /// <summary>
@@ -143,7 +145,7 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
     /// <param name="dto">任务对象</param>
     public async Task<bool> Run(SysJobIotDto dto)
     {
-        return await _sysJobService.Run(dto);
+        return await _sysJobService.Run(dto.Adapt<SysJobDto>());
     }
 
 
@@ -177,14 +179,10 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
 
         var jobList = await _sysJobService.BaseRepo.Queryable(new SysJobDto())
             .Where(j => jobIds.Contains(j.JobId))
-               .Select(j => new SysJobDto
-               {
-                   JobId = j.JobId
-               },true)
-                 .Select(e => new SysJobIotDto
-                 {
-                     JobId = e.JobId
-                 },true)
+                .Select(j => new SysJobDto
+                {
+                    JobId = j.JobId
+                })
             .ToListAsync();
 
         var extList = await _repository.Queryable(new SysJobIotDto())

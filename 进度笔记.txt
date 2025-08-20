@@ -196,6 +196,11 @@ TestRead通过反射和动态调用来解析TcpService，增加了复杂性并�
 连接关闭时清理跟踪的从属地址和起始地址元数据，确保新设备可以安全地重用地址
 
 
+2025-08-20：
+
+- SysJobIotDto 目前继承自 SysJobDto，而 SysJobDto 又继承自 BaseDto。sys_job_iot 表仅包含 IoT 任务扩展字段，与 sys_job 中的大量调度字段并不匹配。直接继承 SysJobDto 会让 SysJobIotDto 持有许多与其实体不对应的属性，造成 DTO 映射混乱和潜在的序列化/验证问题。需要整改保持明了性。
+
+
 
 
 
