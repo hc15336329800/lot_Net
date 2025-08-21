@@ -53,6 +53,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "关于框架定时器", "关于框架定时器", "{CE71ADFB-15D7-4A74-AD8B-EE9817718210}"
 	ProjectSection(SolutionItems) = preProject
 		TextFile1.txt = TextFile1.txt
+		关于本项目定时器的几种策略.txt = 关于本项目定时器的几种策略.txt
 	EndProjectSection
 EndProject
 Global

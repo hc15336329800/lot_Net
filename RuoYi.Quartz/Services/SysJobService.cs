@@ -78,6 +78,10 @@ public class SysJobService : BaseService<SysJob, SysJobDto>, ITransient
     public async Task<bool> InsertJobAsync(SysJobDto job)
     {
         job.Status = ScheduleStatus.PAUSE.GetValue();
+        if(string.IsNullOrWhiteSpace(job.MisfirePolicy))
+        {
+            job.MisfirePolicy = ScheduleConstants.MISFIRE_DO_NOTHING; //设置默认策略为放弃执行。
+        }
         var entity = job.Adapt<SysJob>();
         bool success = await _sysJobRepository.Insertable(entity).ExecuteCommandAsync() > 0;
         if (success)

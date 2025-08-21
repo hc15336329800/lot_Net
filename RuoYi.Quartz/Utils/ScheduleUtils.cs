@@ -165,7 +165,12 @@ namespace RuoYi.Quartz.Utils
         // 设置定时任务策略
         private static void HandleCronScheduleMisfirePolicy(SysJobDto job, CronScheduleBuilder cb)
         {
-            switch (job.MisfirePolicy)
+            ////设置默认策略为放弃执行。
+            var misfirePolicy = string.IsNullOrWhiteSpace(job.MisfirePolicy)
+                          ? ScheduleConstants.MISFIRE_DO_NOTHING
+                          : job.MisfirePolicy;
+
+            switch(misfirePolicy)
             {
                 case ScheduleConstants.MISFIRE_DEFAULT:
                     return;
