@@ -8,9 +8,9 @@ namespace RuoYi.Quartz.Dtos
     public class SysJobIotDto : SysJobDto
     {
 
-        ///// <summary>
-        ///// 任务ID
-        ///// </summary>
+        /// <summary>
+        /// 任务ID
+        /// </summary>
         //public long JobId { get; set; }
 
 
