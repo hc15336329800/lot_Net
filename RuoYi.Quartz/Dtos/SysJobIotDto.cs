@@ -11,7 +11,7 @@ namespace RuoYi.Quartz.Dtos
         /// <summary>
         /// 任务ID
         /// </summary>
-        //public long JobId { get; set; }
+        public long JobId { get; set; }
 
 
         /// <summary>
