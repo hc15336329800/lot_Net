@@ -12,7 +12,7 @@ namespace RuoYi.Quartz.Entities
         /// <summary>
         /// 任务ID
         /// </summary>
-        [SugarColumn(IsPrimaryKey = true,ColumnName = "job_id",ColumnDescription = "任务ID")]
+        [SugarColumn(ColumnName = "job_id",ColumnDescription = "任务ID",IsPrimaryKey = true)]
         public long JobId { get; set; }
 
         /// <summary>
