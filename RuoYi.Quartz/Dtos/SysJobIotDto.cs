@@ -5,13 +5,13 @@ namespace RuoYi.Quartz.Dtos
     /// <summary>
     /// 定时任务IOT扩展表 DTO
     /// </summary>
-    public class SysJobIotDto : BaseDto
+    public class SysJobIotDto : SysJobDto
     {
 
-        /// <summary>
-        /// 任务ID
-        /// </summary>
-        public long JobId { get; set; }
+        ///// <summary>
+        ///// 任务ID
+        ///// </summary>
+        //public long JobId { get; set; }
 
 
         /// <summary>
@@ -53,6 +53,6 @@ namespace RuoYi.Quartz.Dtos
         //public int? Star { get; set; }
 
 
-         public string? Status { get; set; } /// 任务启停标记（1启动 0停止）
+         //public string? Status { get; set; } /// 任务启停标记（1启动 0停止）
     }
 }

@@ -47,17 +47,31 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
             .Where(j => jobIds.Contains(j.JobId))
             .Select(j => new SysJobDto
             {
-                JobId = j.JobId
+                JobId = j.JobId,
+                JobName = j.JobName,
+                JobGroup = j.JobGroup,
+                InvokeTarget = j.InvokeTarget,
+                CronExpression = j.CronExpression,
+                MisfirePolicy = j.MisfirePolicy,
+                Concurrent = j.Concurrent,
+                Status = j.Status
             });
         var jobPaged = await _sysJobService.BaseRepo.GetDtoPagedListAsync(jobQuery);
 
         var pageJobIds = jobPaged.Rows.Select(r => r.JobId).ToList();
         var extList = await _repository.Queryable(new SysJobIotDto())
             .Where(e => pageJobIds.Contains(e.JobId))
-                       .Select(e => new SysJobIotDto
-                       {
-                           JobId = e.JobId
-                       })
+                      .Select(e => new SysJobIotDto
+                      {
+                          JobId = e.JobId,
+                          TargetType = e.TargetType,
+                          TaskType = e.TaskType,
+                          DeviceId = e.DeviceId,
+                          ProductId = e.ProductId,
+                          SelectPoints = e.SelectPoints,
+                          TriggerSource = e.TriggerSource,
+                          Status = e.Status
+                      })
             .ToListAsync();
         var extDict = extList.ToDictionary(e => e.JobId);
 
@@ -114,24 +128,59 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
     /// <summary>
     /// 更新任务及扩展信息
     /// </summary>
+    [Transactional]
     public async Task<bool> UpdateAsync(SysJobIotDto dto)
     {
-        var rows = await _sysJobService.UpdateJobAsync(dto.Adapt<SysJobDto>());
-        if(rows)
+        var ok = await _sysJobService.UpdateJobAsync(dto.Adapt<SysJobDto>());
+        if(!ok)
         {
-            await _repository.UpdateAsync(dto);
+            return false;
         }
-        return rows;
+        var extRows = await _repository.UpdateAsync(dto);
+        return extRows > 0;
     }
 
     /// <summary>
     /// 删除任务及扩展信息
     /// </summary>
+    [Transactional]
     public async Task DeleteAsync(List<long> jobIds)
     {
         await _sysJobService.DeleteJobByIdsAsync(jobIds);
         await _repository.DeleteAsync(jobIds);
     }
+
+
+    /// <summary>
+    /// 查询单个任务，合并主表与扩展表字段
+    /// </summary>
+    public async Task<SysJobIotDto?> GetDtoAsync(long jobId)
+    {
+        var job = await _sysJobService.GetDtoAsync(jobId);
+        if(job == null)
+        {
+            return null;
+        }
+        var dto = job.Adapt<SysJobIotDto>();
+        var ext = await _repository.FirstOrDefaultAsync(e => e.JobId == jobId);
+        if(ext != null)
+        {
+            dto.TargetType = ext.TargetType;
+            dto.TaskType = ext.TaskType;
+            dto.DeviceId = ext.DeviceId;
+            dto.ProductId = ext.ProductId;
+            dto.SelectPoints = ext.SelectPoints;
+            dto.TriggerSource = ext.TriggerSource;
+            dto.Status = ext.Status;
+            dto.Remark = ext.Remark;
+            dto.CreateBy = ext.CreateBy;
+            dto.CreateTime = ext.CreateTime;
+            dto.UpdateBy = ext.UpdateBy;
+            dto.UpdateTime = ext.UpdateTime;
+        }
+        return dto;
+    }
+
 
     /// <summary>
     /// 任务调度状态修改  启停
@@ -181,11 +230,17 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
         }
 
         var jobList = await _sysJobService.BaseRepo.Queryable(new SysJobDto())
-            .Where(j => jobIds.Contains(j.JobId))
-                .Select(j => new SysJobDto
-                {
-                    JobId = j.JobId
-                })
+  .Select(j => new SysJobDto
+  {
+      JobId = j.JobId,
+      JobName = j.JobName,
+      JobGroup = j.JobGroup,
+      InvokeTarget = j.InvokeTarget,
+      CronExpression = j.CronExpression,
+      MisfirePolicy = j.MisfirePolicy,
+      Concurrent = j.Concurrent,
+      Status = j.Status
+  })
             .ToListAsync();
 
         var extList = await _repository.Queryable(new SysJobIotDto())
