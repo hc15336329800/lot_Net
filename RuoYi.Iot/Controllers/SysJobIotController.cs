@@ -43,15 +43,17 @@ namespace RuoYi.Iot.Controllers
 
         //  任务列表 根据设备id查询
         [HttpGet("listByDeviceId/{deviceId}")]
-        public async Task<List<SysJobIotDto>> GetByDevice(long deviceId)
+        public async Task<AjaxResult> GetByDevice(long deviceId)
         {
-            return await _service.GetListByDeviceId(deviceId);
+            var list = await _service.GetListByDeviceId(deviceId);
+            return AjaxResult.Success(list);
         }
         // 所有任务列表 根据产品id查询
         [HttpGet("listByProduct/{productId}")]
-        public async Task<List<SysJobIotDto>> GetByProduct(long productId)
+        public async Task<AjaxResult> GetByProduct(long productId)
         {
-            return await _service.GetListByProductId(productId);
+            var list = await _service.GetListByProductId(productId);
+            return AjaxResult.Success(list);
         }
 
 

@@ -230,17 +230,18 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
         }
 
         var jobList = await _sysJobService.BaseRepo.Queryable(new SysJobDto())
-  .Select(j => new SysJobDto
-  {
-      JobId = j.JobId,
-      JobName = j.JobName,
-      JobGroup = j.JobGroup,
-      InvokeTarget = j.InvokeTarget,
-      CronExpression = j.CronExpression,
-      MisfirePolicy = j.MisfirePolicy,
-      Concurrent = j.Concurrent,
-      Status = j.Status
-  })
+ .Where(j => jobIds.Contains(j.JobId))
+            .Select(j => new SysJobDto
+            {
+                JobId = j.JobId,
+                JobName = j.JobName,
+                JobGroup = j.JobGroup,
+                InvokeTarget = j.InvokeTarget,
+                CronExpression = j.CronExpression,
+                MisfirePolicy = j.MisfirePolicy,
+                Concurrent = j.Concurrent,
+                Status = j.Status
+            })
             .ToListAsync();
 
         var extList = await _repository.Queryable(new SysJobIotDto())
