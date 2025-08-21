@@ -29,12 +29,8 @@ namespace RuoYi.Iot.Controllers
 
         }
 
-        // 所有任务列表
-        [HttpGet("list")]
-        public async Task<SqlSugarPagedList<SysJobIotDto>> List([FromQuery] SysJobIotDto dto)
-        {
-            return await _service.GetDtoPagedListAsync(dto);
-        }
+
+        /////////////////////////////////////////////////////测试中/////////////////////////////////////////////////////
 
         // 获取任务详情
         [HttpGet("{jobId}")]
@@ -70,8 +66,16 @@ namespace RuoYi.Iot.Controllers
             return list.Select(p => new ElSelect { Label = p.PointName ?? string.Empty,Value = p.Id.ToString() }).ToList();
         }
 
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////// ///////////////////////////////////////////////
 
 
+        // 所有任务列表
+        [HttpGet("list")]
+        public async Task<SqlSugarPagedList<SysJobIotDto>> List([FromQuery] SysJobIotDto dto)
+        {
+            return await _service.GetDtoPagedListAsync(dto);
+        }
+ 
         [HttpPost("add")]
         [Log(Title = "定时任务",BusinessType = BusinessType.INSERT)]
         public async Task<AjaxResult> Add([FromBody] SysJobIotDto dto)
