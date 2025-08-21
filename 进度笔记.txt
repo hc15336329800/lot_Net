@@ -199,7 +199,7 @@ TestRead通过反射和动态调用来解析TcpService，增加了复杂性并�
 2025-08-20：
 
 - SysJobIotDto 目前继承自 SysJobDto，而 SysJobDto 又继承自 BaseDto。sys_job_iot 表仅包含 IoT 任务扩展字段，与 sys_job 中的大量调度字段并不匹配。直接继承 SysJobDto 会让 SysJobIotDto 持有许多与其实体不对应的属性，造成 DTO 映射混乱和潜在的序列化/验证问题。需要整改保持明了性。
-
+- 目前可以使用sys_job_iot 与 sys_job 通过 job_id 一对一关联，可以按照“前端提供全量数据 → 后端拆分入库 → 查询时再组合返回”的模式实现
 
 
 

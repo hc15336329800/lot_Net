@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using RuoYi.Common.Data;
+using RuoYi.Common.Utils;
 using RuoYi.Quartz.Dtos;
 using RuoYi.Quartz.Entities;
 using RuoYi.Quartz.Repositories;
@@ -99,7 +100,7 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
     {
         var job = dto.Adapt<SysJobDto>();
         var ok = await _sysJobService.InsertJobAsync(job);
-        
+
         if(ok)
         {
             dto.JobId = job.JobId;
