@@ -14,7 +14,7 @@ namespace RuoYi.Quartz.Entities
         /// <summary>
         /// 任务ID (job_id)
         /// </summary>
-        [SugarColumn(ColumnName = "job_id", ColumnDescription = "任务ID", IsPrimaryKey = true, IsIdentity = true)]
+        [SugarColumn(ColumnName = "job_id", ColumnDescription = "任务ID", IsPrimaryKey = true)]  //, IsIdentity = true 去掉自增
         public long JobId { get; set; }
                 
         /// <summary>

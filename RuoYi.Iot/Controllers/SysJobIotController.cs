@@ -83,6 +83,7 @@ namespace RuoYi.Iot.Controllers
         public async Task<AjaxResult> Add([FromBody] SysJobIotDto dto)
         {
             dto.JobId = NextId.Id13();
+            dto.InvokeTarget = "readAndWrite";  //定时调用的方法
 
             var ok = await _service.InsertAsync(dto);
             return AjaxResult.Success(ok);
