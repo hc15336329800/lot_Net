@@ -78,7 +78,8 @@ public class SysJobService : BaseService<SysJob, SysJobDto>, ITransient
     public async Task<bool> InsertJobAsync(SysJobDto job)
     {
         job.Status = ScheduleStatus.PAUSE.GetValue();
-        bool success = await _sysJobRepository.InsertAsync(job);
+        var entity = job.Adapt<SysJob>();
+        bool success = await _sysJobRepository.Insertable(entity).ExecuteCommandAsync() > 0;
         if (success)
         {
             await ScheduleUtils.CreateScheduleJob(job);

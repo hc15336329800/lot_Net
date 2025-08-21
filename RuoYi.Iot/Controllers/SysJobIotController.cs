@@ -9,6 +9,7 @@ using RuoYi.Quartz.Enums;
 using RuoYi.Quartz.Utils;
 using RuoYi.Iot.Services;
 using RuoYi.Data.Models;
+using RuoYi.Common.Utils;
 
 namespace RuoYi.Iot.Controllers
 {
@@ -34,6 +35,16 @@ namespace RuoYi.Iot.Controllers
         {
             return await _service.GetDtoPagedListAsync(dto);
         }
+
+        // 获取任务详情
+        [HttpGet("{jobId}")]
+        public async Task<AjaxResult> Get(long jobId)
+        {
+            var data = await _service.GetDtoAsync(jobId);
+            return AjaxResult.Success(data);
+        }
+
+
         //  任务列表 根据设备id查询
         [HttpGet("listByDeviceId/{deviceId}")]
         public async Task<List<SysJobIotDto>> GetByDevice(long deviceId)
@@ -65,6 +76,8 @@ namespace RuoYi.Iot.Controllers
         [Log(Title = "定时任务",BusinessType = BusinessType.INSERT)]
         public async Task<AjaxResult> Add([FromBody] SysJobIotDto dto)
         {
+            dto.JobId = NextId.Id13();
+
             var ok = await _service.InsertAsync(dto);
             return AjaxResult.Success(ok);
         }

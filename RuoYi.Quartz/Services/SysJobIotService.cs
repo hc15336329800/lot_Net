@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using RuoYi.Common.Data;
 using RuoYi.Common.Utils;
+using RuoYi.Framework.Interceptors;
 using RuoYi.Quartz.Dtos;
 using RuoYi.Quartz.Entities;
 using RuoYi.Quartz.Repositories;
@@ -96,15 +97,16 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
     /// <summary>
     /// 新增任务并创建扩展信息
     /// </summary>
+    [Transactional] //增加事务
     public async Task<bool> InsertAsync(SysJobIotDto dto)
     {
         var job = dto.Adapt<SysJobDto>();
+        job.JobId = dto.JobId;
         var ok = await _sysJobService.InsertJobAsync(job);
 
         if(ok)
         {
-            dto.JobId = job.JobId;
-            return await _repository.InsertAsync(dto);
+             return await _repository.InsertAsync(dto);
         }
         return false;
     }
