@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Quartz;
 using RuoYi.Framework.Interceptors;
 using RuoYi.Quartz.Constants;
@@ -149,6 +150,10 @@ public class SysJobService : BaseService<SysJob, SysJobDto>, ITransient
         else if (StringUtils.ContainsAnyIgnoreCase(job.InvokeTarget, Data.Constants.JOB_ERROR_STR))
         {
             return "'" + job.JobName + "'失败，目标字符串存在违规";
+        }
+        else if(!Regex.IsMatch(job.InvokeTarget ?? string.Empty,@"^[A-Za-z0-9_]+\.[A-Za-z0-9_]+\(.*\)$"))
+        {
+            return "'" + job.JobName + "'失败，invokeTarget 格式必须为 'iotTask.readAndWrite()'";
         }
         else if (!ScheduleUtils.InWhiteList(job.InvokeTarget!))
         {

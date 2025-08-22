@@ -137,6 +137,15 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
             return false;
         }
         var extRows = await _repository.UpdateAsync(dto);
+        if(extRows > 0)
+        {
+            var job = await _sysJobService.GetDtoAsync(dto.JobId);
+            if(job != null)
+            {
+                job.InvokeTarget = $"{job.InvokeTarget}?targetType={dto.TargetType}&taskType={dto.TaskType}&deviceId={dto.DeviceId}&selectPoints={dto.SelectPoints}&triggerSource={dto.TriggerSource}";
+                await _sysJobService.UpdateSchedulerJob(job,job.JobGroup!);
+            }
+        }
         return extRows > 0;
     }
 

@@ -23,11 +23,14 @@ namespace RuoYi.Iot.Controllers
         private readonly IotProductPointService _productPointService;
 
 
-        public SysJobIotController(SysJobIotService service,IotProductPointService productPointService)
+        private readonly IotDeviceService _deviceService;
+
+
+        public SysJobIotController(SysJobIotService service,IotProductPointService productPointService,IotDeviceService deviceService)
         {
             _service = service;
             _productPointService = productPointService;
-
+            _deviceService = deviceService;
         }
 
 
@@ -132,6 +135,20 @@ namespace RuoYi.Iot.Controllers
         public async Task<AjaxResult> Run([FromBody] SysJobIotDto dto)
         {
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] 运行一次任务开始");
+
+            if(dto.JobId != 0)
+            {
+                var job = await _service.GetDtoAsync(dto.JobId);
+                if(job?.DeviceId != null)
+                {
+                    var dev = await _deviceService.GetAsync(job.DeviceId.Value);
+                    if(!string.Equals(dev.DeviceStatus,"online1",StringComparison.OrdinalIgnoreCase))
+                    {
+                        Console.WriteLine($"[WARN] 设备 {job.DeviceId} 不在线");
+                        return AjaxResult.Error("设备不在线");
+                    }
+                }
+            }
 
 
             var result = await _service.Run(dto);
