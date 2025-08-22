@@ -44,19 +44,37 @@ public class IotTask
         logger.LogInformation($"Updated {pointKey} to {newVal}");
     }
 
+
     /// <summary>
     /// 示例：测试是否执行
     /// </summary>
     public async Task readAndWrite( )
     {
+        var logger = App.GetService<ILogger<IotTask>>();
+        Console.WriteLine($"[DEBUG] {DateTime.Now:yyyy-MM-dd HH:mm:ss} -> readAndWrite() 方法开始执行");
+        logger.LogInformation("readAndWrite invoked");
 
-        Console.WriteLine("测试 ：定时任务readAndWrite执行");
-        return;
+        try
+        {
+            // 这里可以执行实际逻辑，目前仅用于调试是否触发
+            Console.WriteLine("测试 ：定时任务readAndWrite执行");
+        }
+        catch(Exception ex)
+        {
+            logger.LogError(ex,"readAndWrite 执行异常");
+            Console.WriteLine($"[ERROR] readAndWrite 执行异常: {ex.Message}");
+        }
+        finally
+        {
+            Console.WriteLine($"[DEBUG] {DateTime.Now:yyyy-MM-dd HH:mm:ss} -> readAndWrite() 方法执行结束");
+        }
 
+        await Task.CompletedTask;
     }
 
 
- 
+
+
     /// <summary>
     /// 发送读取指令到设备，利用已有 TCP 连接获取点位数据
     /// 发送读取指令到指定设备，若同时存在设备ID和产品ID，优先使用设备ID

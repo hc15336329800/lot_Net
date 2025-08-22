@@ -185,6 +185,8 @@ public class SysJobService : BaseService<SysJob, SysJobDto>, ITransient
     /// <param name="job">调度信息</param>
     public async Task<bool> Run(SysJobDto job)
     {
+        _logger.LogInformation($"[DEBUG] Run 调用，jobId={job.JobId}");
+
         IScheduler _scheduler = await ScheduleUtils.GetDefaultScheduleAsync();
 
         bool result = false;
@@ -192,6 +194,7 @@ public class SysJobService : BaseService<SysJob, SysJobDto>, ITransient
         SysJobDto? properties = await GetDtoAsync(jobId);
         if(properties == null)
         {
+            _logger.LogWarning($"Run 调用失败，未找到任务 {jobId}");
             return false;
         }
         string jobGroup = properties.JobGroup!;
@@ -200,6 +203,8 @@ public class SysJobService : BaseService<SysJob, SysJobDto>, ITransient
         JobKey jobKey = ScheduleUtils.GetJobKey(jobId, jobGroup);
         if (await _scheduler.CheckExists(jobKey))
         {
+            _logger.LogInformation($"[DEBUG] 触发调度任务 jobKey={jobKey}");
+
             // 更新调度器中的任务数据，确保执行最新的 InvokeTarget
             var detail = await _scheduler.GetJobDetail(jobKey);
             detail.JobDataMap[ScheduleConstants.TASK_PROPERTIES] = properties;
@@ -211,9 +216,21 @@ public class SysJobService : BaseService<SysJob, SysJobDto>, ITransient
                 { ScheduleConstants.TASK_PROPERTIES, properties }
             };
 
-            await _scheduler.TriggerJob(jobKey, dataMap);
-            result = true;
+            try
+            {
+                await _scheduler.TriggerJob(jobKey,dataMap);
+                _logger.LogInformation($"[DEBUG] 调度任务 {jobId} 已触发");
+                result = true;
+            }
+            catch(Exception ex)
+            {
+                _logger.LogError(ex,$"触发调度任务 {jobId} 发生异常");
+            }
 
+        }
+        else
+        {
+            _logger.LogWarning($"Run 调用失败，调度器中不存在 jobKey={jobKey}");
         }
         return result;
     }

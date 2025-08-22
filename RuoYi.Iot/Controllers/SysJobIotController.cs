@@ -135,6 +135,8 @@ namespace RuoYi.Iot.Controllers
 
 
             var result = await _service.Run(dto);
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] 运行一次任务结束 -> {result}");
+
             return result ? AjaxResult.Success() : AjaxResult.Error("任务不存在或已过期！");
         }
 
