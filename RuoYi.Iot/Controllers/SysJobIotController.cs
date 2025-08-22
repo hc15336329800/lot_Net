@@ -117,7 +117,7 @@ namespace RuoYi.Iot.Controllers
             return AjaxResult.Success();
         }
 
-        [HttpPut("changeStatus")]
+        [HttpPost("changeStatus")]
         [Log(Title = "定时任务",BusinessType = BusinessType.UPDATE)]
         public async Task<AjaxResult> ChangeStatus([FromBody] SysJobIotDto dto)
         {
@@ -127,7 +127,7 @@ namespace RuoYi.Iot.Controllers
 
 
         // 运行一次任务
-        [HttpPut("run")]
+        [HttpPost("run")]
         [Log(Title = "定时任务 运行一次",BusinessType = BusinessType.UPDATE)]
         public async Task<AjaxResult> Run([FromBody] SysJobIotDto dto)
         {
@@ -143,7 +143,7 @@ namespace RuoYi.Iot.Controllers
         ///  任务启停：启动则任务按 Cron 表达式执行  
         /// </summary>
         /// <param name="dto">任务对象</param>
-        [HttpPut("runCron")]
+        [HttpPost("runCron")]
         [Log(Title = "定时任务启停",BusinessType = BusinessType.UPDATE)]
         public async Task<AjaxResult> RunCron([FromBody] SysJobIotDto dto)
         {
