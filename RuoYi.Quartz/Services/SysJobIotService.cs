@@ -197,7 +197,19 @@ public class SysJobIotService : BaseService<SysJobIot,SysJobIotDto>
     /// <param name="dto">任务对象</param>
     public async Task<bool> ChangeStatusAsync(SysJobIotDto dto)
     {
-        return await _sysJobService.ChangeStatusAsync(dto.Adapt<SysJobDto>());
+        var jobUpdated = await _sysJobService.ChangeStatusAsync(dto.Adapt<SysJobDto>());
+        if(!jobUpdated)
+        {
+            return false;
+        }
+
+        var extRows = await _repository.UpdateAsync(new SysJobIotDto
+        {
+            JobId = dto.JobId,
+            Status = dto.Status
+        },true);
+
+        return jobUpdated && extRows > 0;
     }
 
     /// <summary>

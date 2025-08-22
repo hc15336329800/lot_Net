@@ -88,7 +88,7 @@ namespace RuoYi.Iot.Controllers
         public async Task<AjaxResult> Add([FromBody] SysJobIotDto dto)
         {
             dto.JobId = NextId.Id13();
-            dto.InvokeTarget = "readAndWrite";  //定时调用的方法   测试使用
+            dto.InvokeTarget = "iotTask.readAndWrite()";  //定时调用的方法   测试使用
             dto.MisfirePolicy ??= ScheduleConstants.MISFIRE_DEFAULT; // 执行策略  默认不执行任务
             dto.Concurrent ??= "0"; //是否并发执行（0允许 1禁止）
             dto.Status ??= "1"; // 状态（0正常 1暂停）
@@ -169,9 +169,10 @@ namespace RuoYi.Iot.Controllers
             Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] 运行Cron任务开始");
             //return AjaxResult.Success();
 
-            dto.Status = dto.Status == "1" ? ScheduleStatus.NORMAL.GetValue() : ScheduleStatus.PAUSE.GetValue();
+            var start = dto.Status == "1";
+            dto.Status = start ? ScheduleStatus.NORMAL.GetValue() : ScheduleStatus.PAUSE.GetValue();
             var success = await _service.ChangeStatusAsync(dto);
-            if(success && dto.Status == "1")
+            if(success && start)
             {
                 var scheduler = await ScheduleUtils.GetDefaultScheduleAsync();
                 if(!scheduler.IsStarted || scheduler.InStandbyMode)
