@@ -11,6 +11,8 @@ using RuoYi.Iot.Services;
 using RuoYi.Data.Models;
 using RuoYi.Common.Utils;
 using RuoYi.Quartz.Constants;
+using System.Text.Json;
+using RuoYi.Iot.Vo;
 
 namespace RuoYi.Iot.Controllers
 {
@@ -84,7 +86,7 @@ namespace RuoYi.Iot.Controllers
         }
  
         [HttpPost("add")]
-        [Log(Title = "定时任务",BusinessType = BusinessType.INSERT)]
+        [Log(Title = "新增定时任务",BusinessType = BusinessType.INSERT)]
         public async Task<AjaxResult> Add([FromBody] SysJobIotDto dto)
         {
             dto.JobId = NextId.Id13();
@@ -105,21 +107,27 @@ namespace RuoYi.Iot.Controllers
         }
 
         [HttpPost("edit")]
-        [Log(Title = "定时任务",BusinessType = BusinessType.UPDATE)]
+        [Log(Title = "编辑定时任务",BusinessType = BusinessType.UPDATE)]
         public async Task<AjaxResult> Edit([FromBody] SysJobIotDto dto)
         {
             var ok = await _service.UpdateAsync(dto);
             return AjaxResult.Success(ok);
         }
 
+
         [HttpPost("delete")]
-        [Log(Title = "定时任务",BusinessType = BusinessType.DELETE)]
-        public async Task<AjaxResult> Delete([FromBody] long[] ids)
+        [Log(Title = "删除定时任务",BusinessType = BusinessType.DELETE)]
+        public async Task<AjaxResult> Delete([FromBody] JobDeleteVo vo)
         {
-            await _service.DeleteAsync(ids.ToList());
+            if(vo.job_id == null || vo.job_id.Count == 0)
+                return AjaxResult.Error("参数错误");
+
+            await _service.DeleteAsync(vo.job_id);
             return AjaxResult.Success();
         }
 
+
+        // 更改Status状态
         [HttpPost("changeStatus")]
         [Log(Title = "定时任务",BusinessType = BusinessType.UPDATE)]
         public async Task<AjaxResult> ChangeStatus([FromBody] SysJobIotDto dto)

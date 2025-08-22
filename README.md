@@ -114,14 +114,3 @@ RuoYi.Data  ： 静态表，静态类
 
 
 
-## ID规范 重要！
-- 以后所有新增操作  id都要使用NextId.Id13生成13位的id(与前端兼容 防止精度丢失)
-
-## TcpServer 配置
-
-在 `appsettings.json` 的 `TcpServer` 节中新增 `PollIntervalSeconds` 参数，用于控制 `ModbusRtuService` 轮询各设备的间隔时间（秒）。默认值为 `1`，根据部署环境的需求可以适当调整以平衡实时性与资源占用。
-
-
-
-
-##  注意 此项目禁止使用外键！！
