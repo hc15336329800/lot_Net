@@ -189,8 +189,12 @@ public class SysJobService : BaseService<SysJob, SysJobDto>, ITransient
 
         bool result = false;
         long jobId = job.JobId;
-        string jobGroup = job.JobGroup!;
-        SysJobDto properties = await GetDtoAsync(jobId);
+        SysJobDto? properties = await GetDtoAsync(jobId);
+        if(properties == null)
+        {
+            return false;
+        }
+        string jobGroup = properties.JobGroup!;
         // 参数
         JobDataMap dataMap = new JobDataMap();
         dataMap.Add(ScheduleConstants.TASK_PROPERTIES, properties);
