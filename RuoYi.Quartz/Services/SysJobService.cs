@@ -195,14 +195,25 @@ public class SysJobService : BaseService<SysJob, SysJobDto>, ITransient
             return false;
         }
         string jobGroup = properties.JobGroup!;
+
         // 参数
-        JobDataMap dataMap = new JobDataMap();
-        dataMap.Add(ScheduleConstants.TASK_PROPERTIES, properties);
         JobKey jobKey = ScheduleUtils.GetJobKey(jobId, jobGroup);
         if (await _scheduler.CheckExists(jobKey))
         {
-            result = true;
+            // 更新调度器中的任务数据，确保执行最新的 InvokeTarget
+            var detail = await _scheduler.GetJobDetail(jobKey);
+            detail.JobDataMap[ScheduleConstants.TASK_PROPERTIES] = properties;
+            await _scheduler.AddJob(detail,true,true);
+
+            // 传递最新参数并触发执行
+            JobDataMap dataMap = new JobDataMap
+            {
+                { ScheduleConstants.TASK_PROPERTIES, properties }
+            };
+
             await _scheduler.TriggerJob(jobKey, dataMap);
+            result = true;
+
         }
         return result;
     }
