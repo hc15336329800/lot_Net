@@ -249,8 +249,11 @@ public class SysJobService : BaseService<SysJob, SysJobDto>, ITransient
     {
         foreach (long jobId in jobIds)
         {
-            SysJob job = await GetAsync(jobId);
-            await DeleteJob(job);
+            var job = await GetAsync(jobId);
+            if(job != null)
+            {
+                await DeleteJob(job);
+            }
         }
     }
 
