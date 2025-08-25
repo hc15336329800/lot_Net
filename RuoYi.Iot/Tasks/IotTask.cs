@@ -159,8 +159,46 @@ public class IotTask
         Console.WriteLine($"[INFO] 开始执行 sendReadCommand，deviceId={deviceId}, productId={productId}");
 
         // 获取点位并发送指令
+        if(string.IsNullOrWhiteSpace(ext.SelectPoints))
+        {
+            logger.LogWarning($"任务 {job.JobId} 未配置 SelectPoints");
+            Console.WriteLine($"[WARN] 任务 {job.JobId} 未配置 SelectPoints");
+            return;
+        }
+
+        var selectArr = ext.SelectPoints
+            .Split(',',StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if(selectArr.Length == 0)
+        {
+            logger.LogWarning($"任务 {job.JobId} SelectPoints 解析为空");
+            Console.WriteLine($"[WARN] 任务 {job.JobId} SelectPoints 解析为空");
+            return;
+        }
+
+        var selectIds = new HashSet<long>();
+        var selectKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach(var sp in selectArr)
+        {
+            if(long.TryParse(sp,out var id))
+                selectIds.Add(id);
+            else
+                selectKeys.Add(sp);
+        }
+
         var points = await pointSvc.GetCachedListAsync(productId!.Value);
         Console.WriteLine($"[DEBUG] 产品 {productId} 获取到 {points.Count} 个点位");
+
+        points = points
+          .Where(p => selectIds.Contains(p.Id) || (p.PointKey != null && selectKeys.Contains(p.PointKey)))
+          .ToList();
+        Console.WriteLine($"[DEBUG] 根据 SelectPoints 过滤后: {points.Count} 个点位");
+        if(points.Count == 0)
+        {
+            logger.LogWarning($"任务 {job.JobId} 未找到匹配的点位");
+            Console.WriteLine($"[WARN] 任务 {job.JobId} 未找到匹配的点位");
+            return;
+        }
+
 
         var targets = points
             .Where(p => p.RegisterAddress.HasValue && p.SlaveAddress.HasValue)
